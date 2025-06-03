@@ -1,0 +1,1760 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>导航助手 - 您的网址导航专家</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+    (function() {
+      try {
+        var theme = localStorage.getItem('theme');
+        if (theme === 'dark' || theme === 'light') {
+          document.documentElement.setAttribute('data-theme', theme);
+        }
+      } catch(e) {}
+    })();
+    </script>
+    <style>
+        :root {
+            /* 亮色模式变量 */
+            --primary-color: #4f46e5;
+            --primary-hover: #4338ca;
+            --secondary-color: #10b981;
+            --background-color: #f8fafc;
+            --surface-color: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --text-muted: #94a3b8;
+            --border-color: #e2e8f0;
+            --shadow-light: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            --shadow-medium: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-large: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        [data-theme="dark"] {
+            /* 暗色模式变量 */
+            --primary-color: #6366f1;
+            --primary-hover: #5b21b6;
+            --secondary-color: #34d399;
+            --background-color: #0f172a;
+            --surface-color: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --text-muted: #64748b;
+            --border-color: #334155;
+            --shadow-light: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+            --shadow-medium: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+            --shadow-large: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-primary);
+            line-height: 1.6;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* 顶部导航栏 */
+        .header {
+            background-color: var(--surface-color);
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: var(--shadow-light);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            transition: all 0.3s ease;
+        }
+
+        .header-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            height: 4rem;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        .logo i {
+            font-size: 2rem;
+        }
+
+        .search-container {
+            flex: 1;
+            max-width: 500px;
+            margin: 0 2rem;
+            position: relative;
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 0.75rem 1rem 0.75rem 3rem;
+            border: 2px solid var(--border-color);
+            border-radius: 2rem;
+            background-color: var(--background-color);
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        .search-box:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 1.1rem;
+        }
+
+        .theme-toggle {
+            background: none;
+            border: 2px solid var(--border-color);
+            border-radius: 50%;
+            width: 3rem;
+            height: 3rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+        }
+
+        .theme-toggle:hover {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+            transform: scale(1.05);
+        }
+
+        /* 主内容区域 */
+        .main-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            gap: 2rem;
+        }
+
+        /* 分类侧边栏 */
+        .categories-sidebar {
+            background-color: var(--surface-color);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: var(--shadow-light);
+            height: fit-content;
+            position: sticky;
+            top: 6rem;
+        }
+
+        .categories-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        .category-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: var(--text-secondary);
+        }
+
+        .category-item:hover,
+        .category-item.active {
+            background-color: var(--primary-color);
+            color: white;
+            transform: translateX(0.25rem);
+        }
+
+        .category-item i {
+            font-size: 1.1rem;
+            width: 1.5rem;
+        }
+
+        /* 网址卡片区域 */
+        .content-area {
+            min-height: 500px;
+        }
+
+        .category-section {
+            display: none;
+        }
+
+        .category-section.active {
+            display: block;
+        }
+
+        .section-title {
+            font-size: 1.75rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .section-title i {
+            color: var(--primary-color);
+        }
+
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .website-card {
+            background-color: var(--surface-color);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: var(--shadow-light);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 1px solid var(--border-color);
+        }
+
+        .website-card:hover {
+            transform: translateY(-0.25rem);
+            box-shadow: var(--shadow-large);
+            border-color: var(--primary-color);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .card-icon {
+            width: 3rem;
+            height: 3rem;
+            border-radius: 0.75rem;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .card-url {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+        }
+
+        .card-description {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            line-height: 1.5;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        /* 底部信息栏 */
+        .footer {
+            background-color: var(--surface-color);
+            border-top: 1px solid var(--border-color);
+            margin-top: 4rem;
+            padding: 2rem 0;
+        }
+
+        .footer-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .footer-text {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 2rem;
+        }
+
+        .footer-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.875rem;
+            transition: color 0.3s ease;
+        }
+
+        .footer-link:hover {
+            color: var(--primary-color);
+        }
+
+        .add-website-btn {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .add-website-btn:hover {
+            transform: translateY(-0.125rem);
+            box-shadow: var(--shadow-medium);
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .header-container {
+                flex-direction: column;
+                height: auto;
+                padding: 1rem;
+                gap: 1rem;
+            }
+
+            .search-container {
+                margin: 0;
+                max-width: none;
+                order: 3;
+                width: 100%;
+            }
+
+            .main-container {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+                padding: 1rem;
+            }
+
+            .categories-sidebar {
+                position: static;
+                order: 2;
+            }
+
+            .cards-grid {
+                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+                gap: 1rem;
+            }
+
+            .footer-container {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .cards-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .website-card {
+                padding: 1rem;
+            }
+        }
+
+        /* 动画效果 */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(1rem);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .category-section.active {
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        /* 滚动条样式 */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--background-color);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+
+        /* 模态框样式 */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background-color: var(--surface-color);
+            border-radius: 1rem;
+            padding: 1.2rem;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-large);
+            transform: scale(0.9) translateY(-2rem);
+            transition: all 0.3s ease;
+        }
+
+        .modal-overlay.active .modal {
+            transform: scale(1) translateY(0);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+            width: 2.5rem;
+            height: 2.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-close:hover {
+            background-color: var(--border-color);
+            color: var(--text-primary);
+            border-radius: 50%;
+        }
+
+        .form-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+        .form-row .form-left {
+            flex: 2;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .form-row .icon-edit-group {
+            flex: 1;
+            min-width: 120px;
+            max-width: 180px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.3rem;
+        }
+        @media (max-width: 768px) {
+            .form-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .form-row .icon-edit-group {
+                align-items: stretch;
+                max-width: none;
+            }
+        }
+
+        .form-input,
+        .form-textarea,
+        .form-select {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            border: 2px solid var(--border-color);
+            border-radius: 0.5rem;
+            background-color: var(--background-color);
+            color: var(--text-primary);
+            font-size: 0.98rem;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 2rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-0.125rem);
+            box-shadow: var(--shadow-medium);
+        }
+
+        .btn-secondary {
+            background-color: var(--border-color);
+            color: var(--text-secondary);
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--text-muted);
+            color: var(--surface-color);
+        }
+
+        /* 右键菜单样式 */
+        .context-menu {
+            position: fixed;
+            background-color: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            box-shadow: var(--shadow-large);
+            padding: 0.5rem 0;
+            min-width: 150px;
+            z-index: 1001;
+            opacity: 0;
+            visibility: hidden;
+            transform: scale(0.95);
+            transition: all 0.2s ease;
+        }
+
+        .context-menu.active {
+            opacity: 1;
+            visibility: visible;
+            transform: scale(1);
+        }
+
+        .context-menu-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+            transition: all 0.2s ease;
+        }
+
+        .context-menu-item:hover {
+            background-color: var(--background-color);
+            color: var(--text-primary);
+        }
+
+        .context-menu-item.danger:hover {
+            background-color: #fee2e2;
+            color: #dc2626;
+        }
+
+        [data-theme="dark"] .context-menu-item.danger:hover {
+            background-color: #7f1d1d;
+            color: #fca5a5;
+        }
+
+        /* 搜索高亮样式 */
+        .highlight {
+            background-color: #fef3c7;
+            color: #92400e;
+            padding: 0.125rem 0.25rem;
+            border-radius: 0.25rem;
+            font-weight: 500;
+        }
+
+        [data-theme="dark"] .highlight {
+            background-color: #451a03;
+            color: #fbbf24;
+        }
+
+        /* 卡片选中状态 */
+        .website-card.editing {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        /* 文件上传区域 */
+        .file-upload-area {
+            border: 2px dashed var(--border-color);
+            border-radius: 0.5rem;
+            padding: 0.7rem 1rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background-color: var(--background-color);
+            min-width: 90px;
+        }
+
+        .file-upload-area:hover {
+            border-color: var(--primary-color);
+            background-color: rgba(79, 70, 229, 0.05);
+        }
+
+        .file-upload-area.dragover {
+            border-color: var(--primary-color);
+            background-color: rgba(79, 70, 229, 0.1);
+        }
+
+        .upload-icon {
+            font-size: 2rem;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+
+        .upload-text {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .btn[style*="background-color: #dc2626"]:hover {
+            background-color: #b91c1c !important;
+            transform: translateY(-0.125rem);
+            box-shadow: var(--shadow-medium);
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <header class="header">
+        <div class="header-container">
+            <a href="#" class="logo">
+                <i class="fas fa-compass"></i>
+                <span>导航助手</span>
+            </a>
+            
+            <div class="search-container">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" class="search-box" placeholder="搜索网站...">
+            </div>
+            
+            <button class="theme-toggle" onclick="toggleTheme()">
+                <i class="fas fa-moon" id="theme-icon"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- 主内容区域 -->
+    <main class="main-container">
+        <!-- 分类侧边栏 -->
+        <aside class="categories-sidebar">
+            <h3 class="categories-title">网站分类</h3>
+            <div class="category-item active" onclick="showCategory('social')">
+                <i class="fab fa-twitter"></i>
+                <span>社交媒体</span>
+            </div>
+            <div class="category-item" onclick="showCategory('tools')">
+                <i class="fas fa-tools"></i>
+                <span>实用工具</span>
+            </div>
+            <div class="category-item" onclick="showCategory('design')">
+                <i class="fas fa-palette"></i>
+                <span>设计资源</span>
+            </div>
+            <div class="category-item" onclick="showCategory('dev')">
+                <i class="fas fa-code"></i>
+                <span>开发技术</span>
+            </div>
+            <div class="category-item" onclick="showCategory('news')">
+                <i class="fas fa-newspaper"></i>
+                <span>新闻资讯</span>
+            </div>
+            <div class="category-item" onclick="showCategory('entertainment')">
+                <i class="fas fa-gamepad"></i>
+                <span>娱乐休闲</span>
+            </div>
+        </aside>
+
+        <!-- 网址卡片区域 -->
+        <div class="content-area">
+            <!-- 社交媒体分类 -->
+            <section class="category-section active" id="social">
+                <h2 class="section-title">
+                    <i class="fab fa-twitter"></i>
+                    社交媒体
+                </h2>
+                <div class="cards-grid">
+                    <div class="website-card">
+                        <div class="card-header">
+                            <div class="card-icon">
+                                <i class="fab fa-weibo"></i>
+                            </div>
+                            <div>
+                                <div class="card-title">微博</div>
+                                <div class="card-url">weibo.com</div>
+                            </div>
+                        </div>
+                        <div class="card-description">
+                            中国最大的社交媒体平台，实时分享生活动态，关注热点话题和明星动态。
+                        </div>
+                    </div>
+
+                    <div class="website-card">
+                        <div class="card-header">
+                            <div class="card-icon">
+                                <i class="fab fa-twitter"></i>
+                            </div>
+                            <div>
+                                <div class="card-title">Twitter</div>
+                                <div class="card-url">twitter.com</div>
+                            </div>
+                        </div>
+                        <div class="card-description">
+                            全球知名的微博客和社交网络服务平台，实时获取全球资讯和观点。
+                        </div>
+                    </div>
+
+                    <div class="website-card">
+                        <div class="card-header">
+                            <div class="card-icon">
+                                <i class="fab fa-instagram"></i>
+                            </div>
+                            <div>
+                                <div class="card-title">Instagram</div>
+                                <div class="card-url">instagram.com</div>
+                            </div>
+                        </div>
+                        <div class="card-description">
+                            以图片和视频为主的社交平台，分享生活美好瞬间，发现创意灵感。
+                        </div>
+                    </div>
+
+                    <div class="website-card">
+                        <div class="card-header">
+                            <div class="card-icon">
+                                <i class="fab fa-linkedin"></i>
+                            </div>
+                            <div>
+                                <div class="card-title">LinkedIn</div>
+                                <div class="card-url">linkedin.com</div>
+                            </div>
+                        </div>
+                        <div class="card-description">
+                            全球最大的职业社交网络，建立专业人脉，寻找职业机会。
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 实用工具分类 -->
+            <section class="category-section" id="tools">
+                <h2 class="section-title">
+                    <i class="fas fa-tools"></i>
+                    实用工具
+                </h2>
+                <div class="cards-grid">
+                    <div class="website-card">
+                        <div class="card-header">
+                            <div class="card-icon">
+                                <i class="fab fa-google"></i>
+                            </div>
+                            <div>
+                                <div class="card-title">Google</div>
+                                <div class="card-url">google.com</div>
+                            </div>
+                        </div>
+                        <div class="card-description">
+                            全球最大的搜索引擎，快速找到您需要的任何信息和资源。
+                        </div>
+                    </div>
+
+                    <div class="website-card">
+                        <div class="card-header">
+                            <div class="card-icon">
+                                <i class="fas fa-translate"></i>
+                            </div>
+                            <div>
+                                <div class="card-title">Google 翻译</div>
+                                <div class="card-url">translate.google.com</div>
+                            </div>
+                        </div>
+                        <div class="card-description">
+                            支持100多种语言的在线翻译工具，文本、图片、语音翻译一应俱全。
+                        </div>
+                    </div>
+
+                    <div class="website-card">
+                        <div class="card-header">
+                            <div class="card-icon">
+                                <i class="fas fa-cloud"></i>
+                            </div>
+                            <div>
+                                <div class="card-title">百度网盘</div>
+                                <div class="card-url">pan.baidu.com</div>
+                            </div>
+                        </div>
+                        <div class="card-description">
+                            个人云存储服务，安全存储和分享您的文件，随时随地访问。
+                        </div>
+                    </div>
+
+                    <div class="website-card">
+                        <div class="card-header">
+                            <div class="card-icon">
+                                <i class="fas fa-calculator"></i>
+                            </div>
+                            <div>
+                                <div class="card-title">计算器</div>
+                                <div class="card-url">calculator.net</div>
+                            </div>
+                        </div>
+                        <div class="card-description">
+                            在线科学计算器，支持基础运算、科学计算、单位转换等功能。
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 设计资源分类 -->
+            <section class="category-section" id="design">
+                <h2 class="section-title">
+                    <i class="fas fa-palette"></i>
+                    设计资源
+                </h2>
+                <div class="cards-grid">
+                    <div class="website-card">
+                        <div class="card-header">
+                            <div class="card-icon">
+                                <i class="fab fa-figma"></i>
+                            </div>
+                            <div>
+                                <div class="card-title">Figma</div>
+                                <div class="card-url">figma.com</div>
+                            </div>
+                        </div>
+                        <div class="card-description">
+                            协作式界面设计工具，实时协作，原型设计，设计系统管理。
+                        </div>
+                    </div>
+
+                    <div class="website-card">
+                        <div class="card-header">
+                            <div class="card-icon">
+                                <i class="fas fa-images"></i>
+                            </div>
+                            <div>
+                                <div class="card-title">Unsplash</div>
+                                <div class="card-url">unsplash.com</div>
+                            </div>
+                        </div>
+                        <div class="card-description">
+                            高质量免费图片素材库，数百万张精美照片供您免费下载使用。
+                        </div>
+                    </div>
+
+                    <div class="website-card">
+                        <div class="card-header">
+                            <div class="card-icon">
+                                <i class="fas fa-paint-brush"></i>
+                            </div>
+                            <div>
+                                <div class="card-title">Adobe Color</div>
+                                <div class="card-url">color.adobe.com</div>
+                            </div>
+                        </div>
+                        <div class="card-description">
+                            专业的配色工具，创建、探索和分享完美的色彩搭配方案。
+                        </div>
+                    </div>
+
+                    <div class="website-card">
+                        <div class="card-header">
+                            <div class="card-icon">
+                                <i class="fas fa-font"></i>
+                            </div>
+                            <div>
+                                <div class="card-title">Google Fonts</div>
+                                <div class="card-url">fonts.google.com</div>
+                            </div>
+                        </div>
+                        <div class="card-description">
+                            免费的网络字体库，提供数百种优质字体供网站和应用使用。
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 开发技术分类 -->
+            <section class="category-section" id="dev">
+                <h2 class="section-title">
+                    <i class="fas fa-code"></i>
+                    开发技术
+                </h2>
+                <div class="cards-grid">
+                    <div class="website-card">
+                        <div class="card-header">
+                            <div class="card-icon">
+                                <i class="fab fa-github"></i>
+                            </div>
+                            <div>
+                                <div class="card-title">GitHub</div>
+                                <div class="card-url">github.com</div>
+                            </div>
+                        </div>
+                        <div class="card-description">
+                            全球最大的代码托管平台，版本控制、协作开发、开源项目分享。
+                        </div>
+                    </div>
+
+                    <div class="website-card">
+                        <div class="card-header">
+                            <div class="card-icon">
+                                <i class="fab fa-stack-overflow"></i>
+                            </div>
+                            <div>
+                                <div class="card-title">Stack Overflow</div>
+                                <div class="card-url">stackoverflow.com</div>
+                            </div>
+                        </div>
+                        <div class="card-description">
+                            程序员问答社区，解决编程问题，分享技术知识和经验。
+                        </div>
+                    </div>
+
+                    <div class="website-card">
+                        <div class="card-header">
+                            <div class="card-icon">
+                                <i class="fab fa-npm"></i>
+                            </div>
+                            <div>
+                                <div class="card-title">NPM</div>
+                                <div class="card-url">npmjs.com</div>
+                            </div>
+                        </div>
+                        <div class="card-description">
+                            Node.js包管理器，发现和安装JavaScript包，管理项目依赖。
+                        </div>
+                    </div>
+
+                    <div class="website-card">
+                        <div class="card-header">
+                            <div class="card-icon">
+                                <i class="fas fa-book"></i>
+                            </div>
+                            <div>
+                                <div class="card-title">MDN Web Docs</div>
+                                <div class="card-url">developer.mozilla.org</div>
+                            </div>
+                        </div>
+                        <div class="card-description">
+                            权威的Web开发文档，HTML、CSS、JavaScript等技术的详细参考。
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 新闻资讯分类 -->
+            <section class="category-section" id="news">
+                <h2 class="section-title">
+                    <i class="fas fa-newspaper"></i>
+                    新闻资讯
+                </h2>
+                <div class="cards-grid">
+                    <div class="website-card">
+                        <div class="card-header">
+                            <div class="card-icon">
+                                <i class="fas fa-globe"></i>
+                            </div>
+                            <div>
+                                <div class="card-title">BBC News</div>
+                                <div class="card-url">bbc.com/news</div>
+                            </div>
+                        </div>
+                        <div class="card-description">
+                            英国广播公司新闻网，提供全球最新新闻、分析和深度报道。
+                        </div>
+                    </div>
+
+                    <div class="website-card">
+                        <div class="card-header">
+                            <div class="card-icon">
+                                <i class="fas fa-newspaper"></i>
+                            </div>
+                            <div>
+                                <div class="card-title">人民网</div>
+                                <div class="card-url">people.com.cn</div>
+                            </div>
+                        </div>
+                        <div class="card-description">
+                            中国权威新闻网站，提供国内外重要新闻、政策解读和时事评论。
+                        </div>
+                    </div>
+
+                    <div class="website-card">
+                        <div class="card-header">
+                            <div class="card-icon">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                            <div>
+                                <div class="card-title">财经网</div>
+                                <div class="card-url">caijing.com.cn</div>
+                            </div>
+                        </div>
+                        <div class="card-description">
+                            专业财经资讯平台，股市行情、经济分析、投资理财信息。
+                        </div>
+                    </div>
+
+                    <div class="website-card">
+                        <div class="card-header">
+                            <div class="card-icon">
+                                <i class="fas fa-laptop"></i>
+                            </div>
+                            <div>
+                                <div class="card-title">36氪</div>
+                                <div class="card-url">36kr.com</div>
+                            </div>
+                        </div>
+                        <div class="card-description">
+                            科技创业媒体，关注互联网、创业公司、投资和新技术趋势。
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 娱乐休闲分类 -->
+            <section class="category-section" id="entertainment">
+                <h2 class="section-title">
+                    <i class="fas fa-gamepad"></i>
+                    娱乐休闲
+                </h2>
+                <div class="cards-grid">
+                    <div class="website-card">
+                        <div class="card-header">
+                            <div class="card-icon">
+                                <i class="fab fa-youtube"></i>
+                            </div>
+                            <div>
+                                <div class="card-title">YouTube</div>
+                                <div class="card-url">youtube.com</div>
+                            </div>
+                        </div>
+                        <div class="card-description">
+                            全球最大的视频分享平台，观看和分享各类视频内容。
+                        </div>
+                    </div>
+
+                    <div class="website-card">
+                        <div class="card-header">
+                            <div class="card-icon">
+                                <i class="fas fa-tv"></i>
+                            </div>
+                            <div>
+                                <div class="card-title">哔哩哔哩</div>
+                                <div class="card-url">bilibili.com</div>
+                            </div>
+                        </div>
+                        <div class="card-description">
+                            中国年轻人聚集的文化社区，动画、游戏、音乐、生活等内容。
+                        </div>
+                    </div>
+
+                    <div class="website-card">
+                        <div class="card-header">
+                            <div class="card-icon">
+                                <i class="fas fa-music"></i>
+                            </div>
+                            <div>
+                                <div class="card-title">网易云音乐</div>
+                                <div class="card-url">music.163.com</div>
+                            </div>
+                        </div>
+                        <div class="card-description">
+                            专业音乐平台，海量正版音乐，个性化推荐，音乐社交。
+                        </div>
+                    </div>
+
+                    <div class="website-card">
+                        <div class="card-header">
+                            <div class="card-icon">
+                                <i class="fas fa-gamepad"></i>
+                            </div>
+                            <div>
+                                <div class="card-title">Steam</div>
+                                <div class="card-url">store.steampowered.com</div>
+                            </div>
+                        </div>
+                        <div class="card-description">
+                            全球最大的PC游戏平台，购买、下载和游玩数千款游戏。
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- 底部信息栏 -->
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-text">
+                © 2024 导航助手. 让网络世界触手可及.
+            </div>
+            <div class="footer-links">
+                <a href="#" class="footer-link">关于我们</a>
+                <a href="#" class="footer-link">隐私政策</a>
+                <a href="#" class="footer-link">使用条款</a>
+                <a href="#" class="footer-link">联系我们</a>
+            </div>
+            <button class="add-website-btn" onclick="openAddWebsiteModal()">
+                <i class="fas fa-plus"></i>
+                添加网站
+            </button>
+        </div>
+    </footer>
+
+    <!-- 添加/编辑网站模态框 -->
+    <div class="modal-overlay" id="websiteModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modalTitle">添加网站</h3>
+                <button class="modal-close" onclick="closeModal('websiteModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <form id="websiteForm" onsubmit="event.preventDefault(); submitWebsiteForm();">
+                <div class="form-row">
+                    <div class="form-left">
+                        <div class="form-group">
+                            <label class="form-label" for="websiteName">网站名称 *</label>
+                            <input type="text" id="websiteName" class="form-input" placeholder="请输入网站名称" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="websiteIcon">Font Awesome类</label>
+                            <input type="text" id="websiteIcon" class="form-input" placeholder="Font Awesome类">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="websiteCategory">所属分类 *</label>
+                            <select id="websiteCategory" class="form-select" required>
+                                <option value="">请选择分类</option>
+                                <option value="social">社交媒体</option>
+                                <option value="tools">实用工具</option>
+                                <option value="design">设计资源</option>
+                                <option value="dev">开发技术</option>
+                                <option value="news">新闻资讯</option>
+                                <option value="entertainment">娱乐休闲</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="icon-edit-group">
+                        <label class="form-label" style="margin-bottom: 0.3rem;">网站图标</label>
+                        <div class="file-upload-area" id="iconUploadArea">
+                            <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                            <div class="upload-text">点击上传图标或拖拽文件到此处<br>支持 JPG, PNG, SVG 格式</div>
+                        </div>
+                        <input type="file" id="iconFile" class="file-input" accept="image/*">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="websiteUrl">网址链接 *</label>
+                    <input type="url" id="websiteUrl" class="form-input" placeholder="https://example.com" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="websiteDescription">简短描述 *</label>
+                    <textarea id="websiteDescription" class="form-textarea" placeholder="请输入网站描述（最多2行）" required></textarea>
+                </div>
+                
+                <div class="form-buttons">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('websiteModal')">
+                        <i class="fas fa-times"></i>
+                        取消
+                    </button>
+                    <button type="submit" class="btn btn-primary" id="submitBtn">
+                        <i class="fas fa-plus"></i>
+                        添加网站
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 确认删除对话框 -->
+    <div class="modal-overlay" id="deleteConfirmModal">
+        <div class="modal" style="max-width: 400px;">
+            <div class="modal-header">
+                <h3 class="modal-title">确认删除</h3>
+                <button class="modal-close" onclick="closeModal('deleteConfirmModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div style="padding: 1rem 0;">
+                <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                    <i class="fas fa-exclamation-triangle" style="font-size: 2rem; color: #f59e0b;"></i>
+                    <div>
+                        <p style="margin: 0; font-weight: 500; color: var(--text-primary);">确定要删除这个网站吗？</p>
+                        <p style="margin: 0.5rem 0 0 0; font-size: 0.875rem; color: var(--text-secondary);" id="deleteWebsiteName">此操作无法撤销</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-buttons">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('deleteConfirmModal')">
+                    <i class="fas fa-times"></i>
+                    取消
+                </button>
+                <button type="button" class="btn" style="background-color: #dc2626; color: white;" onclick="confirmDeleteWebsite()">
+                    <i class="fas fa-trash"></i>
+                    确认删除
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 主题切换功能
+        function toggleTheme() {
+            const html = document.documentElement;
+            const themeIcon = document.getElementById('theme-icon');
+            
+            if (html.getAttribute('data-theme') === 'light') {
+                html.setAttribute('data-theme', 'dark');
+                themeIcon.className = 'fas fa-sun';
+                localStorage.setItem('theme', 'dark');
+            } else {
+                html.setAttribute('data-theme', 'light');
+                themeIcon.className = 'fas fa-moon';
+                localStorage.setItem('theme', 'light');
+            }
+        }
+
+        // 分类切换功能
+        function showCategory(categoryId) {
+            // 隐藏所有分类内容
+            const sections = document.querySelectorAll('.category-section');
+            sections.forEach(section => section.classList.remove('active'));
+            
+            // 显示选中的分类
+            document.getElementById(categoryId).classList.add('active');
+            
+            // 更新侧边栏选中状态
+            const categoryItems = document.querySelectorAll('.category-item');
+            categoryItems.forEach(item => item.classList.remove('active'));
+            event.target.closest('.category-item').classList.add('active');
+        }
+
+        // 模态框管理
+        let currentEditingCard = null;
+
+        function openModal(modalId) {
+            const modal = document.getElementById(modalId);
+            modal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            modal.classList.remove('active');
+            document.body.style.overflow = '';
+            currentEditingCard = null;
+            
+            // 清除编辑状态
+            document.querySelectorAll('.website-card.editing').forEach(card => {
+                card.classList.remove('editing');
+            });
+        }
+
+        // 添加网站功能
+        function openAddWebsiteModal() {
+            document.getElementById('websiteForm').reset();
+            document.getElementById('modalTitle').textContent = '添加网站';
+            document.getElementById('submitBtn').innerHTML = '<i class="fas fa-plus"></i> 添加网站';
+            currentEditingCard = null;
+            openModal('websiteModal');
+        }
+
+        // 删除网站功能 - 显示确认对话框
+        let websiteToDelete = null;
+
+        function deleteWebsite(card) {
+            const websiteName = card.querySelector('.card-title').textContent;
+            document.getElementById('deleteWebsiteName').textContent = `网站"${websiteName}"将被永久删除`;
+            websiteToDelete = card;
+            openModal('deleteConfirmModal');
+        }
+
+        // 确认删除网站
+        function confirmDeleteWebsite() {
+            if (websiteToDelete) {
+                websiteToDelete.style.animation = 'fadeOut 0.3s ease-out';
+                setTimeout(() => {
+                    websiteToDelete.remove();
+                    websiteToDelete = null;
+                }, 300);
+            }
+            closeModal('deleteConfirmModal');
+        }
+
+        // 编辑网站功能 - 完善表单填充
+        function editWebsite(card) {
+            
+            const title = card.querySelector('.card-title').textContent;
+            const url = card.querySelector('.card-url').textContent;
+            const description = card.querySelector('.card-description').textContent.trimStart();
+            const iconElement = card.querySelector('.card-icon i');
+            const iconClass = iconElement.className;
+            
+            // 填充表单
+            document.getElementById('websiteName').value = title;
+            document.getElementById('websiteUrl').value = url;
+            document.getElementById('websiteDescription').value = description;
+            document.getElementById('websiteIcon').value = iconClass;
+            
+            // 设置分类
+            const categorySection = card.closest('.category-section');
+            const categoryId = categorySection.id;
+            document.getElementById('websiteCategory').value = categoryId;
+            
+            // 重置文件上传区域
+            const uploadArea = document.getElementById('iconUploadArea');
+            uploadArea.innerHTML = `
+                <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                <div class="upload-text">点击上传图标或拖拽文件到此处<br>支持 JPG, PNG, SVG 格式</div>
+            `;
+            
+            // 更新模态框标题和按钮
+            document.getElementById('modalTitle').textContent = '编辑网站';
+            document.getElementById('submitBtn').innerHTML = '<i class="fas fa-save"></i> 保存更改';
+            
+            // 标记当前编辑的卡片
+            currentEditingCard = card;
+            card.classList.add('editing');
+            
+            openModal('websiteModal');
+        }
+
+        // 提交表单
+        function submitWebsiteForm() {
+            const name = document.getElementById('websiteName').value;
+            const url = document.getElementById('websiteUrl').value;
+            let description = document.getElementById('websiteDescription').value;
+            description = description.trimStart();
+            const category = document.getElementById('websiteCategory').value;
+            const iconUrl = document.getElementById('websiteIcon').value;
+            
+            if (!name || !url || !description || !category) {
+                alert('请填写所有必填字段');
+                return;
+            }
+            
+            if (currentEditingCard) {
+                // 编辑现有卡片
+                updateWebsiteCard(currentEditingCard, name, url, description, iconUrl);
+            } else {
+                // 创建新卡片
+                createWebsiteCard(name, url, description, category, iconUrl);
+            }
+            
+            closeModal('websiteModal');
+        }
+
+        // 更新网站卡片
+        function updateWebsiteCard(card, name, url, description, iconUrl) {
+            card.querySelector('.card-title').textContent = name;
+            card.querySelector('.card-url').textContent = url;
+            card.querySelector('.card-description').textContent = description.trimStart();
+            
+            if (iconUrl) {
+                const iconElement = card.querySelector('.card-icon i');
+                iconElement.className = iconUrl.startsWith('fa') ? iconUrl : 'fas fa-globe';
+            }
+            
+            // 添加更新动画
+            card.style.animation = 'pulse 0.5s ease-out';
+            setTimeout(() => {
+                card.style.animation = '';
+            }, 500);
+        }
+
+        // 创建新网站卡片
+        function createWebsiteCard(name, url, description, category, iconUrl) {
+            const categorySection = document.getElementById(category);
+            const cardsGrid = categorySection.querySelector('.cards-grid');
+            
+            const cardHTML = `
+                <div class="website-card" style="animation: fadeIn 0.5s ease-out">
+                    <div class="card-header">
+                        <div class="card-icon">
+                            <i class="${iconUrl || 'fas fa-globe'}"></i>
+                        </div>
+                        <div>
+                            <div class="card-title">${name}</div>
+                            <div class="card-url">${url}</div>
+                        </div>
+                    </div>
+                    <div class="card-description">${description.trimStart()}</div>
+                </div>
+            `;
+            
+            cardsGrid.insertAdjacentHTML('beforeend', cardHTML);
+            
+            // 为新卡片添加事件监听器
+            const newCard = cardsGrid.lastElementChild;
+            addCardEventListeners(newCard);
+        }
+
+        // 右键菜单功能
+        let contextMenu = null;
+
+        function createContextMenu() {
+            if (contextMenu) return contextMenu;
+            
+            contextMenu = document.createElement('div');
+            contextMenu.className = 'context-menu';
+            contextMenu.innerHTML = `
+                <div class="context-menu-item" onclick="editWebsiteFromMenu()">
+                    <i class="fas fa-edit"></i>
+                    <span>编辑网站</span>
+                </div>
+                <div class="context-menu-item danger" onclick="deleteWebsiteFromMenu()">
+                    <i class="fas fa-trash"></i>
+                    <span>删除网站</span>
+                </div>
+            `;
+            
+            document.body.appendChild(contextMenu);
+            return contextMenu;
+        }
+
+        let contextMenuTarget = null;
+
+        function showContextMenu(e, card) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const menu = createContextMenu();
+            contextMenuTarget = card;
+            
+            // 隐藏其他可能显示的菜单
+            hideContextMenu();
+            
+            // 显示菜单
+            menu.style.left = e.pageX + 'px';
+            menu.style.top = e.pageY + 'px';
+            menu.classList.add('active');
+            
+            // 确保菜单在视窗内
+            setTimeout(() => {
+                const rect = menu.getBoundingClientRect();
+                if (rect.right > window.innerWidth) {
+                    menu.style.left = (e.pageX - rect.width) + 'px';
+                }
+                if (rect.bottom > window.innerHeight) {
+                    menu.style.top = (e.pageY - rect.height) + 'px';
+                }
+            }, 0);
+        }
+
+        function hideContextMenu() {
+            if (contextMenu) {
+                contextMenu.classList.remove('active');
+            }
+        }
+
+        function editWebsiteFromMenu() {
+            if (contextMenuTarget) {
+                editWebsite(contextMenuTarget);
+                hideContextMenu();
+            }
+        }
+
+        // 更新右键菜单中的删除函数
+        function deleteWebsiteFromMenu() {
+            if (contextMenuTarget) {
+                deleteWebsite(contextMenuTarget);
+                hideContextMenu();
+            }
+        }
+
+        // 点击其他地方隐藏右键菜单
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.context-menu')) {
+                hideContextMenu();
+                contextMenuTarget = null;
+            }
+        });
+
+        // 搜索高亮功能
+        function highlightSearchResults(searchTerm) {
+            const cards = document.querySelectorAll('.website-card');
+            
+            cards.forEach(card => {
+                const title = card.querySelector('.card-title');
+                const description = card.querySelector('.card-description');
+                
+                // 清除之前的高亮
+                title.innerHTML = title.textContent;
+                description.innerHTML = description.textContent;
+                
+                if (searchTerm) {
+                    // 添加高亮
+                    const titleText = title.textContent;
+                    const descText = description.textContent;
+                    
+                    const highlightedTitle = titleText.replace(
+                        new RegExp(`(${searchTerm})`, 'gi'),
+                        '<span class="highlight">$1</span>'
+                    );
+                    const highlightedDesc = descText.replace(
+                        new RegExp(`(${searchTerm})`, 'gi'),
+                        '<span class="highlight">$1</span>'
+                    );
+                    
+                    title.innerHTML = highlightedTitle;
+                    description.innerHTML = highlightedDesc;
+                }
+            });
+        }
+
+        // 为卡片添加事件监听器
+        function addCardEventListeners(card) {
+            // 右键菜单
+            card.addEventListener('contextmenu', (e) => showContextMenu(e, card));
+            
+            // 左键点击（访问网站）
+            card.addEventListener('click', function(e) {
+                if (e.target.closest('.context-menu')) return;
+                
+                // 如果按住Ctrl键点击，则编辑网站
+                if (e.ctrlKey) {
+                    editWebsite(this);
+                    return;
+                }
+                
+                const url = this.querySelector('.card-url').textContent;
+                console.log(`点击访问: ${url}`);
+                // window.open(`https://${url}`, '_blank');
+            });
+        }
+
+        // 文件上传功能
+        function setupFileUpload() {
+            const uploadArea = document.getElementById('iconUploadArea');
+            const fileInput = document.getElementById('iconFile');
+            const iconUrlInput = document.getElementById('websiteIcon');
+            
+            uploadArea.addEventListener('click', () => fileInput.click());
+            
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+            
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragover');
+            });
+            
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    handleFileUpload(files[0]);
+                }
+            });
+            
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handleFileUpload(e.target.files[0]);
+                }
+            });
+        }
+
+        function handleFileUpload(file) {
+            if (file.type.startsWith('image/')) {
+                // 在实际应用中，这里会上传文件到服务器
+                // 现在我们只是模拟设置一个图标类名
+                const iconClasses = [
+                    'fas fa-star', 'fas fa-heart', 'fas fa-bookmark',
+                    'fas fa-thumbs-up', 'fas fa-fire', 'fas fa-gem'
+                ];
+                const randomIcon = iconClasses[Math.floor(Math.random() * iconClasses.length)];
+                document.getElementById('websiteIcon').value = randomIcon;
+                
+                // 更新上传区域显示
+                const uploadArea = document.getElementById('iconUploadArea');
+                uploadArea.innerHTML = `
+                    <i class="fas fa-check-circle upload-icon" style="color: var(--secondary-color);"></i>
+                    <div class="upload-text">图标已上传: ${file.name}</div>
+                `;
+            } else {
+                alert('请上传图片文件');
+            }
+        }
+
+        // 页面初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 读取localStorage主题
+            const savedTheme = localStorage.getItem('theme');
+            const html = document.documentElement;
+            const themeIcon = document.getElementById('theme-icon');
+            if (savedTheme === 'dark') {
+                html.setAttribute('data-theme', 'dark');
+                if(themeIcon) themeIcon.className = 'fas fa-sun';
+            } else if (savedTheme === 'light') {
+                html.setAttribute('data-theme', 'light');
+                if(themeIcon) themeIcon.className = 'fas fa-moon';
+            }
+            
+            // 为所有现有卡片添加事件监听器
+            document.querySelectorAll('.website-card').forEach(addCardEventListeners);
+            
+            // 设置文件上传
+            setupFileUpload();
+            
+            // 点击其他地方隐藏右键菜单
+            document.addEventListener('click', hideContextMenu);
+            
+            // ESC键关闭模态框
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    document.querySelectorAll('.modal-overlay.active').forEach(modal => {
+                        closeModal(modal.id);
+                    });
+                    hideContextMenu();
+                }
+            });
+        });
+
+        // 更新搜索功能
+        const searchBox = document.querySelector('.search-box');
+        searchBox.addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase().trim();
+            const cards = document.querySelectorAll('.website-card');
+            
+            cards.forEach(card => {
+                const title = card.querySelector('.card-title').textContent.toLowerCase();
+                const description = card.querySelector('.card-description').textContent.toLowerCase();
+                
+                if (title.includes(searchTerm) || description.includes(searchTerm)) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = searchTerm === '' ? 'block' : 'none';
+                }
+            });
+            
+            // 添加搜索高亮
+            highlightSearchResults(searchTerm);
+        });
+
+        // 添加淡出动画
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeOut {
+                from { opacity: 1; transform: scale(1); }
+                to { opacity: 0; transform: scale(0.8); }
+            }
+            
+            @keyframes pulse {
+                0%, 100% { transform: scale(1); }
+                50% { transform: scale(1.05); }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>
