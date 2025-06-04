@@ -1,5 +1,44 @@
 // 网站数据
-const websitesData = {
+const categories = [
+  {
+    id: "social",
+    name: "社交媒体",
+    icon: "fab fa-twitter",
+    order: 0
+  },
+  {
+    id: "tools",
+    name: "实用工具",
+    icon: "fas fa-tools",
+    order: 1
+  },
+  {
+    id: "design",
+    name: "设计资源",
+    icon: "fas fa-palette",
+    order: 2
+  },
+  {
+    id: "dev",
+    name: "开发技术",
+    icon: "fas fa-code",
+    order: 3
+  },
+  {
+    id: "news",
+    name: "新闻资讯",
+    icon: "fas fa-newspaper",
+    order: 4
+  },
+  {
+    id: "entertainment",
+    name: "娱乐休闲",
+    icon: "fas fa-gamepad",
+    order: 5
+  }
+];
+
+const websites = {
   social: [
     {
       title: "微博",
@@ -156,4 +195,10 @@ const websitesData = {
       description: "全球最大的PC游戏平台，购买、下载和游玩数千款游戏。"
     }
   ]
-}; 
+};
+
+// 为了兼容现有代码，保留websitesData变量
+let websitesData = websites;
+
+// 初始化全局分类数据
+window.categoryData = categories; 

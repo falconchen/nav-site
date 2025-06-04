@@ -16,6 +16,8 @@ function toggleTheme() {
 
 // 分类切换功能
 function showCategory(categoryId) {
+    if (isEditingCategories) return; // 编辑模式下不允许切换分类
+    
     // 隐藏所有分类内容
     const sections = document.querySelectorAll('.category-section');
     sections.forEach(section => section.classList.remove('active'));
@@ -26,7 +28,11 @@ function showCategory(categoryId) {
     // 更新侧边栏选中状态
     const categoryItems = document.querySelectorAll('.category-item');
     categoryItems.forEach(item => item.classList.remove('active'));
-    event.target.closest('.category-item').classList.add('active');
+    
+    const selectedItem = document.querySelector(`.category-item[data-category="${categoryId}"]`);
+    if (selectedItem) {
+        selectedItem.classList.add('active');
+    }
 }
 
 // 模态框管理
@@ -71,7 +77,7 @@ function createCardHTML(website) {
 // 从数据加载网站卡片
 function loadWebsitesFromData() {
     // 遍历每个分类
-    Object.keys(websitesData).forEach(category => {
+    Object.keys(websites).forEach(category => {
         const cardsContainer = document.getElementById(`${category}-cards`);
         if (!cardsContainer) return;
         
@@ -79,7 +85,7 @@ function loadWebsitesFromData() {
         cardsContainer.innerHTML = '';
         
         // 添加该分类下的所有网站卡片
-        websitesData[category].forEach(website => {
+        websites[category].forEach(website => {
             cardsContainer.insertAdjacentHTML('beforeend', createCardHTML(website));
         });
     });
@@ -178,11 +184,11 @@ function submitWebsiteForm() {
         createWebsiteCard(name, url, description, category, iconUrl);
         
         // 更新数据对象
-        if (!websitesData[category]) {
-            websitesData[category] = [];
+        if (!websites[category]) {
+            websites[category] = [];
         }
         
-        websitesData[category].push({
+        websites[category].push({
             title: name,
             url: url,
             description: description,
@@ -214,8 +220,8 @@ function updateWebsiteCard(card, name, url, description, iconUrl) {
     const categoryId = card.closest('.category-section').id;
     const cardIndex = Array.from(card.parentNode.children).indexOf(card);
     
-    if (websitesData[categoryId] && websitesData[categoryId][cardIndex]) {
-        websitesData[categoryId][cardIndex] = {
+    if (websites[categoryId] && websites[categoryId][cardIndex]) {
+        websites[categoryId][cardIndex] = {
             title: name,
             url: url,
             description: description,
@@ -446,6 +452,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if(themeIcon) themeIcon.className = 'fas fa-moon';
     }
     
+    // 更新分类下拉菜单
+    updateCategoryDropdown();
+    
     // 加载数据并创建卡片
     loadWebsitesFromData();
     
@@ -465,6 +474,33 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
+// 更新分类下拉菜单
+function updateCategoryDropdown() {
+    const categorySelect = document.getElementById('websiteCategory');
+    if (!categorySelect) return;
+    
+    // 保存当前选中的值
+    const selectedValue = categorySelect.value;
+    
+    // 清空除了第一个选项外的所有选项
+    while (categorySelect.options.length > 1) {
+        categorySelect.remove(1);
+    }
+    
+    // 添加所有分类
+    window.categoryData.forEach(category => {
+        const option = document.createElement('option');
+        option.value = category.id;
+        option.textContent = category.name;
+        categorySelect.appendChild(option);
+    });
+    
+    // 恢复选中值
+    if (selectedValue) {
+        categorySelect.value = selectedValue;
+    }
+}
 
 // 更新搜索功能
 const searchBox = document.querySelector('.search-box');

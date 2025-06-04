@@ -141,6 +141,12 @@ body {
   display: grid;
   grid-template-columns: 250px 1fr;
   gap: 2rem;
+  transition: all 0.3s ease;
+}
+
+/* 编辑模式下的主内容区域 */
+.main-container.editing-categories {
+  grid-template-columns: 350px 1fr;
 }
 
 /* 分类侧边栏 */
@@ -152,13 +158,22 @@ body {
   height: fit-content;
   position: sticky;
   top: 6rem;
+  transition: all 0.3s ease;
+  width: 100%;
+}
+
+/* 编辑模式下的分类侧边栏 */
+.categories-sidebar.editing {
+  box-shadow: var(--shadow-medium);
+  border-color: var(--primary-color);
 }
 
 .categories-title {
   font-size: 1.25rem;
   font-weight: 600;
-  margin-bottom: 1rem;
   color: var(--text-primary);
+  margin: 0;
+  line-height: 1.2;
 }
 
 .category-item {
@@ -692,4 +707,130 @@ body {
   background-color: #b91c1c !important;
   transform: translateY(-0.125rem);
   box-shadow: var(--shadow-medium);
+}
+
+/* 分类标题容器 */
+.categories-title-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+/* 分类编辑按钮 */
+#category-edit-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0.25rem;
+  border-radius: 0.25rem;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+}
+
+#category-edit-btn:hover {
+  color: var(--primary-color);
+  background-color: rgba(79, 70, 229, 0.1);
+}
+
+/* 分类列表容器 */
+.categories-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* 编辑模式下的分类项样式 */
+.category-item.dragging {
+  opacity: 0.5;
+}
+
+.category-item .category-name-input {
+  background: none;
+  border: 1px solid var(--border-color);
+  border-radius: 0.25rem;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  padding: 0.25rem 0.5rem;
+  flex: 1;
+  min-width: 0;
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.category-item .category-name-input:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
+  background-color: var(--background-color);
+  outline: none;
+}
+
+.category-item .category-delete-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 0.25rem;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.category-item .category-delete-btn:hover {
+  color: #dc2626;
+  background-color: rgba(220, 38, 38, 0.1);
+}
+
+.category-drag-handle {
+  cursor: grab;
+  color: var(--text-muted);
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+}
+
+.category-item.deleting {
+  animation: fadeOut 0.3s forwards;
+}
+
+/* 添加分类按钮 */
+.add-category-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding: 0.5rem;
+  border: 1px dashed var(--border-color);
+  border-radius: 0.5rem;
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.add-category-btn:hover {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  background-color: rgba(79, 70, 229, 0.05);
+}
+
+/* 编辑模式下的样式 */
+.categories-title-container.editing .categories-title {
+  color: var(--primary-color);
+  font-weight: 700;
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(-10px); }
 }
