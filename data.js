@@ -20,13 +20,10 @@ function loadData() {
       websites = JSON.parse(JSON.stringify(defaultWebsites)); // 深拷贝
     }
     
-    
     window.websites = websites;
     
     // 初始化全局分类数据
-    window.categoryData = categories;
     window.categories = categories; // 添加别名
-    
     
     // 渲染分类列表
     renderCategoryList();
@@ -36,8 +33,7 @@ function loadData() {
     categories = [...defaultCategories];
     websites = JSON.parse(JSON.stringify(defaultWebsites)); // 深拷贝
     
-    window.websites = websites;
-    window.categoryData = categories;
+    window.websites = websites;    
     window.categories = categories; // 添加别名
     
     // 渲染分类列表
@@ -72,11 +68,15 @@ function renderCategoryList() {
 // 保存数据到localStorage
 function saveNavData() {
   try {
-    // 同步window.categoryData或window.categories到本地变量
-    if (window.categoryData) {
-      categories = window.categoryData;
-    } else if (window.categories) {
-      categories = window.categories;
+    let categoriesFromGlobal = null;
+    if (window.categories) {
+      categoriesFromGlobal = window.categories;
+    }
+    
+    if (categoriesFromGlobal) {
+      categories = categoriesFromGlobal;
+    } else {
+      console.warn('没有找到全局分类数据!');
     }
     
     // 同步websites变量
@@ -86,7 +86,6 @@ function saveNavData() {
     
     localStorage.setItem('navSiteCategories', JSON.stringify(categories));
     localStorage.setItem('navSiteWebsites', JSON.stringify(websites));
-    console.log('数据已保存到localStorage');
   } catch (error) {
     console.error('保存数据出错:', error);
   }

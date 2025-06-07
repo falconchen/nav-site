@@ -16,7 +16,6 @@ function toggleTheme() {
 
 // 分类切换功能
 function showCategory(categoryId) {
-    console.log([categoryId,isEditingCategories]);
     if (isEditingCategories) return; // 编辑模式下不允许切换分类
     
     // 隐藏所有分类内容
@@ -251,6 +250,10 @@ function openAddWebsiteModal() {
     document.getElementById('modalTitle').textContent = '添加网站';
     document.getElementById('submitBtn').innerHTML = '<i class="fas fa-plus"></i> 添加网站';
     currentEditingCard = null;
+    
+    // 确保分类下拉菜单是最新的
+    updateCategoryDropdown();
+    
     openModal('websiteModal');
 }
 
@@ -302,6 +305,9 @@ function editWebsite(card) {
     document.getElementById('websiteUrl').value = url;
     document.getElementById('websiteDescription').value = description;
     document.getElementById('websiteIcon').value = iconClass;
+    
+    // 更新分类下拉菜单
+    updateCategoryDropdown();
     
     // 设置分类
     const categorySection = card.closest('.category-section');

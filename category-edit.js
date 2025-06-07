@@ -122,7 +122,12 @@ function saveCategoryChanges() {
     
     // 保存数据到localStorage
     if (typeof saveNavData === 'function') {
-        saveNavData();
+        try {
+            // 直接调用全局的saveNavData确保找到正确函数
+            window.saveNavData();
+        } catch(e) {
+            console.error("保存数据出错:", e);
+        }
     }
     
     // 恢复标题样式
@@ -153,6 +158,11 @@ function saveCategoryChanges() {
     } else {
         // 备用方案：直接渲染普通模式
         renderCategoriesInNormalMode();
+    }
+    
+    // 更新分类下拉菜单
+    if (typeof updateCategoryDropdown === 'function') {
+        updateCategoryDropdown();
     }
     
     // 确保卡片数据正确加载
@@ -299,9 +309,13 @@ function addNewCategory() {
     // 创建对应的内容区域
     createCategoryContentSection(newId);
     
+    // 更新分类下拉菜单
+    if (typeof updateCategoryDropdown === 'function') {
+        updateCategoryDropdown();
+    }
+    
     // 保存数据到localStorage
     if (typeof saveNavData === 'function') {
-        console.log('saveNavData');
         saveNavData();
     }
     
@@ -406,7 +420,6 @@ function setupDragAndDrop() {
             
             // 保存到localStorage
             if (typeof saveNavData === 'function') {
-                console.log('saveNavData');
                 saveNavData();
             }
         });
@@ -534,6 +547,11 @@ function confirmDeleteCategory() {
     // 如果不在编辑模式，重新渲染分类列表
     if (!isEditingCategories && typeof renderCategoryList === 'function') {
         renderCategoryList();
+    }
+    
+    // 更新分类下拉菜单
+    if (typeof updateCategoryDropdown === 'function') {
+        updateCategoryDropdown();
     }
     
     // 添加删除动画
