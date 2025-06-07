@@ -764,10 +764,15 @@ body {
   font-weight: 500;
 }
 
+.category-item:hover .category-name-input {
+  color: white;
+}
+
 .category-item .category-name-input:focus {
   border-color: var(--primary-color);
   box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
   background-color: var(--background-color);
+  color: var(--text-primary);
   outline: none;
 }
 

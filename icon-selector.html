@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>图标选择器</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <style>
+    .icon-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      max-width: 300px;
+      margin-top: 10px;
+    }
+    .icon-item {
+      font-size: 24px;
+      cursor: pointer;
+      padding: 5px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    .icon-item:hover {
+      background-color: #eee;
+    }
+  </style>
+</head>
+<body>
+
+<h3>选择一个图标</h3>
+<input type="text" id="selectedIconInput" readonly placeholder="选择图标后会显示类名">
+<span id="iconPreview" style="font-size:24px;margin-left:10px;"></span>
+
+<div class="icon-grid" id="iconGrid">
+  <div class="icon-item" data-icon="fab fa-youtube"><i class="fab fa-youtube"></i></div>
+  <div class="icon-item" data-icon="fab fa-facebook"><i class="fab fa-facebook"></i></div>
+  <div class="icon-item" data-icon="fab fa-twitter"><i class="fab fa-twitter"></i></div>
+  <div class="icon-item" data-icon="fas fa-star"><i class="fas fa-star"></i></div>
+  <div class="icon-item" data-icon="fas fa-home"><i class="fas fa-home"></i></div>
+</div>
+
+<script>
+  document.querySelectorAll('.icon-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const iconClass = item.getAttribute('data-icon');
+      document.getElementById('selectedIconInput').value = iconClass;
+      document.getElementById('iconPreview').className = iconClass;
+    });
+  });
+</script>
+
+</body>
+</html>
