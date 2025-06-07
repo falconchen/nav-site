@@ -446,18 +446,40 @@ function createContextMenu() {
     
     contextMenu = document.createElement('div');
     contextMenu.className = 'context-menu';
+    contextMenu.style.position = 'fixed'; // 固定使用fixed定位
     contextMenu.innerHTML = `
-        <div class="context-menu-item" onclick="editWebsiteFromMenu()">
+        <div class="context-menu-item" id="edit-website-btn">
             <i class="fas fa-edit"></i>
             <span>编辑网站</span>
         </div>
-        <div class="context-menu-item danger" onclick="deleteWebsiteFromMenu()">
+        <div class="context-menu-item danger" id="delete-website-btn">
             <i class="fas fa-trash"></i>
             <span>删除网站</span>
         </div>
     `;
     
     document.body.appendChild(contextMenu);
+    
+    // 使用addEventListener绑定事件
+    const editBtn = contextMenu.querySelector('#edit-website-btn');
+    const deleteBtn = contextMenu.querySelector('#delete-website-btn');
+    
+    editBtn.addEventListener('click', function() {
+        console.log('点击了编辑按钮');
+        if (contextMenuTarget) {
+            editWebsite(contextMenuTarget);
+            hideContextMenu();
+        }
+    });
+    
+    deleteBtn.addEventListener('click', function() {
+        console.log('点击了删除按钮');
+        if (contextMenuTarget) {
+            deleteWebsite(contextMenuTarget);
+            hideContextMenu();
+        }
+    });
+    
     return contextMenu;
 }
 
@@ -467,46 +489,80 @@ function showContextMenu(e, card) {
     e.preventDefault();
     e.stopPropagation();
     
+    // 调试日志
+    console.log('右键菜单事件触发 - 坐标信息:', {
+        clientX: e.clientX,
+        clientY: e.clientY,
+        pageX: e.pageX,
+        pageY: e.pageY,
+        scrollX: window.scrollX,
+        scrollY: window.scrollY,
+        cardTitle: card.querySelector('.card-title')?.textContent
+    });
+    
+    // 创建或获取菜单
     const menu = createContextMenu();
     contextMenuTarget = card;
     
     // 隐藏其他可能显示的菜单
     hideContextMenu();
     
-    // 显示菜单
-    menu.style.left = e.pageX + 'px';
-    menu.style.top = e.pageY + 'px';
+    // 首先，确保菜单位于文档正文中
+    if (!document.body.contains(menu)) {
+        document.body.appendChild(menu);
+    }
+    
+    // 确保菜单可见性重置（以防之前的隐藏操作影响）
+    menu.style.display = 'block';
+    menu.style.visibility = 'visible';
+    menu.style.opacity = '0'; // 暂时设为不可见，以便测量尺寸
     menu.classList.add('active');
     
-    // 确保菜单在视窗内
-    setTimeout(() => {
-        const rect = menu.getBoundingClientRect();
-        if (rect.right > window.innerWidth) {
-            menu.style.left = (e.pageX - rect.width) + 'px';
-        }
-        if (rect.bottom > window.innerHeight) {
-            menu.style.top = (e.pageY - rect.height) + 'px';
-        }
-    }, 0);
+    // 测量菜单尺寸
+    const menuWidth = menu.offsetWidth;
+    const menuHeight = menu.offsetHeight;
+    
+    // 用于调试的输出
+    console.log('菜单尺寸:', {
+        width: menuWidth,
+        height: menuHeight,
+        viewportWidth: window.innerWidth,
+        viewportHeight: window.innerHeight
+    });
+    
+    // 计算最佳位置
+    let left = e.clientX;
+    let top = e.clientY;
+    
+    // 检查右边界
+    if (left + menuWidth > window.innerWidth) {
+        left = left - menuWidth;
+    }
+    
+    // 检查下边界
+    if (top + menuHeight > window.innerHeight) {
+        top = top - menuHeight;
+    }
+    
+    // 确保不超出左边界和上边界
+    left = Math.max(0, left);
+    top = Math.max(0, top);
+    
+    // 应用位置
+    menu.style.position = 'fixed'; // 使用fixed相对于视口定位
+    menu.style.left = left + 'px';
+    menu.style.top = top + 'px';
+    menu.style.opacity = '1'; // 恢复可见性
+    
+    console.log('菜单最终位置:', {left, top});
 }
 
 function hideContextMenu() {
     if (contextMenu) {
         contextMenu.classList.remove('active');
-    }
-}
-
-function editWebsiteFromMenu() {
-    if (contextMenuTarget) {
-        editWebsite(contextMenuTarget);
-        hideContextMenu();
-    }
-}
-
-function deleteWebsiteFromMenu() {
-    if (contextMenuTarget) {
-        deleteWebsite(contextMenuTarget);
-        hideContextMenu();
+        contextMenu.style.display = 'none';
+        contextMenu.style.visibility = 'hidden';
+        contextMenu.style.opacity = '0';
     }
 }
 
@@ -545,7 +601,15 @@ function highlightSearchResults(searchTerm) {
 // 为卡片添加事件监听器
 function addCardEventListeners(card) {
     // 右键菜单
-    card.addEventListener('contextmenu', (e) => showContextMenu(e, card));
+    card.addEventListener('contextmenu', function(e) {
+        console.log('右键菜单触发:', {
+            card: this.querySelector('.card-title')?.textContent,
+            eventType: e.type,
+            target: e.target.tagName,
+            container: this.closest('.category-section')?.id
+        });
+        showContextMenu(e, this);
+    });
     
     // 左键点击（访问网站）
     card.addEventListener('click', function(e) {
@@ -702,4 +766,4 @@ searchBox.addEventListener('input', function(e) {
     
     // 添加搜索高亮
     highlightSearchResults(searchTerm);
-}); 
+});
