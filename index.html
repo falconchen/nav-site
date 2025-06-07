@@ -45,36 +45,13 @@
         <!-- 分类侧边栏 -->
         <aside class="categories-sidebar">
             <div class="categories-title-container">
-                <h3 class="categories-title">网站分类</h3>
+            <h3 class="categories-title">网站分类</h3>
                 <button id="category-edit-btn" title="编辑分类" onclick="enterCategoryEditMode()">
                     <i class="fas fa-edit"></i>
                 </button>
             </div>
             <div class="categories-list">
-                <div class="category-item active" data-category="social" onclick="showCategory('social')">
-                <i class="fab fa-twitter"></i>
-                <span>社交媒体</span>
-            </div>
-                <div class="category-item" data-category="tools" onclick="showCategory('tools')">
-                <i class="fas fa-tools"></i>
-                <span>实用工具</span>
-            </div>
-                <div class="category-item" data-category="design" onclick="showCategory('design')">
-                <i class="fas fa-palette"></i>
-                <span>设计资源</span>
-            </div>
-                <div class="category-item" data-category="dev" onclick="showCategory('dev')">
-                <i class="fas fa-code"></i>
-                <span>开发技术</span>
-            </div>
-                <div class="category-item" data-category="news" onclick="showCategory('news')">
-                <i class="fas fa-newspaper"></i>
-                <span>新闻资讯</span>
-            </div>
-                <div class="category-item" data-category="entertainment" onclick="showCategory('entertainment')">
-                <i class="fas fa-gamepad"></i>
-                <span>娱乐休闲</span>
-            </div>
+                <!-- 分类将由JavaScript动态加载 -->
             </div>
             <button id="add-category-btn" class="add-category-btn" onclick="addNewCategory()" style="display: none;">
                 <i class="fas fa-plus"></i>
@@ -84,71 +61,7 @@
 
         <!-- 网址卡片区域 -->
         <div class="content-area">
-            <!-- 社交媒体分类 -->
-            <section class="category-section active" id="social">
-                <h2 class="section-title">
-                    <i class="fab fa-twitter"></i>
-                    社交媒体
-                </h2>
-                <div class="cards-grid" id="social-cards">
-                    <!-- 卡片将由JavaScript动态加载 -->
-                </div>
-            </section>
-
-            <!-- 实用工具分类 -->
-            <section class="category-section" id="tools">
-                <h2 class="section-title">
-                    <i class="fas fa-tools"></i>
-                    实用工具
-                </h2>
-                <div class="cards-grid" id="tools-cards">
-                    <!-- 卡片将由JavaScript动态加载 -->
-                </div>
-            </section>
-
-            <!-- 设计资源分类 -->
-            <section class="category-section" id="design">
-                <h2 class="section-title">
-                    <i class="fas fa-palette"></i>
-                    设计资源
-                </h2>
-                <div class="cards-grid" id="design-cards">
-                    <!-- 卡片将由JavaScript动态加载 -->
-                </div>
-            </section>
-
-            <!-- 开发技术分类 -->
-            <section class="category-section" id="dev">
-                <h2 class="section-title">
-                    <i class="fas fa-code"></i>
-                    开发技术
-                </h2>
-                <div class="cards-grid" id="dev-cards">
-                    <!-- 卡片将由JavaScript动态加载 -->
-                </div>
-            </section>
-
-            <!-- 新闻资讯分类 -->
-            <section class="category-section" id="news">
-                <h2 class="section-title">
-                    <i class="fas fa-newspaper"></i>
-                    新闻资讯
-                </h2>
-                <div class="cards-grid" id="news-cards">
-                    <!-- 卡片将由JavaScript动态加载 -->
-                </div>
-            </section>
-
-            <!-- 娱乐休闲分类 -->
-            <section class="category-section" id="entertainment">
-                <h2 class="section-title">
-                    <i class="fas fa-gamepad"></i>
-                    娱乐休闲
-                </h2>
-                <div class="cards-grid" id="entertainment-cards">
-                    <!-- 卡片将由JavaScript动态加载 -->
-                </div>
-            </section>
+            <!-- 分类section将由JavaScript动态加载 -->
         </div>
     </main>
 
@@ -196,12 +109,7 @@
                             <label class="form-label" for="websiteCategory">所属分类 *</label>
                             <select id="websiteCategory" class="form-select" required>
                                 <option value="">请选择分类</option>
-                                <option value="social">社交媒体</option>
-                                <option value="tools">实用工具</option>
-                                <option value="design">设计资源</option>
-                                <option value="dev">开发技术</option>
-                                <option value="news">新闻资讯</option>
-                                <option value="entertainment">娱乐休闲</option>
+                                <!-- 分类选项将由JavaScript动态加载 -->
                             </select>
                         </div>
                     </div>
@@ -272,6 +180,41 @@
         </div>
     </div>
 
+    <!-- 确认删除分类对话框 -->
+    <div class="modal-overlay" id="deleteCategoryModal">
+        <div class="modal" style="max-width: 400px;">
+            <div class="modal-header">
+                <h3 class="modal-title">确认删除分类</h3>
+                <button class="modal-close" onclick="closeModal('deleteCategoryModal')">
+                    <i class="fas fa-times"></i>
+                </button>
+                        </div>
+            
+            <div style="padding: 1rem 0;">
+                <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                    <i class="fas fa-exclamation-triangle" style="font-size: 2rem; color: #f59e0b;"></i>
+                        <div>
+                        <p style="margin: 0; font-weight: 500; color: var(--text-primary);">确定要删除此分类吗？</p>
+                        <p style="margin: 0.5rem 0 0 0; font-size: 0.875rem; color: var(--text-primary);" id="deleteCategoryName">分类名称</p>
+                        <p style="margin: 0.5rem 0 0 0; font-size: 0.875rem; color: var(--text-secondary);">所有网站将移至"未分类"分类下</p>
+                        </div>
+                    </div>
+                </div>
+            
+            <div class="form-buttons">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('deleteCategoryModal')">
+                    <i class="fas fa-times"></i>
+                    取消
+                </button>
+                <button type="button" class="btn" style="background-color: #dc2626; color: white;" onclick="confirmDeleteCategory()">
+                    <i class="fas fa-trash"></i>
+                    确认删除
+                </button>
+                </div>
+        </div>
+    </div>
+
+    <script src="data-default.js"></script>
     <script src="data.js"></script>
     <script src="script.js"></script>
     <script src="category-edit.js"></script>

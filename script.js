@@ -16,6 +16,7 @@ function toggleTheme() {
 
 // 分类切换功能
 function showCategory(categoryId) {
+    console.log([categoryId,isEditingCategories]);
     if (isEditingCategories) return; // 编辑模式下不允许切换分类
     
     // 隐藏所有分类内容
@@ -23,7 +24,10 @@ function showCategory(categoryId) {
     sections.forEach(section => section.classList.remove('active'));
     
     // 显示选中的分类
-    document.getElementById(categoryId).classList.add('active');
+    const targetSection = document.getElementById(categoryId);
+    if (targetSection) {
+        targetSection.classList.add('active');
+    }
     
     // 更新侧边栏选中状态
     const categoryItems = document.querySelectorAll('.category-item');
@@ -85,6 +89,10 @@ function loadWebsitesFromData() {
         cardsContainer.innerHTML = '';
         
         // 添加该分类下的所有网站卡片
+        if (!websites[category] || !Array.isArray(websites[category])) {
+            return;
+        }
+        
         websites[category].forEach(website => {
             cardsContainer.insertAdjacentHTML('beforeend', createCardHTML(website));
         });
@@ -92,6 +100,149 @@ function loadWebsitesFromData() {
     
     // 为所有卡片添加事件监听器
     document.querySelectorAll('.website-card').forEach(addCardEventListeners);
+}
+
+// 渲染分类列表
+function renderCategoryList() {
+    const categoriesList = document.querySelector('.categories-list');
+    if (!categoriesList) return;
+    
+    // 清空列表
+    categoriesList.innerHTML = '';
+    
+    // 按顺序排序分类
+    const sortedCategories = [...window.categoryData].sort((a, b) => a.order - b.order);
+    
+    // 添加所有分类
+    sortedCategories.forEach(category => {
+        const categoryHTML = getCategoryItemTemplate(category);
+        categoriesList.insertAdjacentHTML('beforeend', categoryHTML);
+    });
+    
+    // 默认选中第一个分类
+    const firstCategory = sortedCategories[0];
+    if (firstCategory) {
+        const firstCategoryItem = document.querySelector(`.category-item[data-category="${firstCategory.id}"]`);
+        if (firstCategoryItem) {
+            firstCategoryItem.classList.add('active');
+        }
+        
+        // 显示第一个分类的内容
+        showCategory(firstCategory.id);
+    }
+    
+    // 渲染分类section
+    renderCategorySections(sortedCategories);
+}
+
+// 渲染分类section
+function renderCategorySections(categories) {
+    const contentArea = document.querySelector('.content-area');
+    if (!contentArea) return;
+    
+    // 清空内容区域
+    contentArea.innerHTML = '';
+    
+    // 添加所有分类section
+    categories.forEach((category, index) => {
+        const isActive = index === 0 ? 'active' : '';
+        
+        const sectionHTML = `
+            <section class="category-section ${isActive}" id="${category.id}">
+                <h2 class="section-title">
+                    <i class="${category.icon}"></i>
+                    ${category.name}
+                </h2>
+                <div class="cards-grid" id="${category.id}-cards">
+                    <!-- 卡片将由JavaScript动态加载 -->
+                </div>
+            </section>
+        `;
+        contentArea.insertAdjacentHTML('beforeend', sectionHTML);
+    });
+}
+
+// 创建分类内容区域
+function createCategoryContentSection(categoryId) {
+    // 查找对应的分类数据
+    const category = window.categoryData.find(cat => cat.id === categoryId);
+    if (!category) return;
+    
+    const contentArea = document.querySelector('.content-area');
+    if (!contentArea) return;
+    
+    // 创建新的section
+    const sectionHTML = `
+        <section class="category-section" id="${category.id}">
+            <h2 class="section-title">
+                <i class="${category.icon}"></i>
+                ${category.name}
+            </h2>
+            <div class="cards-grid" id="${category.id}-cards">
+                <!-- 卡片将由JavaScript动态加载 -->
+            </div>
+        </section>
+    `;
+    contentArea.insertAdjacentHTML('beforeend', sectionHTML);
+    
+    // 初始化该分类的网站数组
+    if (!websites[category.id]) {
+        websites[category.id] = [];
+    }
+    
+    return document.getElementById(category.id);
+}
+
+// 更新分类section
+function updateCategorySections(updatedCategories) {
+    const contentArea = document.querySelector('.content-area');
+    if (!contentArea) return;
+    
+    // 获取当前所有section的ID
+    const currentSections = Array.from(contentArea.querySelectorAll('.category-section'))
+        .map(section => section.id);
+    
+    // 获取更新后的分类ID
+    const updatedIds = updatedCategories.map(category => category.id);
+    
+    // 删除不再存在的section
+    currentSections.forEach(id => {
+        if (!updatedIds.includes(id)) {
+            const sectionToRemove = document.getElementById(id);
+            if (sectionToRemove) {
+                sectionToRemove.remove();
+            }
+        }
+    });
+    
+    // 添加新的section
+    updatedCategories.forEach(category => {
+        const existingSection = document.getElementById(category.id);
+        
+        if (!existingSection) {
+            // 创建新section
+            createCategoryContentSection(category.id);
+        } else {
+            // 更新现有section的标题和图标
+            const titleElement = existingSection.querySelector('.section-title');
+            if (titleElement) {
+                titleElement.innerHTML = `<i class="${category.icon}"></i> ${category.name}`;
+            }
+        }
+    });
+    
+    // 重新排序section
+    const sortedCategories = [...updatedCategories].sort((a, b) => a.order - b.order);
+    
+    sortedCategories.forEach(category => {
+        const section = document.getElementById(category.id);
+        if (section) {
+            contentArea.appendChild(section);
+        }
+    });
+    
+    // 重新加载卡片数据
+    loadWebsitesFromData();
 }
 
 // 添加网站功能
@@ -116,6 +267,19 @@ function deleteWebsite(card) {
 // 确认删除网站
 function confirmDeleteWebsite() {
     if (websiteToDelete) {
+        // 从数据对象中删除
+        const categoryId = websiteToDelete.closest('.category-section').id;
+        const cardIndex = Array.from(websiteToDelete.parentNode.children).indexOf(websiteToDelete);
+        
+        if (websites[categoryId] && websites[categoryId][cardIndex]) {
+            websites[categoryId].splice(cardIndex, 1);
+            
+            // 保存数据到localStorage
+            if (window.saveNavData) {
+                window.saveNavData();
+            }
+        }
+        
         websiteToDelete.style.animation = 'fadeOut 0.3s ease-out';
         setTimeout(() => {
             websiteToDelete.remove();
@@ -196,6 +360,11 @@ function submitWebsiteForm() {
         });
     }
     
+    // 保存数据到localStorage
+    if (window.saveNavData) {
+        window.saveNavData();
+    }
+    
     closeModal('websiteModal');
 }
 
@@ -227,6 +396,11 @@ function updateWebsiteCard(card, name, url, description, iconUrl) {
             description: description,
             icon: iconUrl || 'fas fa-globe'
         };
+        
+        // 保存数据到localStorage
+        if (window.saveNavData) {
+            window.saveNavData();
+        }
     }
 }
 
