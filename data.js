@@ -1,7 +1,6 @@
 // 网站数据
 let categories = [];
 let websites = {};
-let websitesData = {};
 
 // 从localStorage加载数据或使用默认数据
 function loadData() {
@@ -21,12 +20,13 @@ function loadData() {
       websites = JSON.parse(JSON.stringify(defaultWebsites)); // 深拷贝
     }
     
-    // 确保兼容性
-    websitesData = websites;
+    
+    window.websites = websites;
     
     // 初始化全局分类数据
     window.categoryData = categories;
-    console.log(window.categoryData);
+    window.categories = categories; // 添加别名
+    
     
     // 渲染分类列表
     renderCategoryList();
@@ -35,8 +35,10 @@ function loadData() {
     // 发生错误时使用默认数据
     categories = [...defaultCategories];
     websites = JSON.parse(JSON.stringify(defaultWebsites)); // 深拷贝
-    websitesData = websites;
+    
+    window.websites = websites;
     window.categoryData = categories;
+    window.categories = categories; // 添加别名
     
     // 渲染分类列表
     renderCategoryList();
@@ -68,11 +70,18 @@ function renderCategoryList() {
 }
 
 // 保存数据到localStorage
-function saveData() {
+function saveNavData() {
   try {
-    // 同步window.categoryData到本地变量
+    // 同步window.categoryData或window.categories到本地变量
     if (window.categoryData) {
       categories = window.categoryData;
+    } else if (window.categories) {
+      categories = window.categories;
+    }
+    
+    // 同步websites变量
+    if (window.websites) {
+      websites = window.websites;
     }
     
     localStorage.setItem('navSiteCategories', JSON.stringify(categories));
@@ -89,7 +98,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // 导出保存函数以供其他脚本使用
-window.saveData = saveData;
+window.saveNavData = saveNavData;
 
 // 全局分类数据变量（已经在loadData中设置）
 // window.categoryData = categories; 

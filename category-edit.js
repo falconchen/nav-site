@@ -115,14 +115,14 @@ function saveCategoryChanges() {
     }
     
     // 更新全局分类数据
-    window.categoryData = updatedCategories;
+    window.categories = updatedCategories;
     
     // 更新数据对象中的分类
     updateDataCategories(updatedCategories);
     
     // 保存数据到localStorage
-    if (typeof saveData === 'function') {
-        saveData();
+    if (typeof saveNavData === 'function') {
+        saveNavData();
     }
     
     // 恢复标题样式
@@ -178,7 +178,7 @@ function renderCategoriesInEditMode() {
     let html = '';
     
     // 确保使用最新的分类数据
-    const sortedCategories = [...window.categoryData].sort((a, b) => a.order - b.order);
+    const sortedCategories = [...window.categories].sort((a, b) => a.order - b.order);
     
     // 先渲染非"未分类"的分类
     sortedCategories.filter(category => category.id !== 'uncategorized').forEach(category => {
@@ -229,7 +229,7 @@ function renderCategoriesInNormalMode() {
     let html = '';
     
     // 确保使用最新的分类数据
-    const sortedCategories = [...window.categoryData].sort((a, b) => a.order - b.order);
+    const sortedCategories = [...window.categories].sort((a, b) => a.order - b.order);
     
     // 先渲染非"未分类"的分类
     sortedCategories.filter(category => category.id !== 'uncategorized').forEach(category => {
@@ -268,7 +268,7 @@ function addNewCategory() {
         id: newId,
         name: '新分类',
         icon: 'fas fa-folder',
-        order: window.categoryData.length
+        order: window.categories.length
     };
     
     // 添加到DOM
@@ -294,15 +294,15 @@ function addNewCategory() {
     });
     
     // 添加到分类数据
-    window.categoryData.push(newCategory);
+    window.categories.push(newCategory);
     
     // 创建对应的内容区域
     createCategoryContentSection(newId);
     
     // 保存数据到localStorage
-    if (typeof saveData === 'function') {
-        console.log('saveData');
-        saveData();
+    if (typeof saveNavData === 'function') {
+        console.log('saveNavData');
+        saveNavData();
     }
     
     // 聚焦到新分类的输入框
@@ -371,8 +371,8 @@ function updateDataCategories(updatedCategories) {
         }
     });
     
-    // 确保websitesData引用也是最新的
-    websitesData = websites;
+    // 确保全局引用也是最新的
+    window.websites = websites;
     
     // 使用script.js中的函数更新DOM中的分类区域
     if (typeof updateCategorySections === 'function') {
@@ -405,9 +405,9 @@ function setupDragAndDrop() {
             updateCategoryOrder();
             
             // 保存到localStorage
-            if (typeof saveData === 'function') {
-                console.log('saveData');
-                saveData();
+            if (typeof saveNavData === 'function') {
+                console.log('saveNavData');
+                saveNavData();
             }
         });
         
@@ -466,14 +466,14 @@ function setupDragAndDrop() {
         });
         
         // 更新全局分类数据的顺序
-        window.categoryData.forEach(category => {
+        window.categories.forEach(category => {
             if (newOrder.hasOwnProperty(category.id)) {
                 category.order = newOrder[category.id];
             }
         });
         
         // 对分类排序
-        window.categoryData.sort((a, b) => a.order - b.order);
+        window.categories.sort((a, b) => a.order - b.order);
     }
 }
 
@@ -519,7 +519,7 @@ function confirmDeleteCategory() {
     }
     
     // 立即从数据模型中删除该分类
-    window.categoryData = window.categoryData.filter(category => category.id !== categoryId);
+    window.categories = window.categories.filter(category => category.id !== categoryId);
     
     // 从websites对象中删除对应的分类数据（已移至未分类，这里只需删除原始键）
     if (categoryId !== 'uncategorized' && websites[categoryId]) {
@@ -527,10 +527,8 @@ function confirmDeleteCategory() {
     }
     
     // 立即保存数据到localStorage（不等到动画结束）
-    if (typeof saveData === 'function') {
-        
- 
-        saveData();
+    if (typeof saveNavData === 'function') {
+        saveNavData();
     }
     
     // 如果不在编辑模式，重新渲染分类列表
@@ -551,7 +549,7 @@ function confirmDeleteCategory() {
     const currentActiveSection = document.querySelector('.category-section.active');
     if (currentActiveSection && currentActiveSection.id === categoryId) {
         // 找到第一个非被删除分类的分类
-        const firstAvailableCategory = window.categoryData.find(cat => cat.id !== categoryId);
+        const firstAvailableCategory = window.categories.find(cat => cat.id !== categoryId);
         if (firstAvailableCategory) {
             // 延迟切换，以便DOM有时间更新
             setTimeout(() => {

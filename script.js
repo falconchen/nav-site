@@ -111,7 +111,7 @@ function renderCategoryList() {
     categoriesList.innerHTML = '';
     
     // 按顺序排序分类
-    const sortedCategories = [...window.categoryData].sort((a, b) => a.order - b.order);
+    const sortedCategories = [...window.categories].sort((a, b) => a.order - b.order);
     
     // 添加所有分类
     sortedCategories.forEach(category => {
@@ -165,7 +165,7 @@ function renderCategorySections(categories) {
 // 创建分类内容区域
 function createCategoryContentSection(categoryId) {
     // 查找对应的分类数据
-    const category = window.categoryData.find(cat => cat.id === categoryId);
+    const category = window.categories.find(cat => cat.id === categoryId);
     if (!category) return;
     
     const contentArea = document.querySelector('.content-area');
@@ -335,7 +335,7 @@ function submitWebsiteForm() {
     const category = document.getElementById('websiteCategory').value;
     const iconUrl = document.getElementById('websiteIcon').value;
     
-    if (!name || !url || !description || !category) {
+    if (!name || !url || !category) {
         alert('请填写所有必填字段');
         return;
     }
@@ -362,6 +362,7 @@ function submitWebsiteForm() {
     
     // 保存数据到localStorage
     if (window.saveNavData) {
+        
         window.saveNavData();
     }
     
@@ -663,7 +664,7 @@ function updateCategoryDropdown() {
     }
     
     // 添加所有分类
-    window.categoryData.forEach(category => {
+    window.categories.forEach(category => {
         const option = document.createElement('option');
         option.value = category.id;
         option.textContent = category.name;
