@@ -193,6 +193,7 @@ body {
   background-color: var(--primary-color);
   color: white;
   transform: translateX(0.25rem);
+  border-right: 3px solid var(--secondary-color);
 }
 
 .category-item i {
@@ -206,11 +207,9 @@ body {
 }
 
 .category-section {
-  display: none;
-}
-
-.category-section.active {
   display: block;
+  margin-bottom: 3rem;
+  scroll-margin-top: 6rem;
 }
 
 .section-title {
@@ -221,6 +220,7 @@ body {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  padding-top: 0.5rem;
 }
 
 .section-title i {

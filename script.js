@@ -18,14 +18,14 @@ function toggleTheme() {
 function showCategory(categoryId) {
     if (isEditingCategories) return; // 编辑模式下不允许切换分类
     
-    // 隐藏所有分类内容
-    const sections = document.querySelectorAll('.category-section');
-    sections.forEach(section => section.classList.remove('active'));
-    
-    // 显示选中的分类
+    // 获取目标分类区域
     const targetSection = document.getElementById(categoryId);
     if (targetSection) {
-        targetSection.classList.add('active');
+        // 平滑滚动到目标位置
+        targetSection.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+        });
     }
     
     // 更新侧边栏选中状态
@@ -61,8 +61,11 @@ function closeModal(modalId) {
 
 // 根据数据创建卡片HTML
 function createCardHTML(website) {
+    // 确保权重数据存在
+    const weight = website.weight || 100;
+    
     return `
-        <div class="website-card">
+        <div class="website-card" data-weight="${weight}">
             <div class="card-header">
                 <div class="card-icon">
                     <i class="${website.icon || 'fas fa-globe'}"></i>
@@ -92,7 +95,17 @@ function loadWebsitesFromData() {
             return;
         }
         
-        websites[category].forEach(website => {
+        // 按权重排序网站 - 权重越大越靠前
+        const sortedWebsites = [...websites[category]].sort((a, b) => {
+            // 降序排序：b的权重 - a的权重
+            return (b.weight || 100) - (a.weight || 100);
+        });
+        
+        // 更新排序后的数据
+        websites[category] = sortedWebsites;
+        
+        // 创建卡片
+        sortedWebsites.forEach(website => {
             cardsContainer.insertAdjacentHTML('beforeend', createCardHTML(website));
         });
     });
@@ -143,11 +156,9 @@ function renderCategorySections(categories) {
     contentArea.innerHTML = '';
     
     // 添加所有分类section
-    categories.forEach((category, index) => {
-        const isActive = index === 0 ? 'active' : '';
-        
+    categories.forEach((category) => {
         const sectionHTML = `
-            <section class="category-section ${isActive}" id="${category.id}">
+            <section class="category-section" id="${category.id}">
                 <h2 class="section-title">
                     <i class="${category.icon}"></i>
                     ${category.name}
@@ -346,9 +357,63 @@ function submitWebsiteForm() {
         return;
     }
     
+    // 计算该分类中的最大权重
+    const getMaxWeight = (categoryId) => {
+        if (!websites[categoryId] || websites[categoryId].length === 0) return 100;
+        return Math.max(...websites[categoryId].map(site => site.weight || 100)) + 10;
+    };
+    
+    // 为新网站或变更分类的网站设置最高权重（当前最大权重+10）
+    const newWeight = getMaxWeight(category);
+    
     if (currentEditingCard) {
         // 编辑现有卡片
-        updateWebsiteCard(currentEditingCard, name, url, description, iconUrl);
+        const oldCategoryId = currentEditingCard.closest('.category-section').id;
+        const cardIndex = Array.from(currentEditingCard.parentNode.children).indexOf(currentEditingCard);
+        
+        // 检查分类是否有变化
+        if (oldCategoryId !== category && websites[oldCategoryId] && websites[oldCategoryId][cardIndex]) {
+            // 从旧分类中移除
+            const websiteData = websites[oldCategoryId].splice(cardIndex, 1)[0];
+            
+            // 移动到新分类
+            if (!websites[category]) {
+                websites[category] = [];
+            }
+            
+            // 使用新的数据更新网站信息
+            websites[category].push({
+                title: name,
+                url: url,
+                description: description,
+                icon: iconUrl || 'fas fa-globe',
+                weight: newWeight // 设置最高权重
+            });
+            
+            // 先隐藏旧卡片，准备移除
+            currentEditingCard.style.display = 'none';
+            
+            // 创建新卡片
+            createWebsiteCard(name, url, description, category, iconUrl);
+            
+            // 设置延迟移除旧卡片
+            setTimeout(() => {
+                if (currentEditingCard && currentEditingCard.parentNode) {
+                    currentEditingCard.remove();
+                }
+            }, 0);
+            
+            console.log('网站已移动到新分类:', {
+                from: oldCategoryId,
+                to: category,
+                website: name,
+                newWeight: newWeight
+            });
+        } else {
+            // 分类没有变化，只更新卡片内容和权重
+            // 保留原有权重，不改变显示顺序
+            updateWebsiteCard(currentEditingCard, name, url, description, iconUrl);
+        }
     } else {
         // 创建新卡片
         createWebsiteCard(name, url, description, category, iconUrl);
@@ -362,13 +427,19 @@ function submitWebsiteForm() {
             title: name,
             url: url,
             description: description,
-            icon: iconUrl || 'fas fa-globe'
+            icon: iconUrl || 'fas fa-globe',
+            weight: newWeight // 设置最高权重
+        });
+        
+        console.log('创建了新网站:', {
+            category: category,
+            website: name,
+            weight: newWeight
         });
     }
     
     // 保存数据到localStorage
     if (window.saveNavData) {
-        
         window.saveNavData();
     }
     
@@ -396,18 +467,29 @@ function updateWebsiteCard(card, name, url, description, iconUrl) {
     const categoryId = card.closest('.category-section').id;
     const cardIndex = Array.from(card.parentNode.children).indexOf(card);
     
-    if (websites[categoryId] && websites[categoryId][cardIndex]) {
+    // 检查索引是否有效
+    if (websites[categoryId] && cardIndex >= 0 && cardIndex < websites[categoryId].length) {
+        // 保留原有权重
+        const currentWeight = websites[categoryId][cardIndex].weight || 100;
+        
         websites[categoryId][cardIndex] = {
             title: name,
             url: url,
             description: description,
-            icon: iconUrl || 'fas fa-globe'
+            icon: iconUrl || 'fas fa-globe',
+            weight: currentWeight // 保留原有权重
         };
         
         // 保存数据到localStorage
         if (window.saveNavData) {
             window.saveNavData();
         }
+    } else {
+        console.warn('无法更新数据对象，索引无效:', {
+            categoryId,
+            cardIndex,
+            cardsInCategory: websites[categoryId] ? websites[categoryId].length : 0
+        });
     }
 }
 
@@ -416,8 +498,16 @@ function createWebsiteCard(name, url, description, category, iconUrl) {
     const categorySection = document.getElementById(category);
     const cardsGrid = categorySection.querySelector('.cards-grid');
     
+    // 获取最大权重值，确保显示在前面
+    const getMaxWeight = () => {
+        if (!websites[category] || websites[category].length === 0) return 100;
+        return Math.max(...websites[category].map(site => site.weight || 100)) + 10;
+    };
+    
+    const weight = getMaxWeight();
+    
     const cardHTML = `
-        <div class="website-card" style="animation: fadeIn 0.5s ease-out">
+        <div class="website-card" style="animation: fadeIn 0.5s ease-out" data-weight="${weight}">
             <div class="card-header">
                 <div class="card-icon">
                     <i class="${iconUrl || 'fas fa-globe'}"></i>
@@ -431,10 +521,11 @@ function createWebsiteCard(name, url, description, category, iconUrl) {
         </div>
     `;
     
-    cardsGrid.insertAdjacentHTML('beforeend', cardHTML);
+    // 插入到网格的开头而不是末尾，确保新卡片显示在最前面
+    cardsGrid.insertAdjacentHTML('afterbegin', cardHTML);
     
     // 为新卡片添加事件监听器
-    const newCard = cardsGrid.lastElementChild;
+    const newCard = cardsGrid.firstElementChild;
     addCardEventListeners(newCard);
 }
 
@@ -718,7 +809,88 @@ document.addEventListener('DOMContentLoaded', function() {
             hideContextMenu();
         }
     });
+    
+    // 添加滚动监听，更新当前分类状态
+    setupScrollSpy();
 });
+
+// 滚动监听功能
+function setupScrollSpy() {
+    // 确保所有分类section都存在
+    if (document.querySelectorAll('.category-section').length === 0) return;
+    
+    // 防抖函数，避免频繁触发
+    function debounce(func, wait) {
+        let timeout;
+        return function() {
+            const context = this;
+            const args = arguments;
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(context, args), wait);
+        };
+    }
+    
+    // 获取所有分类区域的位置信息
+    function getCategorySections() {
+        const sections = document.querySelectorAll('.category-section');
+        const sectionPositions = [];
+        
+        sections.forEach(section => {
+            const rect = section.getBoundingClientRect();
+            const offsetTop = rect.top + window.scrollY;
+            sectionPositions.push({
+                id: section.id,
+                offsetTop: offsetTop,
+                height: rect.height
+            });
+        });
+        
+        return sectionPositions;
+    }
+    
+    // 更新当前分类的高亮状态
+    const updateActiveCategory = debounce(function() {
+        const scrollPosition = window.scrollY + 100; // 添加偏移量以提前激活
+        const sectionPositions = getCategorySections();
+        
+        // 找到当前滚动位置对应的分类
+        let currentCategoryId = null;
+        for (let i = 0; i < sectionPositions.length; i++) {
+            const section = sectionPositions[i];
+            const nextSection = sectionPositions[i + 1];
+            
+            // 如果处于当前区域或者是最后一个区域
+            if (
+                (scrollPosition >= section.offsetTop && 
+                (!nextSection || scrollPosition < nextSection.offsetTop)) ||
+                (i === sectionPositions.length - 1 && scrollPosition >= section.offsetTop)
+            ) {
+                currentCategoryId = section.id;
+                break;
+            }
+        }
+        
+        // 如果找到匹配的分类，更新侧边栏状态
+        if (currentCategoryId) {
+            const categoryItems = document.querySelectorAll('.category-item');
+            categoryItems.forEach(item => item.classList.remove('active'));
+            
+            const activeItem = document.querySelector(`.category-item[data-category="${currentCategoryId}"]`);
+            if (activeItem) {
+                activeItem.classList.add('active');
+            }
+            
+            // 打印调试信息
+            console.log('当前分类:', currentCategoryId);
+        }
+    }, 50);
+    
+    // 添加滚动事件监听
+    window.addEventListener('scroll', updateActiveCategory);
+    
+    // 初始调用一次，设置初始状态
+    updateActiveCategory();
+}
 
 // 更新分类下拉菜单
 function updateCategoryDropdown() {
