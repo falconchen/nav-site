@@ -226,7 +226,7 @@ function renderCategoriesInEditMode() {
             document.getElementById('deleteCategoryName').textContent = categoryName;
             
             // 打开确认对话框
-            openModal('deleteCategoryModal');
+            openCategoryModal('deleteCategoryModal');
         });
     });
 }
@@ -300,7 +300,7 @@ function addNewCategory() {
         document.getElementById('deleteCategoryName').textContent = categoryName;
         
         // 打开确认对话框
-        openModal('deleteCategoryModal');
+        openCategoryModal('deleteCategoryModal');
     });
     
     // 添加到分类数据
@@ -491,7 +491,7 @@ function setupDragAndDrop() {
 }
 
 // 打开模态框
-function openModal(modalId) {
+function openCategoryModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
         modal.classList.add('active');
@@ -500,7 +500,7 @@ function openModal(modalId) {
 }
 
 // 关闭模态框
-function closeModal(modalId) {
+function closeCategoryModal(modalId) {
     const modal = document.getElementById(modalId);
     if (modal) {
         modal.classList.remove('active');
@@ -591,7 +591,7 @@ function confirmDeleteCategory() {
     }, 300);
     
     // 关闭对话框
-    closeModal('deleteCategoryModal');
+    closeCategoryModal('deleteCategoryModal');
 }
 
 // 页面加载完成后不需要做额外初始化，因为data.js已经初始化了分类数据

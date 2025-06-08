@@ -48,15 +48,90 @@ function openModal(modalId) {
 }
 
 function closeModal(modalId) {
+    console.log(`开始关闭模态框: ${modalId}`);
+    
+    // 检查当前编辑状态
+    console.log('关闭前的编辑状态:', {
+        currentEditingCard: currentEditingCard ? '存在' : '不存在',
+        editingCards: document.querySelectorAll('.website-card.editing').length,
+        modalId: modalId
+    });
+    
+    // 记录所有具有editing类的卡片
+    const editingCards = document.querySelectorAll('.website-card.editing');
+    if (editingCards.length > 0) {
+        console.log(`发现 ${editingCards.length} 个带有editing类的卡片:`, 
+            Array.from(editingCards).map(card => {
+                const title = card.querySelector('.card-title')?.textContent || '无标题';
+                const category = card.closest('.category-section')?.id || '未知分类';
+                return { title, category };
+            })
+        );
+    }
+    
     const modal = document.getElementById(modalId);
     modal.classList.remove('active');
     document.body.style.overflow = '';
-    currentEditingCard = null;
+    
+    // 清理前再次检查
+    console.log('清理前再次检查:', {
+        editingCards: document.querySelectorAll('.website-card.editing').length
+    });
+    
+    // 重置当前编辑卡片引用
+    if (currentEditingCard) {
+        console.log('重置currentEditingCard');
+        currentEditingCard = null;
+    }
     
     // 清除编辑状态
-    document.querySelectorAll('.website-card.editing').forEach(card => {
-        card.classList.remove('editing');
+    document.querySelectorAll('.website-card.editing').forEach((card, index) => {
+        console.log(`尝试清除第 ${index + 1} 个卡片的editing类`);
+        try {
+            // 检查卡片在DOM中是否有效
+            if (card.isConnected) {
+                card.classList.remove('editing');
+                console.log(`成功移除editing类`);
+            } else {
+                console.log(`卡片不在DOM中，无法移除类`);
+            }
+        } catch (error) {
+            console.error(`移除editing类时出错:`, error);
+        }
     });
+    
+    // 最终检查是否还有卡片带有editing类
+    const remainingEditingCards = document.querySelectorAll('.website-card.editing');
+    console.log('清理后检查:', {
+        remainingEditingCards: remainingEditingCards.length,
+        清理成功: remainingEditingCards.length === 0
+    });
+    
+    if (remainingEditingCards.length > 0) {
+        console.warn('警告: 仍有卡片带有editing类!', 
+            Array.from(remainingEditingCards).map(card => {
+                return {
+                    title: card.querySelector('.card-title')?.textContent || '无标题',
+                    category: card.closest('.category-section')?.id || '未知分类',
+                    classList: card.className,
+                    inDOM: card.isConnected
+                };
+            })
+        );
+        
+        // 强制再次尝试清理
+        remainingEditingCards.forEach(card => {
+            // 使用替代方法尝试移除类
+            try {
+                card.className = card.className.replace('editing', '').trim();
+                console.log('使用替代方法清理成功');
+            } catch (error) {
+                console.error('替代清理方法失败:', error);
+            }
+        });
+    }
+    
+    console.log(`模态框 ${modalId} 关闭完成`);
 }
 
 // 根据数据创建卡片HTML
@@ -357,6 +432,9 @@ function submitWebsiteForm() {
         return;
     }
     
+    // 保存原始卡片的引用，以确保我们可以清除其编辑状态
+    const originalCard = currentEditingCard;
+    
     // 计算该分类中的最大权重
     const getMaxWeight = (categoryId) => {
         if (!websites[categoryId] || websites[categoryId].length === 0) return 100;
@@ -366,13 +444,23 @@ function submitWebsiteForm() {
     // 为新网站或变更分类的网站设置最高权重（当前最大权重+10）
     const newWeight = getMaxWeight(category);
     
+    // 记录分类是否变更，以便决定是否需要滚动到新分类
+    let categoryChanged = false;
+    
     if (currentEditingCard) {
         // 编辑现有卡片
         const oldCategoryId = currentEditingCard.closest('.category-section').id;
         const cardIndex = Array.from(currentEditingCard.parentNode.children).indexOf(currentEditingCard);
         
+        // 确保移除编辑状态
+        if (currentEditingCard.classList.contains('editing')) {
+            currentEditingCard.classList.remove('editing');
+        }
+        
         // 检查分类是否有变化
         if (oldCategoryId !== category && websites[oldCategoryId] && websites[oldCategoryId][cardIndex]) {
+            categoryChanged = true;
+            
             // 从旧分类中移除
             const websiteData = websites[oldCategoryId].splice(cardIndex, 1)[0];
             
@@ -401,6 +489,8 @@ function submitWebsiteForm() {
                 if (currentEditingCard && currentEditingCard.parentNode) {
                     currentEditingCard.remove();
                 }
+                // 清除全局编辑卡片引用
+                currentEditingCard = null;
             }, 0);
             
             console.log('网站已移动到新分类:', {
@@ -413,9 +503,13 @@ function submitWebsiteForm() {
             // 分类没有变化，只更新卡片内容和权重
             // 保留原有权重，不改变显示顺序
             updateWebsiteCard(currentEditingCard, name, url, description, iconUrl);
+            
+            // 确保清除编辑状态
+            currentEditingCard = null;
         }
     } else {
         // 创建新卡片
+        categoryChanged = true; // 新网站当作分类变更处理
         createWebsiteCard(name, url, description, category, iconUrl);
         
         // 更新数据对象
@@ -443,7 +537,34 @@ function submitWebsiteForm() {
         window.saveNavData();
     }
     
+    // 最后确保没有卡片还处于编辑状态
+    document.querySelectorAll('.website-card.editing').forEach(card => {
+        card.classList.remove('editing');
+    });
+    
     closeModal('websiteModal');
+    
+    // 延迟一点时间后滚动到目标分类，确保DOM更新完成
+    setTimeout(() => {
+        // 如果是新网站或分类变更，则滚动到对应的分类区域
+        if (categoryChanged) {
+            showCategory(category);
+            
+            // 找到新添加的卡片并添加闪烁效果
+            const categorySection = document.getElementById(category);
+            if (categorySection) {
+                const firstCard = categorySection.querySelector('.cards-grid .website-card:first-child');
+                if (firstCard) {
+                    // 添加临时高亮效果
+                    firstCard.classList.add('highlight-card');
+                    // 5秒后移除高亮
+                    setTimeout(() => {
+                        firstCard.classList.remove('highlight-card');
+                    }, 5000);
+                }
+            }
+        }
+    }, 100);
 }
 
 // 更新网站卡片
@@ -456,6 +577,9 @@ function updateWebsiteCard(card, name, url, description, iconUrl) {
         const iconElement = card.querySelector('.card-icon i');
         iconElement.className = iconUrl.startsWith('fa') ? iconUrl : 'fas fa-globe';
     }
+    
+    // 移除编辑状态
+    card.classList.remove('editing');
     
     // 添加更新动画
     card.style.animation = 'pulse 0.5s ease-out';
@@ -803,9 +927,26 @@ document.addEventListener('DOMContentLoaded', function() {
     // ESC键关闭模态框
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
-            document.querySelectorAll('.modal-overlay.active').forEach(modal => {
-                closeModal(modal.id);
+            // 获取所有活动的模态框
+            const activeModals = document.querySelectorAll('.modal-overlay.active');
+            
+            activeModals.forEach(modal => {
+                const modalId = modal.id;
+                console.log('ESC键关闭模态框:', modalId);
+                
+                // 根据模态框ID判断使用哪个关闭函数
+                if (modalId === 'deleteCategoryModal') {
+                    // 使用分类编辑相关的关闭函数
+                    if (typeof closeCategoryModal === 'function') {
+                        closeCategoryModal(modalId);
+                    }
+                } else {
+                    // 使用网站编辑相关的关闭函数
+                    closeModal(modalId);
+                }
             });
+            
+            // 隐藏右键菜单
             hideContextMenu();
         }
     });

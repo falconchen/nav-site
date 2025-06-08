@@ -1,8 +1,10 @@
 :root {
   /* 亮色模式变量 */
   --primary-color: #4f46e5;
+  --primary-color-rgb: 79, 70, 229;
   --primary-hover: #4338ca;
   --secondary-color: #10b981;
+  --secondary-color-rgb: 16, 185, 129;
   --background-color: #f8fafc;
   --surface-color: #ffffff;
   --text-primary: #1e293b;
@@ -17,8 +19,10 @@
 [data-theme="dark"] {
   /* 暗色模式变量 */
   --primary-color: #6366f1;
+  --primary-color-rgb: 99, 102, 241;
   --primary-hover: #5b21b6;
   --secondary-color: #34d399;
+  --secondary-color-rgb: 52, 211, 153;
   --background-color: #0f172a;
   --surface-color: #1e293b;
   --text-primary: #f1f5f9;
@@ -865,4 +869,18 @@ body {
 @keyframes fadeOut {
   from { opacity: 1; transform: translateX(0); }
   to { opacity: 0; transform: translateX(-10px); }
+}
+
+/* 新添加或移动的卡片高亮效果 */
+@keyframes highlight-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(var(--primary-color-rgb, 79, 70, 229), 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(var(--primary-color-rgb, 79, 70, 229), 0); }
+  100% { box-shadow: 0 0 0 0 rgba(var(--primary-color-rgb, 79, 70, 229), 0); }
+}
+
+.highlight-card {
+  animation: highlight-pulse 1.5s infinite;
+  border-color: var(--primary-color);
+  position: relative;
+  z-index: 2;
 }
