@@ -211,7 +211,7 @@ function renderCategoriesInEditMode() {
             
             // 如果是系统默认的几个主要分类，不允许删除
             const categoryId = categoryItem.dataset.category;
-            const defaultCategories = [ 'uncategorized'];
+            const defaultCategories = ['pinned', 'uncategorized'];
             if (defaultCategories.includes(categoryId)) {
                 alert('系统默认分类不能删除！');
                 return;
@@ -228,6 +228,29 @@ function renderCategoriesInEditMode() {
             // 打开确认对话框
             openCategoryModal('deleteCategoryModal');
         });
+    });
+    
+    // 禁用固定分类的编辑功能
+    document.querySelectorAll('.category-item[data-category="pinned"]').forEach(item => {
+        const nameInput = item.querySelector('.category-name-input');
+        const deleteBtn = item.querySelector('.category-delete-btn');
+        const dragHandle = item.querySelector('.category-drag-handle');
+        
+        if (nameInput) {
+            nameInput.disabled = true;
+            nameInput.title = '固定分类不可编辑';
+        }
+        
+        if (deleteBtn) {
+            deleteBtn.style.visibility = 'hidden';
+        }
+        
+        if (dragHandle) {
+            dragHandle.style.cursor = 'not-allowed';
+        }
+        
+        item.draggable = false;
+        item.title = '置顶分类固定在第一位';
     });
 }
 

@@ -884,3 +884,80 @@ body {
   position: relative;
   z-index: 2;
 }
+
+/* 置顶后的简单高亮效果 */
+.simple-highlight {
+  border: 1px solid var(--primary-color);
+  box-shadow: 0 0 5px rgba(var(--primary-color-rgb, 79, 70, 229), 0.5);
+  position: relative;
+  z-index: 2;
+}
+
+/* 复选框样式 */
+.checkbox-container {
+  display: flex;
+  align-items: center;
+  margin-top: 0.5rem;
+}
+
+.form-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 1.2rem;
+  height: 1.2rem;
+  border: 2px solid var(--border-color);
+  border-radius: 0.25rem;
+  margin-right: 0.5rem;
+  position: relative;
+  cursor: pointer;
+  background-color: var(--background-color);
+}
+
+.form-checkbox:checked {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.form-checkbox:checked::after {
+  content: '\f00c';
+  font-family: 'Font Awesome 6 Free';
+  font-weight: 900;
+  color: white;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 0.7rem;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+/* 置顶网站样式 */
+.website-card.pinned {
+  /* border-left: 3px solid var(--primary-color); */
+  position: relative;
+}
+
+/* 所有置顶卡片的图钉图标 */
+.website-card.pinned::before {
+  content: '\f08d';
+  font-family: 'Font Awesome 6 Free';
+  font-weight: 900;
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  color: var(--primary-color);
+  transform: rotate(45deg);
+  font-size: 0.8rem;
+}
+
+/* 置顶分类下的卡片不显示图钉图标 */
+#pinned .website-card.pinned::before {
+  display: none;
+}

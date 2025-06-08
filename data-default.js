@@ -1,50 +1,58 @@
 // 默认网站数据
 const defaultCategories = [
   {
+    id: "pinned",
+    name: "置顶",
+    icon: "fas fa-thumbtack",
+    order: 0,
+    fixed: true
+  },
+  {
     id: "social",
     name: "社交媒体",
     icon: "fab fa-twitter",
-    order: 0
+    order: 1
   },
   {
     id: "tools",
     name: "实用工具",
     icon: "fas fa-tools",
-    order: 1
+    order: 2
   },
   {
     id: "design",
     name: "设计资源",
     icon: "fas fa-palette",
-    order: 2
+    order: 3
   },
   {
     id: "dev",
     name: "开发技术",
     icon: "fas fa-code",
-    order: 3
+    order: 4
   },
   {
     id: "news",
     name: "新闻资讯",
     icon: "fas fa-newspaper",
-    order: 4
+    order: 5
   },
   {
     id: "entertainment",
     name: "娱乐休闲",
     icon: "fas fa-gamepad",
-    order: 5
+    order: 6
   },
   {
     id: "uncategorized",
     name: "未分类",
     icon: "fas fa-folder",
-    order: 6
+    order: 7
   }
 ];
 
 const defaultWebsites = {
+  pinned: [],
   social: [
     {
       title: "微博",
