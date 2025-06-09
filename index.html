@@ -102,10 +102,6 @@
                             <input type="text" id="websiteName" class="form-input" placeholder="请输入网站名称" required>
                         </div>
                         <div class="form-group">
-                            <label class="form-label" for="websiteIcon">Font Awesome类</label>
-                            <input type="text" id="websiteIcon" class="form-input" placeholder="Font Awesome类">
-                        </div>
-                        <div class="form-group">
                             <label class="form-label" for="websiteCategory">所属分类 *</label>
                             <select id="websiteCategory" class="form-select" required>
                                 <option value="">请选择分类</option>
@@ -128,6 +124,32 @@
                             <div class="upload-text">点击上传图标或拖拽文件到此处<br>支持 JPG, PNG, SVG 格式</div>
                         </div>
                         <input type="file" id="iconFile" class="file-input" accept="image/*">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">图标样式</label>
+                    <div class="icon-selector-container">
+                        <div class="icon-selector-input-group">
+                            <span class="icon-selector-preview">
+                                <i id="iconPreview" class="fas fa-globe"></i>
+                            </span>
+                            <input type="text" id="websiteIcon" class="icon-selector-input" placeholder="选择或搜索图标..." readonly>
+                            <button type="button" class="icon-selector-dropdown-btn" id="iconSelectorBtn">
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                        </div>
+                        <div class="icon-selector-dropdown" id="iconSelectorDropdown">
+                            <input type="text" class="icon-selector-search" id="iconSearch" placeholder="搜索图标...">
+                            <div class="icon-category-tabs" id="iconCategoryTabs">
+                                <div class="icon-category-tab active" data-category="regular">常规</div>
+                                <div class="icon-category-tab" data-category="solid">实心</div>
+                                <div class="icon-category-tab" data-category="brands">品牌</div>
+                            </div>
+                            <div class="icon-grid" id="iconGrid">
+                                <!-- 图标将由JavaScript动态加载 -->
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -226,5 +248,6 @@
     <script src="data.js"></script>
     <script src="script.js"></script>
     <script src="category-edit.js"></script>
+    <script src="icon-selector.js"></script>
 </body>
 </html>

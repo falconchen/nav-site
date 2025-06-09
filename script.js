@@ -381,6 +381,9 @@ function openAddWebsiteModal() {
     // 确保分类下拉菜单是最新的
     updateCategoryDropdown();
     
+    // 重置图标预览
+    updateIconPreview('fas fa-globe');
+    
     openModal('websiteModal');
 }
 
@@ -529,6 +532,9 @@ function editWebsite(card) {
     document.getElementById('websiteDescription').value = description;
     document.getElementById('websiteIcon').value = iconClass;
     document.getElementById('websitePinned').checked = isPinned;
+    
+    // 更新图标预览
+    updateIconPreview(iconClass);
     
     // 更新分类下拉菜单
     updateCategoryDropdown();
@@ -1415,15 +1421,30 @@ function handleFileUpload(file) {
         const randomIcon = iconClasses[Math.floor(Math.random() * iconClasses.length)];
         document.getElementById('websiteIcon').value = randomIcon;
         
+        // 更新图标预览
+        updateIconPreview(randomIcon);
+        
         // 更新上传区域显示
         const uploadArea = document.getElementById('iconUploadArea');
         uploadArea.innerHTML = `
             <i class="fas fa-check-circle upload-icon" style="color: var(--secondary-color);"></i>
             <div class="upload-text">图标已上传: ${file.name}</div>
+            <div style="margin-top: 0.5rem; font-size: 0.8rem; color: var(--text-muted);">
+                <a href="#" onclick="resetIconUpload(); return false;">重置</a>
+            </div>
         `;
     } else {
         alert('请上传图片文件');
     }
+}
+
+// 重置图标上传区域
+function resetIconUpload() {
+    const uploadArea = document.getElementById('iconUploadArea');
+    uploadArea.innerHTML = `
+        <i class="fas fa-cloud-upload-alt upload-icon"></i>
+        <div class="upload-text">点击上传图标或拖拽文件到此处<br>支持 JPG, PNG, SVG 格式</div>
+    `;
 }
 
 // 页面初始化
@@ -1448,6 +1469,11 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 设置文件上传
     setupFileUpload();
+    
+    // 初始化图标选择器
+    if (typeof initIconSelector === 'function') {
+        initIconSelector();
+    }
     
     // 点击其他地方隐藏右键菜单
     document.addEventListener('click', hideContextMenu);
