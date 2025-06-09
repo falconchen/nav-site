@@ -709,8 +709,8 @@ function submitWebsiteForm() {
             sortAndRefreshCategory(oldCategoryId);
             sortAndRefreshCategory(category);
             
-            // 创建新卡片
-            createWebsiteCard(name, url, description, category, iconUrl, isPinned);
+            // 不需要再次创建卡片，因为sortAndRefreshCategory已经刷新了UI
+            // createWebsiteCard(name, url, description, category, iconUrl, isPinned);
             
             console.log('网站已移动到新分类:', {
                 from: oldCategoryId,
@@ -788,8 +788,8 @@ function submitWebsiteForm() {
         // 对分类进行排序并刷新UI
         sortAndRefreshCategory(category);
         
-        // 创建新卡片
-        createWebsiteCard(name, url, description, category, iconUrl, isPinned);
+        // 不需要再次创建卡片，因为sortAndRefreshCategory已经刷新了UI
+        // createWebsiteCard(name, url, description, category, iconUrl, isPinned);
         
         console.log('创建了新网站:', {
             category: category,
