@@ -34,3 +34,5 @@
 ---
 
 如有建议或需求，欢迎反馈与交流！ 
+
+--primary-color: cadetblue;

@@ -12,7 +12,10 @@ function getCategoryEditItemTemplate(category) {
             <div class="category-drag-handle">
                 <i class="fas fa-grip-lines"></i>
             </div>
-            <i class="${category.icon}"></i>
+            <div class="category-icon-selector">
+                <input type="hidden" class="category-icon-input" value="${category.icon}">
+                <i class="${category.icon} category-icon"></i>
+            </div>
             <input type="text" class="category-name-input" value="${category.name}">
             <button class="category-delete-btn">
                 <i class="fas fa-times"></i>
@@ -78,13 +81,13 @@ function saveCategoryChanges() {
     
     if (uncategorizedItem) {
         const nameInput = uncategorizedItem.querySelector('.category-name-input');
-        const iconElement = uncategorizedItem.querySelector('i:not(.fa-times):not(.fa-grip-lines)');
+        const iconInput = uncategorizedItem.querySelector('.category-icon-input');
         
-        if (nameInput && iconElement) {
+        if (nameInput && iconInput) {
             uncategorizedData = {
                 id: 'uncategorized',
                 name: nameInput.value.trim() || '未分类',
-                icon: iconElement.className,
+                icon: iconInput.value || 'fas fa-folder',
                 order: categoryItems.length - 1 // 总是放在最后
             };
         }
@@ -97,13 +100,13 @@ function saveCategoryChanges() {
         if (id === 'uncategorized') return;
         
         const nameInput = item.querySelector('.category-name-input');
-        const iconElement = item.querySelector('i:not(.fa-times):not(.fa-grip-lines)');
+        const iconInput = item.querySelector('.category-icon-input');
         
-        if (nameInput && iconElement) {
+        if (nameInput && iconInput) {
             updatedCategories.push({
                 id: id,
                 name: nameInput.value.trim() || `分类 ${index + 1}`,
-                icon: iconElement.className,
+                icon: iconInput.value || 'fas fa-folder',
                 order: index
             });
         }
@@ -230,11 +233,21 @@ function renderCategoriesInEditMode() {
         });
     });
     
+    // 添加图标点击事件
+    document.querySelectorAll('.category-icon').forEach(icon => {
+        icon.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const categoryItem = this.closest('.category-item');
+            openCategoryIconSelector(categoryItem);
+        });
+    });
+    
     // 禁用固定分类的编辑功能
     document.querySelectorAll('.category-item[data-category="pinned"]').forEach(item => {
         const nameInput = item.querySelector('.category-name-input');
         const deleteBtn = item.querySelector('.category-delete-btn');
         const dragHandle = item.querySelector('.category-drag-handle');
+        const categoryIcon = item.querySelector('.category-icon');
         
         if (nameInput) {
             nameInput.disabled = true;
@@ -247,6 +260,11 @@ function renderCategoriesInEditMode() {
         
         if (dragHandle) {
             dragHandle.style.cursor = 'not-allowed';
+        }
+        
+        if (categoryIcon) {
+            categoryIcon.style.pointerEvents = 'none';
+            categoryIcon.title = '固定分类图标不可编辑';
         }
         
         item.draggable = false;
@@ -534,6 +552,11 @@ function closeCategoryModal(modalId) {
     if (modalId === 'deleteCategoryModal') {
         categoryToDelete = null;
     }
+    
+    // 如果是图标选择器模态框，清除引用
+    if (modalId === 'categoryIconModal') {
+        currentEditingCategoryItem = null;
+    }
 }
 
 // 确认删除分类
@@ -615,6 +638,290 @@ function confirmDeleteCategory() {
     
     // 关闭对话框
     closeCategoryModal('deleteCategoryModal');
+}
+
+// 分类图标选择器模态框
+let currentEditingCategoryItem = null;
+
+// 打开分类图标选择器
+function openCategoryIconSelector(categoryItem) {
+    // 保存当前编辑的分类项引用
+    currentEditingCategoryItem = categoryItem;
+    
+    // 创建并显示图标选择器模态框
+    if (!document.getElementById('categoryIconModal')) {
+        createCategoryIconModal();
+    }
+    
+    // 获取当前图标
+    const iconInput = categoryItem.querySelector('.category-icon-input');
+    const currentIcon = iconInput ? iconInput.value : 'fas fa-folder';
+    
+    // 更新模态框中的预览
+    const iconPreview = document.getElementById('categoryIconPreview');
+    if (iconPreview) {
+        iconPreview.className = currentIcon;
+    }
+    
+    // 设置隐藏输入字段的值
+    const modalIconInput = document.getElementById('categoryIconInput');
+    if (modalIconInput) {
+        modalIconInput.value = currentIcon;
+    }
+    
+    // 打开模态框
+    openCategoryModal('categoryIconModal');
+    
+    // 初始化图标选择器
+    initCategoryIconSelector();
+}
+
+// 创建分类图标选择器模态框
+function createCategoryIconModal() {
+    const modalHTML = `
+        <div class="modal-overlay" id="categoryIconModal">
+            <div class="modal" style="max-width: 720px; max-height: 80vh; overflow-y: auto;">
+                <div class="modal-header">
+                    <h3 class="modal-title">选择分类图标</h3>
+                    <button class="modal-close" onclick="closeCategoryModal('categoryIconModal')">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <div class="icon-selector-container" style="margin: 0.5rem 0;">
+                    <div class="icon-selector-input-group">
+                        <span class="icon-selector-preview">
+                            <i id="categoryIconPreview" class="fas fa-folder"></i>
+                        </span>
+                        <input type="text" id="categoryIconInput" class="icon-selector-input" placeholder="选择图标..." readonly>
+                        <button type="button" class="icon-selector-dropdown-btn" id="categoryIconSelectorBtn">
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+                    </div>
+                    <div class="icon-selector-dropdown" id="categoryIconSelectorDropdown" style="position: static; display: block; max-height: 350px; box-shadow: none; margin-top: 0.5rem; border: 1px solid var(--border-color);">
+                        <input type="text" class="icon-selector-search" id="categoryIconSearch" placeholder="搜索图标...">
+                        <div class="icon-category-tabs" id="categoryIconCategoryTabs">
+                            <div class="icon-category-tab active" data-category="regular">常规</div>
+                            <div class="icon-category-tab" data-category="solid">实心</div>
+                            <div class="icon-category-tab" data-category="brands">品牌</div>
+                        </div>
+                        <div class="icon-grid" id="categoryIconGrid">
+                            <!-- 图标将由JavaScript动态加载 -->
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-buttons" style="margin-top: 0.5rem;">
+                    <button type="button" class="btn btn-secondary" onclick="closeCategoryModal('categoryIconModal')">
+                        <i class="fas fa-times"></i>
+                        取消
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="applyCategoryIcon()">
+                        <i class="fas fa-check"></i>
+                        确认选择
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+}
+
+// 初始化分类图标选择器
+function initCategoryIconSelector() {
+    const iconSelectorBtn = document.getElementById('categoryIconSelectorBtn');
+    const iconSelectorDropdown = document.getElementById('categoryIconSelectorDropdown');
+    const iconGrid = document.getElementById('categoryIconGrid');
+    const iconSearch = document.getElementById('categoryIconSearch');
+    const iconCategoryTabs = document.getElementById('categoryIconCategoryTabs');
+    const iconInput = document.getElementById('categoryIconInput');
+    const iconPreview = document.getElementById('categoryIconPreview');
+    
+    if (!iconSelectorBtn || !iconSelectorDropdown) return;
+    
+    // 加载初始图标集
+    renderCategoryIconGrid(window.iconSets.regular);
+    
+    // 无需切换下拉菜单显示/隐藏，直接在模态框中显示
+    iconSelectorBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        // 聚焦搜索框
+        setTimeout(() => {
+            iconSearch.focus();
+        }, 100);
+    });
+    
+    // 点击输入框也聚焦搜索框
+    if (iconInput) {
+        iconInput.addEventListener('click', function(e) {
+            e.preventDefault();
+            // 聚焦搜索框
+            setTimeout(() => {
+                iconSearch.focus();
+            }, 100);
+        });
+    }
+    
+    // 切换图标类别
+    if (iconCategoryTabs) {
+        iconCategoryTabs.addEventListener('click', function(e) {
+            const tab = e.target.closest('.icon-category-tab');
+            if (!tab) return;
+            
+            // 移除所有选项卡的活动状态
+            const tabs = iconCategoryTabs.querySelectorAll('.icon-category-tab');
+            tabs.forEach(t => t.classList.remove('active'));
+            
+            // 设置当前选项卡为活动状态
+            tab.classList.add('active');
+            
+            // 获取选项卡的数据类别
+            const category = tab.dataset.category;
+            window.currentIconCategory = category;
+            
+            // 渲染对应类别的图标
+            renderCategoryIconGrid(window.iconSets[category] || []);
+            
+            // 清空搜索框
+            iconSearch.value = '';
+        });
+    }
+    
+    // 图标搜索功能
+    if (iconSearch) {
+        iconSearch.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            
+            // 如果没有搜索词，显示当前类别的所有图标
+            if (!searchTerm) {
+                renderCategoryIconGrid(window.iconSets[window.currentIconCategory] || []);
+                return;
+            }
+            
+            // 搜索所有类别的图标
+            const results = [];
+            
+            // 首先搜索当前类别
+            const currentIcons = window.iconSets[window.currentIconCategory] || [];
+            currentIcons.forEach(icon => {
+                if (icon.toLowerCase().includes(searchTerm) && !results.includes(icon)) {
+                    results.push(icon);
+                }
+            });
+            
+            // 如果当前类别没有足够的结果，搜索其他类别
+            if (results.length < 5) {
+                Object.keys(window.iconSets).forEach(category => {
+                    if (category === window.currentIconCategory) return;
+                    
+                    window.iconSets[category].forEach(icon => {
+                        if (icon.toLowerCase().includes(searchTerm) && !results.includes(icon)) {
+                            results.push(icon);
+                        }
+                    });
+                });
+            }
+            
+            // 渲染搜索结果
+            renderCategoryIconGrid(results);
+        });
+    }
+    
+    // 图标选择事件委托
+    if (iconGrid) {
+        iconGrid.addEventListener('click', function(e) {
+            const iconItem = e.target.closest('.icon-item');
+            if (!iconItem) return;
+            
+            const iconClass = iconItem.dataset.icon;
+            
+            // 更新输入框和预览
+            iconInput.value = iconClass;
+            iconPreview.className = iconClass;
+            
+            // 滚动到顶部并高亮选中的图标
+            iconGrid.querySelectorAll('.icon-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            iconItem.classList.add('selected');
+        });
+    }
+}
+
+// 渲染分类图标网格
+function renderCategoryIconGrid(icons) {
+    const iconGrid = document.getElementById('categoryIconGrid');
+    if (!iconGrid) return;
+    
+    let html = '';
+    
+    // 每行显示的图标数量
+    const iconsPerRow = 12;
+    let currentRow = [];
+    
+    icons.forEach((icon, index) => {
+        currentRow.push(icon);
+        
+        // 当达到每行所需图标数量时，生成HTML
+        if (currentRow.length === iconsPerRow || index === icons.length - 1) {
+            html += '<div class="icon-row">';
+            currentRow.forEach(rowIcon => {
+                html += `
+                    <div class="icon-item" data-icon="${rowIcon}" title="${rowIcon}">
+                        <i class="${rowIcon}"></i>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            currentRow = [];
+        }
+    });
+    
+    if (icons.length === 0) {
+        html = '<div style="text-align: center; padding: 0.5rem; color: var(--text-muted);">没有找到匹配的图标</div>';
+    }
+    
+    iconGrid.innerHTML = html;
+    
+    // 高亮当前选中的图标
+    const selectedIcon = document.getElementById('categoryIconInput').value;
+    if (selectedIcon) {
+        const selectedItem = iconGrid.querySelector(`.icon-item[data-icon="${selectedIcon}"]`);
+        if (selectedItem) {
+            selectedItem.classList.add('selected');
+            // 将选中的图标滚动到视图中
+            setTimeout(() => {
+                selectedItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }, 100);
+        }
+    }
+}
+
+// 应用选中的图标到分类
+function applyCategoryIcon() {
+    if (!currentEditingCategoryItem) return;
+    
+    // 获取选中的图标
+    const iconInput = document.getElementById('categoryIconInput');
+    if (!iconInput) return;
+    
+    const newIcon = iconInput.value;
+    
+    // 更新分类项中的图标
+    const categoryIconInput = currentEditingCategoryItem.querySelector('.category-icon-input');
+    const categoryIconElement = currentEditingCategoryItem.querySelector('.category-icon-selector > i');
+    
+    if (categoryIconInput && categoryIconElement) {
+        categoryIconInput.value = newIcon;
+        categoryIconElement.className = newIcon;
+    }
+    
+    // 关闭模态框
+    closeCategoryModal('categoryIconModal');
+    
+    // 清除当前编辑的分类项引用
+    currentEditingCategoryItem = null;
 }
 
 // 页面加载完成后不需要做额外初始化，因为data.js已经初始化了分类数据

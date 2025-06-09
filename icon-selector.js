@@ -1,7 +1,7 @@
 // 图标选择器模块
 
 // 常用的Font Awesome图标集合
-const iconSets = {
+window.iconSets = {
     regular: [
         'fas fa-globe', 'fas fa-home', 'fas fa-user', 'fas fa-star', 'fas fa-heart',
         'fas fa-book', 'fas fa-folder', 'fas fa-file', 'fas fa-image', 'fas fa-video',
@@ -29,15 +29,15 @@ const iconSets = {
         'fab fa-github', 'fab fa-gitlab', 'fab fa-bitbucket', 'fab fa-stack-overflow', 'fab fa-medium',
         'fab fa-wordpress', 'fab fa-joomla', 'fab fa-shopify', 'fab fa-amazon', 'fab fa-ebay',
         'fab fa-google', 'fab fa-apple', 'fab fa-microsoft', 'fab fa-android', 'fab fa-windows',
-        'fab fa-wechat', 'fab fa-weibo', 'fab fa-qq', 'fab fa-alipay', 'fab fa-tiktok', 'fab fa-paypal', 'fab fa-stripe', 'fab fa-cc-visa', 'fab fa-cc-mastercard', 'fab fa-bitcoin',
+        'fab fa-weixin', 'fab fa-weibo', 'fab fa-qq', 'fab fa-alipay', 'fab fa-tiktok', 'fab fa-paypal', 'fab fa-stripe', 'fab fa-cc-visa', 'fab fa-cc-mastercard', 'fab fa-bitcoin',
         'fab fa-linux', 'fab fa-chrome', 'fab fa-firefox', 'fab fa-safari', 'fab fa-edge',
         'fab fa-discord', 'fab fa-telegram', 'fab fa-whatsapp', 'fab fa-skype', 'fab fa-slack',
         'fab fa-jira', 'fab fa-trello', 'fab fa-jenkins', 'fab fa-docker', 'fab fa-aws',
-        'fab fa-playstation', 'fab fa-xbox', 'fab fa-nintendo-switch', 'fab fa-steam', 'fab fa-twitch'
+        'fab fa-playstation', 'fab fa-xbox',  'fab fa-steam', 'fab fa-twitch'
     ]
 };
 
-let currentIconCategory = 'regular';
+window.currentIconCategory = 'regular';
 let isCompactMode = false;
 
 // 初始化图标选择器
@@ -64,48 +64,21 @@ function initIconSelector() {
     }
     
     // 加载初始图标集
-    renderIconGrid(iconSets.regular);
+    renderIconGrid(window.iconSets.regular);
     
     // 切换下拉菜单显示/隐藏
     iconSelectorBtn.addEventListener('click', function(e) {
         e.preventDefault();
-        iconSelectorDropdown.classList.toggle('active');
-        
-        // 检查下拉菜单是否会超出视窗底部
-        if (iconSelectorDropdown.classList.contains('active')) {
-            // 获取下拉菜单在视窗中的位置
-            const dropdownRect = iconSelectorDropdown.getBoundingClientRect();
-            const viewportHeight = window.innerHeight;
-            
-            // 如果下拉菜单底部超出视窗底部
-            if (dropdownRect.bottom > viewportHeight) {
-                // 计算需要向上移动的距离
-                const moveUpDistance = Math.min(
-                    dropdownRect.bottom - viewportHeight + 10, // 加10px的缓冲
-                    dropdownRect.height - 50 // 不要将下拉菜单完全移出视图顶部
-                );
-                
-                // 应用样式调整
-                if (moveUpDistance > 0) {
-                    iconSelectorDropdown.style.top = 'auto';
-                    iconSelectorDropdown.style.bottom = '100%';
-                    iconSelectorDropdown.style.marginTop = '0';
-                    iconSelectorDropdown.style.marginBottom = '0.25rem';
-                }
-            } else {
-                // 重置样式
-                iconSelectorDropdown.style.top = '100%';
-                iconSelectorDropdown.style.bottom = 'auto';
-                iconSelectorDropdown.style.marginTop = '0.25rem';
-                iconSelectorDropdown.style.marginBottom = '0';
-            }
-            
-            // 如果显示了下拉菜单，聚焦搜索框
-            setTimeout(() => {
-                iconSearch.focus();
-            }, 100);
-        }
+        toggleIconDropdown(iconSelectorDropdown, iconSearch);
     });
+    
+    // 点击输入框也打开下拉菜单
+    if (iconInput) {
+        iconInput.addEventListener('click', function(e) {
+            e.preventDefault();
+            toggleIconDropdown(iconSelectorDropdown, iconSearch);
+        });
+    }
     
     // 点击图标外部关闭下拉菜单
     document.addEventListener('click', function(e) {
@@ -129,10 +102,10 @@ function initIconSelector() {
             
             // 获取选项卡的数据类别
             const category = tab.dataset.category;
-            currentIconCategory = category;
+            window.currentIconCategory = category;
             
             // 渲染对应类别的图标
-            renderIconGrid(iconSets[category] || []);
+            renderIconGrid(window.iconSets[category] || []);
             
             // 清空搜索框
             iconSearch.value = '';
@@ -146,7 +119,7 @@ function initIconSelector() {
             
             // 如果没有搜索词，显示当前类别的所有图标
             if (!searchTerm) {
-                renderIconGrid(iconSets[currentIconCategory] || []);
+                renderIconGrid(window.iconSets[window.currentIconCategory] || []);
                 return;
             }
             
@@ -154,7 +127,7 @@ function initIconSelector() {
             const results = [];
             
             // 首先搜索当前类别
-            const currentIcons = iconSets[currentIconCategory] || [];
+            const currentIcons = window.iconSets[window.currentIconCategory] || [];
             currentIcons.forEach(icon => {
                 if (icon.toLowerCase().includes(searchTerm) && !results.includes(icon)) {
                     results.push(icon);
@@ -163,10 +136,10 @@ function initIconSelector() {
             
             // 如果当前类别没有足够的结果，搜索其他类别
             if (results.length < 5) {
-                Object.keys(iconSets).forEach(category => {
-                    if (category === currentIconCategory) return;
+                Object.keys(window.iconSets).forEach(category => {
+                    if (category === window.currentIconCategory) return;
                     
-                    iconSets[category].forEach(icon => {
+                    window.iconSets[category].forEach(icon => {
                         if (icon.toLowerCase().includes(searchTerm) && !results.includes(icon)) {
                             results.push(icon);
                         }
@@ -203,6 +176,46 @@ function initIconSelector() {
     // 初始化时根据当前值设置预览
     if (iconInput && iconInput.value) {
         iconPreview.className = iconInput.value;
+    }
+}
+
+// 切换图标下拉菜单的显示/隐藏
+function toggleIconDropdown(iconSelectorDropdown, iconSearch) {
+    iconSelectorDropdown.classList.toggle('active');
+    
+    // 检查下拉菜单是否会超出视窗底部
+    if (iconSelectorDropdown.classList.contains('active')) {
+        // 获取下拉菜单在视窗中的位置
+        const dropdownRect = iconSelectorDropdown.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+        
+        // 如果下拉菜单底部超出视窗底部
+        if (dropdownRect.bottom > viewportHeight) {
+            // 计算需要向上移动的距离
+            const moveUpDistance = Math.min(
+                dropdownRect.bottom - viewportHeight + 10, // 加10px的缓冲
+                dropdownRect.height - 50 // 不要将下拉菜单完全移出视图顶部
+            );
+            
+            // 应用样式调整
+            if (moveUpDistance > 0) {
+                iconSelectorDropdown.style.top = 'auto';
+                iconSelectorDropdown.style.bottom = '100%';
+                iconSelectorDropdown.style.marginTop = '0';
+                iconSelectorDropdown.style.marginBottom = '0.25rem';
+            }
+        } else {
+            // 重置样式
+            iconSelectorDropdown.style.top = '100%';
+            iconSelectorDropdown.style.bottom = 'auto';
+            iconSelectorDropdown.style.marginTop = '0.25rem';
+            iconSelectorDropdown.style.marginBottom = '0';
+        }
+        
+        // 如果显示了下拉菜单，聚焦搜索框
+        setTimeout(() => {
+            iconSearch.focus();
+        }, 100);
     }
 }
 
