@@ -75,29 +75,21 @@ function saveCategoryChanges() {
     const categoryItems = document.querySelectorAll('.category-item');
     const updatedCategories = [];
     
-    // 先找到未分类的数据
-    const uncategorizedItem = Array.from(categoryItems).find(item => item.dataset.category === 'uncategorized');
-    let uncategorizedData = null;
+    // 获取现有的固定分类（置顶、最近添加、未分类）
+    const fixedCategories = window.categories.filter(cat => 
+        cat.fixed || cat.id === 'pinned' || cat.id === 'recent' || cat.id === 'uncategorized'
+    );
     
-    if (uncategorizedItem) {
-        const nameInput = uncategorizedItem.querySelector('.category-name-input');
-        const iconInput = uncategorizedItem.querySelector('.category-icon-input');
-        
-        if (nameInput && iconInput) {
-            uncategorizedData = {
-                id: 'uncategorized',
-                name: nameInput.value.trim() || '未分类',
-                icon: iconInput.value || 'fas fa-folder',
-                order: categoryItems.length - 1 // 总是放在最后
-            };
-        }
-    }
+    // 添加固定分类到更新列表
+    fixedCategories.forEach(fixedCat => {
+        updatedCategories.push(fixedCat);
+    });
     
-    // 收集其他分类数据
+    // 收集当前显示的可编辑分类数据
     categoryItems.forEach((item, index) => {
         const id = item.dataset.category;
-        // 跳过"未分类"，我们会在最后添加它
-        if (id === 'uncategorized') return;
+        // 跳过已经添加过的固定分类
+        if (['pinned', 'recent', 'uncategorized'].includes(id)) return;
         
         const nameInput = item.querySelector('.category-name-input');
         const iconInput = item.querySelector('.category-icon-input');
@@ -107,15 +99,10 @@ function saveCategoryChanges() {
                 id: id,
                 name: nameInput.value.trim() || `分类 ${index + 1}`,
                 icon: iconInput.value || 'fas fa-folder',
-                order: index
+                order: fixedCategories.length + index // 固定分类后面排序
             });
         }
     });
-    
-    // 添加"未分类"到最后
-    if (uncategorizedData) {
-        updatedCategories.push(uncategorizedData);
-    }
     
     // 更新全局分类数据
     window.categories = updatedCategories;
@@ -193,16 +180,15 @@ function renderCategoriesInEditMode() {
     // 确保使用最新的分类数据
     const sortedCategories = [...window.categories].sort((a, b) => a.order - b.order);
     
-    // 先渲染非"未分类"的分类
-    sortedCategories.filter(category => category.id !== 'uncategorized').forEach(category => {
+    // 排除固定分类（置顶、最近添加、未分类），只渲染可编辑的分类
+    const editableCategories = sortedCategories.filter(category => 
+        !category.fixed && category.id !== 'pinned' && category.id !== 'recent' && category.id !== 'uncategorized'
+    );
+    
+    // 渲染可编辑分类
+    editableCategories.forEach(category => {
         html += getCategoryEditItemTemplate(category);
     });
-    
-    // 最后渲染"未分类"
-    const uncategorizedCategory = sortedCategories.find(category => category.id === 'uncategorized');
-    if (uncategorizedCategory) {
-        html += getCategoryEditItemTemplate(uncategorizedCategory);
-    }
     
     categoriesContainer.innerHTML = html;
     
@@ -240,41 +226,6 @@ function renderCategoriesInEditMode() {
             const categoryItem = this.closest('.category-item');
             openCategoryIconSelector(categoryItem);
         });
-    });
-    
-    // 禁用固定分类的编辑功能
-    document.querySelectorAll('.category-item[data-category="pinned"], .category-item[data-category="recent"]').forEach(item => {
-        const nameInput = item.querySelector('.category-name-input');
-        const deleteBtn = item.querySelector('.category-delete-btn');
-        const dragHandle = item.querySelector('.category-drag-handle');
-        const categoryIcon = item.querySelector('.category-icon');
-        
-        if (nameInput) {
-            nameInput.disabled = true;
-            nameInput.title = '固定分类不可编辑';
-        }
-        
-        if (deleteBtn) {
-            deleteBtn.style.visibility = 'hidden';
-        }
-        
-        if (dragHandle) {
-            dragHandle.style.cursor = 'not-allowed';
-        }
-        
-        if (categoryIcon) {
-            categoryIcon.style.pointerEvents = 'none';
-            categoryIcon.title = '固定分类图标不可编辑';
-        }
-        
-        item.draggable = false;
-        
-        // 根据分类ID设置不同的提示信息
-        if (item.dataset.category === 'pinned') {
-            item.title = '置顶分类固定在第一位';
-        } else if (item.dataset.category === 'recent') {
-            item.title = '最近添加分类固定在第二位';
-        }
     });
 }
 

@@ -220,7 +220,7 @@ const defaultWebsites = {
   uncategorized: []
 };
 
-// 确保置顶分类和最近添加分类总是在固定位置
+// 确保固定分类存在且位置正确
 function ensureFixedCategories() {
   // 检查分类对象是否已经初始化
   if (!window.categories || !Array.isArray(window.categories)) {
@@ -228,9 +228,10 @@ function ensureFixedCategories() {
     return;
   }
 
-  // 查找置顶分类和最近添加分类
+  // 查找置顶分类和最近添加分类以及未分类分类
   let pinnedCategory = window.categories.find(cat => cat.id === 'pinned');
   let recentCategory = window.categories.find(cat => cat.id === 'recent');
+  let uncategorizedCategory = window.categories.find(cat => cat.id === 'uncategorized');
 
   // 如果置顶分类不存在，添加它
   if (!pinnedCategory) {
@@ -255,20 +256,39 @@ function ensureFixedCategories() {
     };
     window.categories.push(recentCategory);
   }
+  
+  // 如果未分类分类不存在，添加它
+  if (!uncategorizedCategory) {
+    uncategorizedCategory = {
+      id: "uncategorized",
+      name: "未分类",
+      icon: "fas fa-folder",
+      order: window.categories.length, // 放在最后
+      fixed: true
+    };
+    window.categories.push(uncategorizedCategory);
+  }
 
-  // 确保置顶分类的顺序为0，最近添加分类的顺序为1
+  // 确保固定分类的属性和顺序正确
   pinnedCategory.order = 0;
+  pinnedCategory.fixed = true;
   recentCategory.order = 1;
+  recentCategory.fixed = true;
+  uncategorizedCategory.fixed = true; // 设置未分类为固定分类
 
   // 重新排序所有分类
   window.categories.sort((a, b) => a.order - b.order);
 
-  // 确保网站数据对象中包含置顶和最近添加的键
+  // 确保网站数据对象中包含置顶、最近添加和未分类的键
   if (!window.websites.pinned) {
     window.websites.pinned = [];
   }
   
   if (!window.websites.recent) {
     window.websites.recent = [];
+  }
+  
+  if (!window.websites.uncategorized) {
+    window.websites.uncategorized = [];
   }
 }
