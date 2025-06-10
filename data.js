@@ -14,8 +14,8 @@ function loadData() {
       categories = JSON.parse(savedCategories);
       websites = JSON.parse(savedWebsites);
       
-      // 确保置顶分类存在且位于第一位
-      ensurePinnedCategory();
+      // 确保置顶和最近添加分类存在且位置正确
+      ensureFixedCategories();
     } else {
       console.log('使用默认数据');
       // 如果localStorage中没有数据，使用默认数据
@@ -23,9 +23,12 @@ function loadData() {
       websites = JSON.parse(JSON.stringify(defaultWebsites)); // 深拷贝
     }
     
-    // 清空置顶分类中的数据（置顶只是一个虚拟分类）
+    // 清空虚拟分类中的数据
     if (websites['pinned']) {
       websites['pinned'] = [];
+    }
+    if (websites['recent']) {
+      websites['recent'] = [];
     }
     
     window.websites = websites;
@@ -41,8 +44,8 @@ function loadData() {
     categories = [...defaultCategories];
     websites = JSON.parse(JSON.stringify(defaultWebsites)); // 深拷贝
     
-    // 确保置顶分类存在且位于第一位
-    ensurePinnedCategory();
+    // 确保置顶和最近添加分类存在且位置正确
+    ensureFixedCategories();
     
     window.websites = websites;    
     window.categories = categories; // 添加别名
@@ -95,6 +98,59 @@ function ensurePinnedCategory() {
   
   // 确保置顶分类数据是空的
   websites['pinned'] = [];
+}
+
+// 确保固定分类存在且位置正确
+function ensureFixedCategories() {
+  // 检查分类对象是否已经初始化
+  if (!window.categories || !Array.isArray(window.categories)) {
+    console.error('分类数据未正确初始化');
+    return;
+  }
+
+  // 查找置顶分类和最近添加分类
+  let pinnedCategory = window.categories.find(cat => cat.id === 'pinned');
+  let recentCategory = window.categories.find(cat => cat.id === 'recent');
+
+  // 如果置顶分类不存在，添加它
+  if (!pinnedCategory) {
+    pinnedCategory = {
+      id: "pinned",
+      name: "置顶",
+      icon: "fas fa-thumbtack",
+      order: 0,
+      fixed: true
+    };
+    window.categories.push(pinnedCategory);
+  }
+
+  // 如果最近添加分类不存在，添加它
+  if (!recentCategory) {
+    recentCategory = {
+      id: "recent",
+      name: "最近添加",
+      icon: "fas fa-clock",
+      order: 1,
+      fixed: true
+    };
+    window.categories.push(recentCategory);
+  }
+
+  // 确保置顶分类的顺序为0，最近添加分类的顺序为1
+  pinnedCategory.order = 0;
+  recentCategory.order = 1;
+
+  // 重新排序所有分类
+  window.categories.sort((a, b) => a.order - b.order);
+
+  // 确保网站数据对象中包含置顶和最近添加的键
+  if (!window.websites.pinned) {
+    window.websites.pinned = [];
+  }
+  
+  if (!window.websites.recent) {
+    window.websites.recent = [];
+  }
 }
 
 // 渲染侧边栏分类列表

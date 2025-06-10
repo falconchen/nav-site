@@ -962,6 +962,47 @@ body {
   display: none;
 }
 
+/* 展开更多按钮样式 */
+.expand-button {
+  display: flex;
+  justify-content: center;
+  margin: 0.5rem 0 1.5rem;
+  width: 100%;
+}
+
+.btn-expand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background-color: transparent;
+  color: var(--text-secondary);
+  border: none;
+  border-radius: 2rem;
+  padding: 0.3rem 1rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-expand:hover {
+  color: var(--primary-color);
+}
+
+.btn-expand i {
+  transition: transform 0.3s ease;
+}
+
+/* 隐藏卡片容器样式 */
+.hidden-cards-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1rem;
+  width: 100%;
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+}
+
 /* 图标选择器样式 */
 .icon-selector-container {
   position: relative;
@@ -1287,5 +1328,9 @@ body {
   
   #categoryIconModal .icon-row {
     gap: 0.25rem;
+  }
+
+  .hidden-cards-container {
+    grid-template-columns: 1fr;
   }
 }

@@ -214,7 +214,7 @@ function renderCategoriesInEditMode() {
             
             // 如果是系统默认的几个主要分类，不允许删除
             const categoryId = categoryItem.dataset.category;
-            const defaultCategories = ['pinned', 'uncategorized'];
+            const defaultCategories = ['pinned', 'recent', 'uncategorized'];
             if (defaultCategories.includes(categoryId)) {
                 alert('系统默认分类不能删除！');
                 return;
@@ -243,7 +243,7 @@ function renderCategoriesInEditMode() {
     });
     
     // 禁用固定分类的编辑功能
-    document.querySelectorAll('.category-item[data-category="pinned"]').forEach(item => {
+    document.querySelectorAll('.category-item[data-category="pinned"], .category-item[data-category="recent"]').forEach(item => {
         const nameInput = item.querySelector('.category-name-input');
         const deleteBtn = item.querySelector('.category-delete-btn');
         const dragHandle = item.querySelector('.category-drag-handle');
@@ -268,7 +268,13 @@ function renderCategoriesInEditMode() {
         }
         
         item.draggable = false;
-        item.title = '置顶分类固定在第一位';
+        
+        // 根据分类ID设置不同的提示信息
+        if (item.dataset.category === 'pinned') {
+            item.title = '置顶分类固定在第一位';
+        } else if (item.dataset.category === 'recent') {
+            item.title = '最近添加分类固定在第二位';
+        }
     });
 }
 
