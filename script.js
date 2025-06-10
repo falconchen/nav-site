@@ -422,6 +422,9 @@ function confirmDeleteWebsite() {
                         site.title === title && site.url === url);
                     
                     if (siteIndex >= 0) {
+                        // 获取网站信息，用于处理另一个虚拟分类
+                        const siteInfo = originalCategoryWebsites[siteIndex];
+                        
                         // 删除网站
                         originalCategoryWebsites.splice(siteIndex, 1);
                         console.log(`已从原始分类 ${originalCategory} 中删除网站: ${title}`);
@@ -429,9 +432,15 @@ function confirmDeleteWebsite() {
                         // 更新原分类UI（如果当前可见）
                         refreshCategoryUI(originalCategory);
                         
-                        // 如果是从最近添加分类删除，需要重新渲染最近添加分类
-                        if (categoryId === 'recent') {
+                        // 如果是从置顶分类删除，同时更新最近添加分类
+                        if (categoryId === 'pinned') {
+                            removeFromRecentUI(title, url);
                             renderRecentCategory();
+                        }
+                        // 如果是从最近添加分类删除，同时更新置顶分类
+                        else if (categoryId === 'recent') {
+                            removeSiteFromPinnedUI(title, url);
+                            renderPinnedCategory();
                         }
                     }
                 }
