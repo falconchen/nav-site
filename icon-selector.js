@@ -5,7 +5,7 @@ window.iconSets = {
     regular: [
         'fas fa-globe', 'fas fa-home', 'fas fa-user', 'fas fa-star', 'fas fa-heart',
         'fas fa-book', 'fas fa-folder', 'fas fa-file', 'fas fa-image', 'fas fa-video',
-        'fas fa-music', 'fas fa-search', 'fas fa-bell', 'fas fa-calendar', 'fas fa-clock',
+        'fas fa-music', 'fas fa-search', 'fas fa-bell', 'fas fa-calendar', 'fas fa-clock','fas fa-compass',
         'fas fa-cog', 'fas fa-envelope', 'fas fa-link', 'fas fa-map-marker-alt', 'fas fa-phone',
         'fas fa-comment', 'fas fa-shopping-cart', 'fas fa-bookmark', 'fas fa-trophy', 'fas fa-gift', 'fas fa-lightbulb', 'fas fa-camera', 'fas fa-newspaper', 'fas fa-thumbs-up', 'fas fa-thumbs-down',
         'fas fa-comments', 'fas fa-chart-line', 'fas fa-chart-bar', 'fas fa-chart-pie', 'fas fa-map',
