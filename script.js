@@ -411,8 +411,8 @@ function confirmDeleteWebsite() {
         const categorySection = websiteToDelete.closest('.category-section');
         const categoryId = categorySection.id;
         
-        // 如果是从置顶分类删除，需要找到原始分类
-        if (categoryId === 'pinned') {
+        // 如果是从虚拟分类（置顶或最近添加）删除，需要找到原始分类
+        if (categoryId === 'pinned' || categoryId === 'recent') {
             const originalCategory = websiteToDelete.dataset.originalCategory;
             if (originalCategory) {
                 // 在原分类中查找并删除网站
@@ -422,12 +422,17 @@ function confirmDeleteWebsite() {
                         site.title === title && site.url === url);
                     
                     if (siteIndex >= 0) {
-                        // 删除或取消置顶
+                        // 删除网站
                         originalCategoryWebsites.splice(siteIndex, 1);
                         console.log(`已从原始分类 ${originalCategory} 中删除网站: ${title}`);
                         
                         // 更新原分类UI（如果当前可见）
                         refreshCategoryUI(originalCategory);
+                        
+                        // 如果是从最近添加分类删除，需要重新渲染最近添加分类
+                        if (categoryId === 'recent') {
+                            renderRecentCategory();
+                        }
                     }
                 }
             }
@@ -442,6 +447,9 @@ function confirmDeleteWebsite() {
                 
                 // 从置顶分类UI中删除对应网站（如果存在）
                 removeSiteFromPinnedUI(siteInfo.title, siteInfo.url);
+                
+                // 从最近添加分类UI中删除对应网站（如果存在）
+                removeFromRecentUI(siteInfo.title, siteInfo.url);
             }
         }
         
@@ -458,9 +466,11 @@ function confirmDeleteWebsite() {
             websiteToDelete.remove();
             websiteToDelete = null;
             
-            // 如果是在置顶分类中删除，需要重新渲染置顶分类
+            // 如果是在虚拟分类中删除，需要重新渲染对应分类
             if (categoryId === 'pinned') {
                 renderPinnedCategory();
+            } else if (categoryId === 'recent') {
+                renderRecentCategory();
             }
         }, 300);
     }
@@ -488,6 +498,49 @@ function removeSiteFromPinnedUI(title, url) {
             }, 300);
         }
     });
+}
+
+// 从最近添加分类UI中删除网站
+function removeFromRecentUI(title, url) {
+    const recentContainer = document.getElementById('recent-cards');
+    if (!recentContainer) return;
+    
+    // 查找匹配的网站卡片
+    const cards = recentContainer.querySelectorAll('.website-card');
+    cards.forEach(card => {
+        const cardTitle = card.querySelector('.card-title').textContent;
+        const cardUrl = card.querySelector('.card-url').textContent;
+        
+        if (cardTitle === title && cardUrl === url) {
+            // 添加删除动画
+            card.style.animation = 'fadeOut 0.3s ease-out';
+            
+            // 延迟移除，让动画有时间播放
+            setTimeout(() => {
+                card.remove();
+            }, 300);
+        }
+    });
+    
+    // 同样检查隐藏的卡片容器
+    const hiddenContainer = document.getElementById('recent-hidden-cards');
+    if (hiddenContainer) {
+        const hiddenCards = hiddenContainer.querySelectorAll('.website-card');
+        hiddenCards.forEach(card => {
+            const cardTitle = card.querySelector('.card-title').textContent;
+            const cardUrl = card.querySelector('.card-url').textContent;
+            
+            if (cardTitle === title && cardUrl === url) {
+                // 添加删除动画
+                card.style.animation = 'fadeOut 0.3s ease-out';
+                
+                // 延迟移除，让动画有时间播放
+                setTimeout(() => {
+                    card.remove();
+                }, 300);
+            }
+        });
+    }
 }
 
 // 刷新分类UI
@@ -546,14 +599,59 @@ function editWebsite(card) {
     let categoryId;
     const categorySection = card.closest('.category-section');
     
-    if (categorySection.id === 'pinned') {
-        // 如果是从置顶分类编辑，使用存储在卡片上的原始分类
+    if (categorySection.id === 'pinned' || categorySection.id === 'recent') {
+        // 如果是从虚拟分类（置顶或最近添加）编辑，使用存储在卡片上的原始分类
         categoryId = card.dataset.originalCategory;
+        
+        // 如果没有获取到原始分类，尝试通过标题和URL在所有分类中查找
+        if (!categoryId) {
+            const cardTitle = card.querySelector('.card-title').textContent;
+            const cardUrl = card.querySelector('.card-url').textContent;
+            
+            // 在所有非虚拟分类中查找匹配的网站
+            Object.keys(websites).forEach(catId => {
+                if (catId !== 'pinned' && catId !== 'recent' && !categoryId) {
+                    const foundSite = websites[catId].find(site => 
+                        site.title === cardTitle && site.url === cardUrl);
+                    if (foundSite) {
+                        categoryId = catId;
+                        console.log(`找到网站的原始分类: ${categoryId}`);
+                        
+                        // 将原始分类ID保存到卡片上，以便将来使用
+                        card.dataset.originalCategory = categoryId;
+                    }
+                }
+            });
+            
+            // 如果仍然没有找到，使用默认分类
+            if (!categoryId) {
+                categoryId = 'uncategorized';
+                console.warn(`无法找到网站的原始分类，使用默认分类: ${categoryId}`);
+                
+                // 将默认分类ID保存到卡片上
+                card.dataset.originalCategory = categoryId;
+            }
+        }
     } else {
         categoryId = categorySection.id;
     }
     
-    document.getElementById('websiteCategory').value = categoryId;
+    // 设置分类下拉菜单的值
+    const categorySelect = document.getElementById('websiteCategory');
+    if (categoryId && categorySelect) {
+        // 检查该分类是否存在于下拉菜单中
+        const categoryOption = Array.from(categorySelect.options).find(option => option.value === categoryId);
+        
+        if (categoryOption) {
+            categorySelect.value = categoryId;
+        } else {
+            console.warn(`分类 ${categoryId} 不存在于下拉菜单中，使用第一个可用分类`);
+            // 选择第一个非空选项
+            if (categorySelect.options.length > 1) {
+                categorySelect.selectedIndex = 1;
+            }
+        }
+    }
     
     // 重置文件上传区域
     const uploadArea = document.getElementById('iconUploadArea');
@@ -1332,9 +1430,13 @@ function togglePinStatus(card) {
     let categoryId;
     const categorySection = card.closest('.category-section');
     
-    if (categorySection.id === 'pinned') {
-        // 如果是从置顶分类，使用存储在卡片上的原始分类
+    if (categorySection.id === 'pinned' || categorySection.id === 'recent') {
+        // 如果是从置顶分类或最近添加分类，使用存储在卡片上的原始分类
         categoryId = card.dataset.originalCategory;
+        if (!categoryId) {
+            console.error('无法获取原始分类ID:', title, url);
+            return;
+        }
     } else {
         categoryId = categorySection.id;
     }
@@ -1348,8 +1450,8 @@ function togglePinStatus(card) {
     // 在分类中查找网站
     let websiteIndex = -1;
     
-    // 如果是从置顶分类，需要在原始分类中查找匹配的网站
-    if (categorySection.id === 'pinned') {
+    // 如果是从置顶分类或最近添加分类，需要在原始分类中查找匹配的网站
+    if (categorySection.id === 'pinned' || categorySection.id === 'recent') {
         websiteIndex = websites[categoryId].findIndex(site => 
             site.title === title && site.url === url);
     } else {
@@ -1383,8 +1485,8 @@ function togglePinStatus(card) {
     websites[categoryId][websiteIndex].weight = newWeight;
     
     // 更新UI
-    if (categorySection.id === 'pinned') {
-        // 如果是在置顶分类操作，我们需要在置顶分类中移除它
+    if (categorySection.id === 'pinned' || categorySection.id === 'recent') {
+        // 如果是在置顶分类或最近添加分类操作，我们需要在当前分类中移除它
         card.style.animation = 'fadeOut 0.3s ease-out';
         setTimeout(() => {
             if (card.parentNode) {
@@ -1405,6 +1507,11 @@ function togglePinStatus(card) {
     
     // 更新置顶分类
     renderPinnedCategory();
+    
+    // 如果是从"最近添加"分类中操作，需要重新渲染"最近添加"分类
+    if (categorySection.id === 'recent') {
+        renderRecentCategory();
+    }
     
     // 保存数据
     if (window.saveNavData) {
