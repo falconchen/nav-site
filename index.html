@@ -77,13 +77,15 @@
                 <a href="#" class="footer-link">隐私政策</a>
                 <a href="#" class="footer-link">使用条款</a>
                 <a href="#" class="footer-link">联系我们</a>
+                <!-- 导入导出按钮将由JavaScript动态添加到这里 -->
             </div>
-            <button class="add-website-btn" onclick="openAddWebsiteModal()">
-                <i class="fas fa-plus"></i>
-                添加网站
-            </button>
         </div>
     </footer>
+
+    <!-- 添加网站按钮 - 固定在右下角 -->
+    <button class="add-website-btn floating-btn" onclick="openAddWebsiteModal()">
+        <i class="fas fa-plus"></i>
+    </button>
 
     <!-- 添加/编辑网站模态框 -->
     <div class="modal-overlay" id="websiteModal">

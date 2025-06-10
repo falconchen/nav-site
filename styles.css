@@ -1334,3 +1334,84 @@ body {
     grid-template-columns: 1fr;
   }
 }
+
+/* 添加网站浮动按钮 */
+.floating-btn {
+  position: fixed;
+  bottom: 30px;
+  right: 60px;
+  z-index: 990;
+  box-shadow: var(--shadow-medium);
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  transition: all 0.3s ease;
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+.floating-btn:hover {
+  transform: translateY(-5px) scale(1.05);
+  box-shadow: var(--shadow-large);
+}
+
+.floating-btn:active {
+  transform: translateY(-2px) scale(0.98);
+}
+
+/* 确保按钮在滚动到footer时不会重叠 - 使用JS控制 */
+.floating-btn.footer-visible {
+  transform: translateY(-100px);
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .floating-btn {
+    bottom: 20px;
+    right: 70px;
+    width: 50px;
+    height: 50px;
+    font-size: 1.2rem;
+  }
+  
+  .floating-btn.footer-visible {
+    transform: translateY(-80px);
+  }
+}
+
+/* 导入导出按钮样式 */
+.export-data-btn, .import-data-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.export-data-btn i, .import-data-btn i {
+  font-size: 0.9rem;
+}
+
+.export-data-btn:hover, .import-data-btn:hover {
+  color: var(--secondary-color);
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .floating-btn {
+    bottom: 20px;
+    right: 20px;
+    padding: 0.6rem 1.2rem;
+    font-size: 0.8rem;
+  }
+  
+  .footer-links {
+    flex-direction: column;
+    gap: 0.8rem;
+    align-items: center;
+  }
+}

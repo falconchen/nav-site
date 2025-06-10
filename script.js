@@ -1847,6 +1847,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 添加滚动监听，更新当前分类状态
     setupScrollSpy();
+    
+    // 添加滚动监听，控制浮动按钮位置
+    setupFloatingButtonPosition();
 });
 
 // 滚动监听功能
@@ -1982,3 +1985,33 @@ searchBox.addEventListener('input', function(e) {
     // 添加搜索高亮
     highlightSearchResults(searchTerm);
 });
+
+// 控制浮动按钮位置
+function setupFloatingButtonPosition() {
+    const floatingBtn = document.querySelector('.floating-btn');
+    const footer = document.querySelector('.footer');
+    
+    if (!floatingBtn || !footer) return;
+    
+    // 检测footer是否可见
+    function checkFooterVisibility() {
+        const footerRect = footer.getBoundingClientRect();
+        const windowHeight = window.innerHeight;
+        
+        // 如果footer进入视口
+        if (footerRect.top < windowHeight) {
+            floatingBtn.classList.add('footer-visible');
+        } else {
+            floatingBtn.classList.remove('footer-visible');
+        }
+    }
+    
+    // 初始检查
+    checkFooterVisibility();
+    
+    // 添加滚动监听
+    window.addEventListener('scroll', checkFooterVisibility);
+    
+    // 添加窗口大小变化监听
+    window.addEventListener('resize', checkFooterVisibility);
+}
