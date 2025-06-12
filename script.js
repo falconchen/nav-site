@@ -78,6 +78,28 @@ function closeModal(modalId) {
         editingCards: document.querySelectorAll('.website-card.editing').length
     });
     
+    // 如果是网站模态框，清除图片上传区域
+    if (modalId === 'websiteModal') {
+        // 清空图片数据
+        const iconInput = document.getElementById('websiteIcon');
+        if (iconInput) {
+            iconInput.dataset.imageData = '';
+        }
+        
+        // 重置图标预览
+        const iconPreview = document.getElementById('iconPreview');
+        if (iconPreview) {
+            iconPreview.innerHTML = '';
+            iconPreview.className = 'fas fa-globe';
+        }
+        
+        // 重置上传区域
+        resetIconUpload();
+        
+        // 显示图标选择器，确保下次打开时状态正确
+        toggleIconSelectorVisibility(false);
+    }
+    
     // 重置当前编辑卡片引用
     if (currentEditingCard) {
         console.log('重置currentEditingCard');
@@ -141,11 +163,21 @@ function createCardHTML(website) {
     // 添加置顶样式类
     const pinnedClass = website.pinned ? 'pinned' : '';
     
+    // 判断是否有图片数据
+    let iconContent = '';
+    if (website.imageData) {
+        // 如果有图片数据，显示图片
+        iconContent = `<img src="${website.imageData}" alt="${website.title}">`;
+    } else {
+        // 否则显示图标
+        iconContent = `<i class="${website.icon || 'fas fa-globe'}"></i>`;
+    }
+    
     return `
         <div class="website-card ${pinnedClass}" data-weight="${weight}">
             <div class="card-header">
                 <div class="card-icon">
-                    <i class="${website.icon || 'fas fa-globe'}"></i>
+                    ${iconContent}
                 </div>
                 <div>
                     <div class="card-title">${website.title}</div>
@@ -381,11 +413,24 @@ function openAddWebsiteModal() {
     document.getElementById('submitBtn').innerHTML = '<i class="fas fa-plus"></i> 添加网站';
     currentEditingCard = null;
     
+    // 清空图片数据
+    const iconInput = document.getElementById('websiteIcon');
+    if (iconInput) {
+        iconInput.value = 'fas fa-globe'; // 设置默认图标
+        iconInput.dataset.imageData = ''; // 清空图片数据
+    }
+    
     // 确保分类下拉菜单是最新的
     updateCategoryDropdown();
     
     // 重置图标预览
     updateIconPreview('fas fa-globe');
+    
+    // 重置上传区域
+    resetIconUpload();
+    
+    // 显示图标选择器
+    toggleIconSelectorVisibility(false);
     
     openModal('websiteModal');
 }
@@ -585,8 +630,14 @@ function editWebsite(card) {
     const title = card.querySelector('.card-title').textContent;
     const url = card.querySelector('.card-url').textContent;
     const description = card.querySelector('.card-description').textContent.trimStart();
+    
+    // 检查是否有图标或图片
     const iconElement = card.querySelector('.card-icon i');
-    const iconClass = iconElement.className;
+    const iconClass = iconElement ? iconElement.className : '';
+    
+    // 检查是否有图片
+    const imgElement = card.querySelector('.card-icon img');
+    let imageData = '';
     
     // 获取置顶状态
     const isPinned = card.classList.contains('pinned');
@@ -597,12 +648,6 @@ function editWebsite(card) {
     document.getElementById('websiteDescription').value = description;
     document.getElementById('websiteIcon').value = iconClass;
     document.getElementById('websitePinned').checked = isPinned;
-    
-    // 更新图标预览
-    updateIconPreview(iconClass);
-    
-    // 更新分类下拉菜单
-    updateCategoryDropdown();
     
     // 获取卡片的分类
     let categoryId;
@@ -628,6 +673,12 @@ function editWebsite(card) {
                         
                         // 将原始分类ID保存到卡片上，以便将来使用
                         card.dataset.originalCategory = categoryId;
+                        
+                        // 如果找到的网站有图片数据，设置到表单
+                        if (foundSite.imageData) {
+                            imageData = foundSite.imageData;
+                            document.getElementById('websiteIcon').dataset.imageData = imageData;
+                        }
                     }
                 }
             });
@@ -640,9 +691,33 @@ function editWebsite(card) {
                 // 将默认分类ID保存到卡片上
                 card.dataset.originalCategory = categoryId;
             }
+        } else {
+            // 已经有原始分类，现在查找该分类中的网站以获取图片数据
+            const foundSite = websites[categoryId].find(site => 
+                site.title === title && site.url === url);
+            if (foundSite && foundSite.imageData) {
+                imageData = foundSite.imageData;
+                document.getElementById('websiteIcon').dataset.imageData = imageData;
+            }
         }
     } else {
         categoryId = categorySection.id;
+        
+        // 查找网站数据，获取可能存在的图片数据
+        const cardIndex = Array.from(card.parentNode.children).indexOf(card);
+        if (websites[categoryId] && websites[categoryId][cardIndex]) {
+            const siteData = websites[categoryId][cardIndex];
+            if (siteData.imageData) {
+                imageData = siteData.imageData;
+                document.getElementById('websiteIcon').dataset.imageData = imageData;
+            }
+        }
+    }
+    
+    // 如果在DOM中直接找到图片元素，也可以获取图片数据
+    if (!imageData && imgElement && imgElement.src) {
+        imageData = imgElement.src;
+        document.getElementById('websiteIcon').dataset.imageData = imageData;
     }
     
     // 设置分类下拉菜单的值
@@ -662,12 +737,35 @@ function editWebsite(card) {
         }
     }
     
-    // 重置文件上传区域
-    const uploadArea = document.getElementById('iconUploadArea');
-    uploadArea.innerHTML = `
-        <i class="fas fa-cloud-upload-alt upload-icon"></i>
-        <div class="upload-text">点击上传图标或拖拽文件到此处<br>支持 JPG, PNG, SVG 格式</div>
-    `;
+    // 检查图片：如果有图片数据，显示图片预览；如果没有，则显示图标
+    if (imageData) {
+        // 更新图标预览为图片
+        updateIconPreview('', imageData);
+        
+        // 更新上传区域显示已上传的图片
+        const uploadArea = document.getElementById('iconUploadArea');
+        uploadArea.innerHTML = `
+            <div class="uploaded-image-preview">
+                <img src="${imageData}" alt="上传的图标">
+                <button type="button" class="delete-image-btn" onclick="deleteUploadedImage(event)">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="upload-text">图片已上传</div>
+        `;
+        
+        // 隐藏图标选择器
+        toggleIconSelectorVisibility(true);
+    } else {
+        // 更新图标预览
+        updateIconPreview(iconClass);
+        
+        // 重置文件上传区域
+        resetIconUpload();
+        
+        // 显示图标选择器
+        toggleIconSelectorVisibility(false);
+    }
     
     // 更新模态框标题和按钮
     document.getElementById('modalTitle').textContent = '编辑网站';
@@ -689,6 +787,8 @@ function submitWebsiteForm() {
     const category = document.getElementById('websiteCategory').value;
     const iconUrl = document.getElementById('websiteIcon').value;
     const isPinned = document.getElementById('websitePinned').checked;
+    // 获取图片数据（如果有）
+    const imageData = document.getElementById('websiteIcon').dataset.imageData || '';
     
     if (!name || !url || !category) {
         alert('请填写所有必填字段');
@@ -807,6 +907,7 @@ function submitWebsiteForm() {
                 url: url,
                 description: description,
                 icon: iconUrl || 'fas fa-globe',
+                imageData: imageData, // 保存图片数据
                 weight: newWeight, // 设置新权重
                 pinned: isPinned, // 添加置顶属性
                 addedTime: websiteData.addedTime || currentTime, // 保留原添加时间或使用当前时间
@@ -851,6 +952,7 @@ function submitWebsiteForm() {
                 url: url,
                 description: description,
                 icon: iconUrl || 'fas fa-globe',
+                imageData: imageData, // 保存图片数据
                 weight: newSiteWeight, // 如果置顶，更新权重
                 pinned: isPinned, // 更新置顶状态
                 addedTime: websites[oldCategoryId][cardIndex].addedTime || currentTime, // 保留原添加时间或使用当前时间
@@ -903,6 +1005,7 @@ function submitWebsiteForm() {
             url: url,
             description: description,
             icon: iconUrl || 'fas fa-globe',
+            imageData: imageData, // 保存图片数据
             weight: newWeight, // 设置新权重
             pinned: isPinned, // 添加置顶属性
             addedTime: currentTime, // 记录添加时间
@@ -1309,9 +1412,17 @@ function updateWebsiteCard(card, name, url, description, iconUrl, isPinned) {
     card.querySelector('.card-url').textContent = url;
     card.querySelector('.card-description').textContent = description.trimStart();
     
-    if (iconUrl) {
-        const iconElement = card.querySelector('.card-icon i');
-        iconElement.className = iconUrl.startsWith('fa') ? iconUrl : 'fas fa-globe';
+    // 获取图片数据
+    const imageData = document.getElementById('websiteIcon').dataset.imageData || '';
+    
+    // 更新图标或图片
+    const cardIcon = card.querySelector('.card-icon');
+    if (imageData) {
+        // 如果有图片数据，显示图片
+        cardIcon.innerHTML = `<img src="${imageData}" alt="${name}">`;
+    } else if (iconUrl) {
+        // 否则显示图标
+        cardIcon.innerHTML = `<i class="${iconUrl.startsWith('fa') ? iconUrl : 'fas fa-globe'}"></i>`;
     }
     
     // 更新置顶状态
@@ -1345,6 +1456,7 @@ function updateWebsiteCard(card, name, url, description, iconUrl, isPinned) {
             url: url,
             description: description,
             icon: iconUrl || 'fas fa-globe',
+            imageData: imageData, // 保存图片数据
             weight: currentWeight, // 保留原有权重
             pinned: isPinned, // 更新置顶状态
             addedTime: websites[categoryId][cardIndex].addedTime || currentTime, // 保留原添加时间，如果没有则使用当前时间
@@ -1428,8 +1540,14 @@ function togglePinStatus(card) {
     const title = card.querySelector('.card-title').textContent;
     const url = card.querySelector('.card-url').textContent;
     const description = card.querySelector('.card-description').textContent.trimStart();
+    
+    // 安全获取图标类名
     const iconElement = card.querySelector('.card-icon i');
-    const iconClass = iconElement.className;
+    const iconClass = iconElement ? iconElement.className : 'fas fa-globe';
+    
+    // 检查是否有图片
+    const cardIcon = card.querySelector('.card-icon');
+    const hasImage = cardIcon && cardIcon.querySelector('img');
     
     // 获取当前置顶状态
     const isPinned = card.classList.contains('pinned');
@@ -1489,9 +1607,17 @@ function togglePinStatus(card) {
         newWeight = getGlobalMaxWeight();
     }
     
+    // 获取现有图片数据以确保保留
+    const imageData = websites[categoryId][websiteIndex].imageData || '';
+    
     // 更新网站数据
     websites[categoryId][websiteIndex].pinned = newPinStatus;
     websites[categoryId][websiteIndex].weight = newWeight;
+    
+    // 确保图片数据被保留
+    if (imageData) {
+        websites[categoryId][websiteIndex].imageData = imageData;
+    }
     
     // 更新UI
     if (categorySection.id === 'pinned' || categorySection.id === 'recent') {
@@ -1761,29 +1887,75 @@ function setupFileUpload() {
 
 function handleFileUpload(file) {
     if (file.type.startsWith('image/')) {
-        // 在实际应用中，这里会上传文件到服务器
-        // 现在我们只是模拟设置一个图标类名
-        const iconClasses = [
-            'fas fa-star', 'fas fa-heart', 'fas fa-bookmark',
-            'fas fa-thumbs-up', 'fas fa-fire', 'fas fa-gem'
-        ];
-        const randomIcon = iconClasses[Math.floor(Math.random() * iconClasses.length)];
-        document.getElementById('websiteIcon').value = randomIcon;
-        
-        // 更新图标预览
-        updateIconPreview(randomIcon);
-        
-        // 更新上传区域显示
-        const uploadArea = document.getElementById('iconUploadArea');
-        uploadArea.innerHTML = `
-            <i class="fas fa-check-circle upload-icon" style="color: var(--secondary-color);"></i>
-            <div class="upload-text">图标已上传: ${file.name}</div>
-            <div style="margin-top: 0.5rem; font-size: 0.8rem; color: var(--text-muted);">
-                <a href="#" onclick="resetIconUpload(); return false;">重置</a>
-            </div>
-        `;
+        // 读取文件并转换为base64
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const base64Image = e.target.result;
+            
+            // 保存base64图片数据
+            document.getElementById('websiteIcon').value = ''; // 清空图标类
+            document.getElementById('websiteIcon').dataset.imageData = base64Image;
+            
+            // 更新图标预览为图片
+            updateIconPreview('', base64Image);
+            
+            // 更新上传区域显示
+            const uploadArea = document.getElementById('iconUploadArea');
+            uploadArea.innerHTML = `
+                <div class="uploaded-image-preview">
+                    <img src="${base64Image}" alt="上传的图标">
+                    <button type="button" class="delete-image-btn" onclick="deleteUploadedImage(event)">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="upload-text">图片已上传</div>
+            `;
+            
+            // 隐藏图标选择器
+            toggleIconSelectorVisibility(true);
+        };
+        reader.readAsDataURL(file);
     } else {
         alert('请上传图片文件');
+    }
+}
+
+// 删除已上传的图片
+function deleteUploadedImage(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    // 清除图片数据
+    document.getElementById('websiteIcon').dataset.imageData = '';
+    
+    // 恢复默认图标
+    const defaultIcon = 'fas fa-globe';
+    document.getElementById('websiteIcon').value = defaultIcon;
+    
+    // 更新图标预览
+    updateIconPreview(defaultIcon);
+    
+    // 重置上传区域
+    resetIconUpload();
+    
+    // 显示图标选择器
+    toggleIconSelectorVisibility(false);
+}
+
+// 更新图标预览函数，添加对图片的支持
+function updateIconPreview(iconClass, imageData) {
+    const iconPreview = document.getElementById('iconPreview');
+    
+    if (iconPreview) {
+        if (imageData) {
+            // 如果有图片数据，显示图片
+            iconPreview.className = '';
+            iconPreview.innerHTML = `<img src="${imageData}" alt="图标" style="width: 100%; height: 100%; object-fit: contain;">`;
+        } else {
+            // 否则显示图标
+            iconPreview.innerHTML = '';
+            iconPreview.className = iconClass || 'fas fa-globe';
+        }
     }
 }
 
@@ -2023,4 +2195,19 @@ function setupFloatingButtonPosition() {
     
     // 添加窗口大小变化监听
     window.addEventListener('resize', checkFooterVisibility);
+}
+
+// 控制图标样式选择器的可见性
+function toggleIconSelectorVisibility(hasImage) {
+    // 为图标选择器表单分组添加一个ID以便于识别
+    const iconSelectorGroup = document.querySelector('.form-group .icon-selector-container').closest('.form-group');
+    if (iconSelectorGroup) {
+        if (hasImage) {
+            // 如果有图片，隐藏图标选择器
+            iconSelectorGroup.style.display = 'none';
+        } else {
+            // 如果没有图片，显示图标选择器
+            iconSelectorGroup.style.display = '';
+        }
+    }
 }

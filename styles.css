@@ -1415,3 +1415,53 @@ body {
     align-items: center;
   }
 }
+
+/* 上传图片预览样式 */
+.uploaded-image-preview {
+  position: relative;
+  width: 100%;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.5rem;
+}
+
+.uploaded-image-preview img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 0.25rem;
+}
+
+.delete-image-btn {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background-color: var(--text-muted);
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-size: 0.7rem;
+  transition: all 0.2s ease;
+}
+
+.delete-image-btn:hover {
+  background-color: #dc2626;
+  transform: scale(1.1);
+}
+
+/* 卡片图标中显示图片样式 */
+.card-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 0.25rem;
+}
