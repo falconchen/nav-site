@@ -153,8 +153,13 @@ body {
   grid-template-columns: 350px 1fr;
 }
 
-/* 压缩模式下的主内容区域 */
+/* 压缩模式下的主内容区域 - 使用类选择器 */
 .main-container.compact-mode {
+  grid-template-columns: 80px 1fr;
+}
+
+/* 压缩模式下的主内容区域 - 使用属性选择器 */
+html[data-sidebar="compact"] .main-container {
   grid-template-columns: 80px 1fr;
 }
 
@@ -171,31 +176,55 @@ body {
   width: 100%;
 }
 
-/* 编辑模式下的分类侧边栏 */
-.categories-sidebar.editing {
-  box-shadow: var(--shadow-medium);
-  border-color: var(--primary-color);
-}
-
-/* 编辑模式下隐藏切换显示模式按钮 */
-.categories-sidebar.editing #categories-toggle-btn {
-  display: none;
-}
-
-/* 压缩模式下的样式 */
+/* 压缩模式下的样式 - 使用类选择器 */
 .categories-sidebar.compact-mode {
   padding: 1rem;
   width: 80px;
   transition: width 0.3s ease, padding 0.3s ease;
 }
 
-.categories-sidebar.compact-mode .categories-title,
-.categories-sidebar.compact-mode #category-edit-btn,
-.categories-sidebar.compact-mode #add-category-btn {
+/* 压缩模式下的样式 - 使用属性选择器 */
+html[data-sidebar="compact"] .categories-sidebar {
+  padding: 1rem;
+  width: 80px;
+}
+
+/* 编辑模式下的分类侧边栏 */
+.categories-sidebar.editing,
+html[data-sidebar="compact"] .categories-sidebar.editing {
+  box-shadow: var(--shadow-medium);
+  border-color: var(--primary-color);
+}
+
+/* 编辑模式下隐藏切换显示模式按钮 */
+.categories-sidebar.editing #categories-toggle-btn,
+html[data-sidebar="compact"] .categories-sidebar.editing #categories-toggle-btn {
   display: none;
 }
 
-/* 压缩模式下增大切换按钮的尺寸 */
+/* 压缩模式下隐藏元素 - 使用类选择器 */
+.categories-sidebar.compact-mode .categories-title,
+.categories-sidebar.compact-mode #category-edit-btn,
+.categories-sidebar.compact-mode #add-category-btn {
+  opacity: 0;
+  width: 0;
+  transform: translateX(-10px);
+  position: absolute;
+  visibility: hidden;
+}
+
+/* 压缩模式下隐藏元素 - 使用属性选择器 */
+html[data-sidebar="compact"] .categories-title,
+html[data-sidebar="compact"] #category-edit-btn,
+html[data-sidebar="compact"] #add-category-btn {
+  opacity: 0;
+  width: 0;
+  transform: translateX(-10px);
+  position: absolute;
+  visibility: hidden;
+}
+
+/* 压缩模式下增大切换按钮的尺寸 - 使用类选择器 */
 .categories-sidebar.compact-mode #categories-toggle-btn {
   width: 40px;
   height: 40px;
@@ -206,22 +235,41 @@ body {
   box-shadow: var(--shadow-light);
 }
 
-.categories-sidebar.compact-mode #categories-toggle-btn:hover {
+/* 压缩模式下增大切换按钮的尺寸 - 使用属性选择器 */
+html[data-sidebar="compact"] #categories-toggle-btn {
+  width: 40px;
+  height: 40px;
+  font-size: 1.25rem;
+  margin: 0 auto;
+  background-color: var(--background-color);
+  border-radius: 50%;
+  box-shadow: var(--shadow-light);
+}
+
+/* 压缩模式下按钮悬停效果 */
+.categories-sidebar.compact-mode #categories-toggle-btn:hover,
+html[data-sidebar="compact"] #categories-toggle-btn:hover {
   transform: scale(1.1);
   box-shadow: var(--shadow-medium);
 }
 
-.categories-sidebar.compact-mode .categories-title-container {
+/* 压缩模式下标题容器居中 */
+.categories-sidebar.compact-mode .categories-title-container,
+html[data-sidebar="compact"] .categories-title-container {
   justify-content: center;
   margin-bottom: 1.5rem;
 }
 
-.categories-sidebar.compact-mode .category-item {
+/* 压缩模式下分类项样式 */
+.categories-sidebar.compact-mode .category-item,
+html[data-sidebar="compact"] .category-item {
   justify-content: center;
   padding: 0.75rem;
 }
 
-.categories-sidebar.compact-mode .category-item span {
+/* 压缩模式下分类项文本隐藏 */
+.categories-sidebar.compact-mode .category-item span,
+html[data-sidebar="compact"] .category-item span {
   opacity: 0;
   width: 0;
   transform: translateX(-10px);
@@ -229,123 +277,26 @@ body {
   visibility: hidden;
 }
 
-/* 分类标题容器 */
-.categories-title-container {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-}
-
-/* 分类编辑按钮和切换按钮共用样式 */
-#category-edit-btn, #categories-toggle-btn {
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  font-size: 1rem;
-  padding: 0.25rem;
-  border-radius: 0.25rem;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-}
-
-#category-edit-btn:hover, #categories-toggle-btn:hover {
-  color: var(--primary-color);
-  background-color: rgba(var(--primary-color-rgb), 0.1);
-}
-
 /* 压缩模式下的按钮旋转 */
-.categories-sidebar.compact-mode #toggle-icon {
+.categories-sidebar.compact-mode #toggle-icon,
+html[data-sidebar="compact"] #toggle-icon {
   transform: rotate(180deg);
 }
 
-.categories-title {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin: 0;
-  line-height: 1.2;
-}
-
-.category-item {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  margin-bottom: 0.5rem;
-  border-radius: 0.5rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  color: var(--text-secondary);
-  overflow: hidden;
-}
-
-.category-item i {
-  font-size: 1.1rem;
-  width: 1.5rem;
-  transition: all 0.3s ease;
-}
-
-.category-item span {
-  white-space: nowrap;
-  transition: opacity 0.15s ease, transform 0.3s ease;
-  transform-origin: left center;
-}
-
-.category-item:hover,
-.category-item.active {
-  background-color: var(--primary-color);
-  color: white;
-  transform: translateX(0.25rem);
-  border-right: 3px solid var(--secondary-color);
-}
-
-/* 网址卡片区域 */
-.content-area {
-  min-height: 500px;
-}
-
-.category-section {
-  display: block;
-  margin-bottom: 3rem;
-  scroll-margin-top: 6rem;
-}
-
-.section-title {
-  font-size: 1.75rem;
-  font-weight: 600;
-  margin-bottom: 1.5rem;
-  color: var(--text-primary);
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding-top: 0.5rem;
-}
-
-.section-title i {
-  color: var(--primary-color);
-}
-
-.cards-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 1rem;
-  grid-auto-rows: 1fr;
-}
-
-/* 压缩模式下的卡片网格 */
+/* 压缩模式下的卡片网格 - 使用类选择器 */
 .main-container.compact-mode .cards-grid {
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+
+/* 压缩模式下的卡片网格 - 使用属性选择器 */
+html[data-sidebar="compact"] .cards-grid {
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
 }
 
 /* 媒体查询 */
 @media (min-width: 1200px) {
-  .main-container.compact-mode .cards-grid {
+  .main-container.compact-mode .cards-grid,
+  html[data-sidebar="compact"] .cards-grid {
     grid-template-columns: repeat(4, 1fr);
   }
 }
@@ -356,7 +307,8 @@ body {
     grid-template-columns: repeat(2, 1fr);
   }
   
-  .main-container.compact-mode .cards-grid {
+  .main-container.compact-mode .cards-grid,
+  html[data-sidebar="compact"] .cards-grid {
     grid-template-columns: repeat(3, 1fr);
   }
 }
@@ -1657,4 +1609,113 @@ body {
     width: 100%;
     justify-content: center;
   }
+}
+
+/* 分类标题容器 */
+.categories-title-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+/* 分类编辑按钮和切换按钮共用样式 */
+#category-edit-btn, #categories-toggle-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0.25rem;
+  border-radius: 0.25rem;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+}
+
+#category-edit-btn:hover, #categories-toggle-btn:hover {
+  color: var(--primary-color);
+  background-color: rgba(var(--primary-color-rgb), 0.1);
+}
+
+.categories-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.category-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.5rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: var(--text-secondary);
+  overflow: hidden;
+}
+
+.category-item i {
+  font-size: 1.1rem;
+  width: 1.5rem;
+  transition: all 0.3s ease;
+}
+
+.category-item span {
+  white-space: nowrap;
+  transition: opacity 0.15s ease, transform 0.3s ease;
+  transform-origin: left center;
+}
+
+.category-item:hover,
+.category-item.active {
+  background-color: var(--primary-color);
+  color: white;
+  transform: translateX(0.25rem);
+  border-right: 3px solid var(--secondary-color);
+}
+
+/* 网址卡片区域 */
+.content-area {
+  min-height: 500px;
+}
+
+.category-section {
+  display: block;
+  margin-bottom: 3rem;
+  scroll-margin-top: 6rem;
+}
+
+.section-title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-top: 0.5rem;
+}
+
+.section-title i {
+  color: var(--primary-color);
+}
+
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1rem;
+  grid-auto-rows: 1fr;
+}
+
+/* 压缩模式下的卡片网格 - 使用类选择器 */
+.main-container.compact-mode .cards-grid {
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
 }

@@ -43,6 +43,7 @@ function toggleCategoriesMode() {
     const mainContainer = document.querySelector('.main-container');
     const sidebar = document.querySelector('.categories-sidebar');
     const toggleIcon = document.getElementById('toggle-icon');
+    const html = document.documentElement;
     
     // 检查当前是否处于编辑模式，如果是则不允许切换
     if (sidebar.classList.contains('editing')) {
@@ -54,8 +55,11 @@ function toggleCategoriesMode() {
     sidebar.classList.toggle('compact-mode');
     mainContainer.classList.toggle('compact-mode');
     
-    // 保存当前模式到本地存储，以便下次访问时保持相同模式
+    // 更新HTML的data-sidebar属性
     const isCompactMode = sidebar.classList.contains('compact-mode');
+    html.setAttribute('data-sidebar', isCompactMode ? 'compact' : 'normal');
+    
+    // 保存当前模式到本地存储，以便下次访问时保持相同模式
     localStorage.setItem('categoriesCompactMode', isCompactMode);
     
     // 旋转图标（已通过CSS处理）
