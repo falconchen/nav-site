@@ -1685,6 +1685,147 @@ html[data-sidebar="compact"] .cards-grid {
 /* 网址卡片区域 */
 .content-area {
   min-height: 500px;
+  transition: all 0.3s ease;
+}
+
+/* 压缩模式下的内容区域 - 类选择器 */
+.main-container.compact-mode .content-area {
+  padding-left: 0.5rem;
+}
+
+/* 压缩模式下的内容区域 - 属性选择器 */
+html[data-sidebar="compact"] .content-area {
+  padding-left: 0.5rem;
+}
+
+/* 压缩模式下的卡片网格调整 - 类选择器 */
+.content-area.compact-mode .cards-grid {
+  gap: 0.75rem;
+}
+
+/* 压缩模式下的卡片网格调整 - 属性选择器 */
+html[data-sidebar="compact"] .cards-grid {
+  gap: 0.75rem;
+}
+
+/* 压缩模式下的分类部分标题调整 - 类选择器 */
+.content-area.compact-mode .section-title {
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+}
+
+/* 压缩模式下的分类部分标题调整 - 属性选择器 */
+html[data-sidebar="compact"] .section-title {
+  margin-bottom: 1rem;
+  font-size: 1.5rem;
+}
+
+/* 压缩模式下的分类部分间距调整 - 类选择器 */
+.content-area.compact-mode .category-section {
+  margin-bottom: 2rem;
+}
+
+/* 压缩模式下的分类部分间距调整 - 属性选择器 */
+html[data-sidebar="compact"] .category-section {
+  margin-bottom: 2rem;
+}
+
+/* 压缩模式下卡片描述隐藏 - 类选择器 */
+.content-area.compact-mode .card-description {
+  display: none;
+}
+
+/* 压缩模式下卡片描述隐藏 - 属性选择器 */
+html[data-sidebar="compact"] .card-description {
+  display: none;
+}
+
+/* 压缩模式下降低卡片高度 - 类选择器 */
+.content-area.compact-mode .website-card {
+  min-height: 80px;
+  padding: 0.75rem;
+}
+
+/* 压缩模式下降低卡片高度 - 属性选择器 */
+html[data-sidebar="compact"] .website-card {
+  min-height: 80px;
+  padding: 0.75rem;
+}
+
+/* 压缩模式下调整卡片标题样式 - 类选择器 */
+.content-area.compact-mode .card-header {
+  margin-bottom: 0;
+}
+
+/* 压缩模式下调整卡片标题样式 - 属性选择器 */
+html[data-sidebar="compact"] .card-header {
+  margin-bottom: 0;
+}
+
+/* 压缩模式下调整卡片图标尺寸 - 类选择器 */
+.content-area.compact-mode .card-icon {
+  width: 2rem;
+  height: 2rem;
+  min-width: 2rem;
+  font-size: 1rem;
+}
+
+/* 压缩模式下调整卡片图标尺寸 - 属性选择器 */
+html[data-sidebar="compact"] .card-icon {
+  width: 2rem;
+  height: 2rem;
+  min-width: 2rem;
+  font-size: 1rem;
+}
+
+/* 压缩模式下调整卡片标题间距 - 类选择器 */
+.content-area.compact-mode .card-header > div:last-child {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* 压缩模式下调整卡片标题间距 - 属性选择器 */
+html[data-sidebar="compact"] .card-header > div:last-child {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* 压缩模式下调整卡片URL行高 - 类选择器 */
+.content-area.compact-mode .card-url {
+  line-height: 1.2;
+}
+
+/* 压缩模式下调整置顶图标位置 - 属性选择器 */
+html[data-sidebar="compact"] .website-card.pinned::before {
+  top: 0.3rem;
+  right: 0.3rem;
+  font-size: 0.7rem;
+}
+
+/* 压缩模式下调整卡片的边角和阴影 - 类选择器 */
+.content-area.compact-mode .website-card {
+  border-radius: 0.5rem;
+  box-shadow: var(--shadow-light);
+  transition: all 0.2s ease;
+}
+
+/* 压缩模式下调整卡片的边角和阴影 - 属性选择器 */
+html[data-sidebar="compact"] .website-card {
+  border-radius: 0.5rem;
+  box-shadow: var(--shadow-light);
+  transition: all 0.2s ease;
+}
+
+/* 压缩模式下调整卡片悬停效果 - 类选择器 */
+.content-area.compact-mode .website-card:hover {
+  transform: translateY(-0.15rem);
+}
+
+/* 压缩模式下调整卡片悬停效果 - 属性选择器 */
+html[data-sidebar="compact"] .website-card:hover {
+  transform: translateY(-0.15rem);
 }
 
 .category-section {
@@ -1719,3 +1860,39 @@ html[data-sidebar="compact"] .cards-grid {
 .main-container.compact-mode .cards-grid {
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
 }
+
+/* 压缩模式下调整卡片标题间距 - 属性选择器 */
+html[data-sidebar="compact"] .card-header > div:last-child {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* 压缩模式下调整卡片URL行高 - 属性选择器 */
+html[data-sidebar="compact"] .card-url {
+  line-height: 1.2;
+}
+
+/* 压缩模式下调整置顶图标位置 - 属性选择器 */
+html[data-sidebar="compact"] .website-card.pinned::before {
+  top: 0.3rem;
+  right: 0.3rem;
+  font-size: 0.7rem;
+}
+
+/* 压缩模式下调整卡片的边角和阴影 - 属性选择器 */
+html[data-sidebar="compact"] .website-card {
+  border-radius: 0.5rem;
+  box-shadow: var(--shadow-light);
+  transition: all 0.2s ease;
+}
+
+/* 压缩模式下调整卡片悬停效果 - 属性选择器 */
+html[data-sidebar="compact"] .website-card:hover {
+  transform: translateY(-0.15rem);
+}/* 压缩模式下调整置顶图标位置 - 类选择器 */
+.content-area.compact-mode .website-card.pinned::before {
+  top: 0.3rem;
+  right: 0.3rem;
+  font-size: 0.7rem;
+} 

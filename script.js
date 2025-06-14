@@ -42,6 +42,7 @@ function showCategory(categoryId) {
 function toggleCategoriesMode() {
     const mainContainer = document.querySelector('.main-container');
     const sidebar = document.querySelector('.categories-sidebar');
+    const contentArea = document.querySelector('.content-area');
     const toggleIcon = document.getElementById('toggle-icon');
     const html = document.documentElement;
     
@@ -54,6 +55,7 @@ function toggleCategoriesMode() {
     // 切换压缩/展开模式
     sidebar.classList.toggle('compact-mode');
     mainContainer.classList.toggle('compact-mode');
+    contentArea.classList.toggle('compact-mode');
     
     // 更新HTML的data-sidebar属性
     const isCompactMode = sidebar.classList.contains('compact-mode');
@@ -71,8 +73,11 @@ function loadCategoriesMode() {
     if (isCompactMode) {
         const mainContainer = document.querySelector('.main-container');
         const sidebar = document.querySelector('.categories-sidebar');
+        const contentArea = document.querySelector('.content-area');
+        
         sidebar.classList.add('compact-mode');
         mainContainer.classList.add('compact-mode');
+        contentArea.classList.add('compact-mode');
     }
 }
 
