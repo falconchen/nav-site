@@ -45,7 +45,10 @@
         <!-- 分类侧边栏 -->
         <aside class="categories-sidebar">
             <div class="categories-title-container">
-            <h3 class="categories-title">网站分类</h3>
+                <button id="categories-toggle-btn" title="切换显示模式" onclick="toggleCategoriesMode()">
+                    <i class="fas fa-chevron-left" id="toggle-icon"></i>
+                </button>
+                <h3 class="categories-title">网站分类</h3>
                 <button id="category-edit-btn" title="编辑分类" onclick="enterCategoryEditMode()">
                     <i class="fas fa-edit"></i>
                 </button>

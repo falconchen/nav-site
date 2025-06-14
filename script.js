@@ -38,6 +38,40 @@ function showCategory(categoryId) {
     }
 }
 
+// 切换分类列表的压缩/展开模式
+function toggleCategoriesMode() {
+    const mainContainer = document.querySelector('.main-container');
+    const sidebar = document.querySelector('.categories-sidebar');
+    const toggleIcon = document.getElementById('toggle-icon');
+    
+    // 检查当前是否处于编辑模式，如果是则不允许切换
+    if (sidebar.classList.contains('editing')) {
+        alert('请先退出编辑模式');
+        return;
+    }
+    
+    // 切换压缩/展开模式
+    sidebar.classList.toggle('compact-mode');
+    mainContainer.classList.toggle('compact-mode');
+    
+    // 保存当前模式到本地存储，以便下次访问时保持相同模式
+    const isCompactMode = sidebar.classList.contains('compact-mode');
+    localStorage.setItem('categoriesCompactMode', isCompactMode);
+    
+    // 旋转图标（已通过CSS处理）
+}
+
+// 加载压缩模式设置
+function loadCategoriesMode() {
+    const isCompactMode = localStorage.getItem('categoriesCompactMode') === 'true';
+    if (isCompactMode) {
+        const mainContainer = document.querySelector('.main-container');
+        const sidebar = document.querySelector('.categories-sidebar');
+        sidebar.classList.add('compact-mode');
+        mainContainer.classList.add('compact-mode');
+    }
+}
+
 // 模态框管理
 let currentEditingCard = null;
 
@@ -1981,6 +2015,9 @@ document.addEventListener('DOMContentLoaded', function() {
         html.setAttribute('data-theme', 'light');
         if(themeIcon) themeIcon.className = 'fas fa-moon';
     }
+    
+    // 初始化分类列表模式
+    loadCategoriesMode();
     
     // 更新分类下拉菜单
     updateCategoryDropdown();
