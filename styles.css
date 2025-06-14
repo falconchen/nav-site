@@ -1465,3 +1465,104 @@ body {
   object-fit: cover;
   border-radius: 0.25rem;
 }
+
+/* iPad 竖屏模式适配 */
+@media only screen and (min-width: 768px) and (max-width: 834px) and (orientation: portrait) {
+  .cards-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.8rem;
+  }
+  
+  .hidden-cards-container {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.8rem;
+  }
+  
+  /* 确保每个卡片的最小宽度适合两列布局 */
+  .website-card {
+    min-width: 0;
+  }
+}
+
+/* 平板设备适配 - iPad和类似尺寸的平板设备 */
+@media only screen and (min-width: 768px) and (max-width: 1024px) {
+  /* 调整网格布局 - 平板通用设置 */
+  .main-container {
+    gap: 1.5rem;
+  }
+  
+  .categories-sidebar {
+    padding: 1.2rem;
+  }
+  
+  .category-item {
+    padding: 0.6rem 0.8rem;
+  }
+  
+  .section-title {
+    margin-bottom: 1.2rem;
+  }
+}
+
+/* iPad 竖屏模式特定适配 */
+@media only screen and (min-width: 768px) and (max-width: 834px) and (orientation: portrait) {
+  /* 确保网格布局适合iPad竖屏 */
+  .cards-grid, 
+  .hidden-cards-container {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.8rem;
+  }
+  
+  .website-card {
+    min-width: 0;
+  }
+  
+  /* 优化模态框在iPad竖屏下的显示 */
+  .modal {
+    max-width: 90%;
+  }
+  
+  /* 确保图标选择器在iPad竖屏下不会太拥挤 */
+  .icon-item {
+    height: 2rem;
+    width: 2rem;
+    min-width: 2rem;
+  }
+  
+  /* 页脚在iPad竖屏下居中显示 */
+  .footer-container {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 1.2rem;
+  }
+  
+  .footer-text,
+  .footer-links {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* iPad Pro 11英寸竖屏适配 */
+@media only screen and (min-width: 834px) and (max-width: 900px) and (orientation: portrait) {
+  .cards-grid, 
+  .hidden-cards-container {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+  
+  /* 页脚在iPad Pro竖屏下居中显示 */
+  .footer-container {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 1.2rem;
+  }
+  
+  .footer-text,
+  .footer-links {
+    width: 100%;
+    justify-content: center;
+  }
+}
