@@ -1904,32 +1904,42 @@ function highlightSearchResults(searchTerm) {
 
 // 为卡片添加事件监听器
 function addCardEventListeners(card) {
+    // 先移除可能存在的事件监听器，防止重复绑定
+    card.removeEventListener('contextmenu', handleContextMenu);
+    card.removeEventListener('click', handleCardClick);
+    
     // 右键菜单
-    card.addEventListener('contextmenu', function(e) {
-        console.log('右键菜单触发:', {
-            card: this.querySelector('.card-title')?.textContent,
-            eventType: e.type,
-            target: e.target.tagName,
-            container: this.closest('.category-section')?.id
-        });
-        showContextMenu(e, this);
-    });
+    card.addEventListener('contextmenu', handleContextMenu);
     
     // 左键点击（访问网站）
-    card.addEventListener('click', function(e) {
-        if (e.target.closest('.context-menu')) return;
-        
-        // 如果按住Ctrl键点击，则编辑网站
-        if (e.ctrlKey) {
-            editWebsite(this);
-            return;
-        }
-        
-        const url = this.querySelector('.card-url').textContent;
-        // 检查URL是否已包含协议
-        const fullUrl = url.includes('://') ? url : `http://${url}`;
-        window.open(fullUrl, '_blank');
+    card.addEventListener('click', handleCardClick);
+}
+
+// 处理卡片右键菜单事件
+function handleContextMenu(e) {
+    console.log('右键菜单触发:', {
+        card: this.querySelector('.card-title')?.textContent,
+        eventType: e.type,
+        target: e.target.tagName,
+        container: this.closest('.category-section')?.id
     });
+    showContextMenu(e, this);
+}
+
+// 处理卡片点击事件
+function handleCardClick(e) {
+    if (e.target.closest('.context-menu')) return;
+    
+    // 如果按住Ctrl键点击，则编辑网站
+    if (e.ctrlKey) {
+        editWebsite(this);
+        return;
+    }
+    
+    const url = this.querySelector('.card-url').textContent;
+    // 检查URL是否已包含协议
+    const fullUrl = url.includes('://') ? url : `http://${url}`;
+    window.open(fullUrl, '_blank');
 }
 
 // 文件上传功能
