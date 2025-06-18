@@ -1617,6 +1617,12 @@ html[data-sidebar="compact"] .cards-grid {
   width: 28px;
   height: 28px;
 }
+#categories-toggle-btn{
+  
+  margin-left: 0.5rem;
+  border-radius: 50%;
+  background-color: rgba(var(--primary-color-rgb), 0.1);
+}
 
 #category-edit-btn:hover, #categories-toggle-btn:hover {
   color: var(--primary-color);
@@ -1629,6 +1635,7 @@ html[data-sidebar="compact"] .cards-grid {
   color: var(--text-primary);
   margin: 0;
   line-height: 1.2;
+  width: 6rem;
 }
 
 .category-item {
