@@ -1711,16 +1711,22 @@ html[data-sidebar="compact"] .section-title {
 html[data-sidebar="compact"] .category-section {
   margin-bottom: 2rem;
 }
+html[data-sidebar="compact"] .category-item i{
+  width:auto;
+}
 
 /* 压缩模式下卡片描述隐藏 - 类选择器 */
 .content-area.compact-mode .card-description {
   display: none;
 }
 
+
 /* 压缩模式下卡片描述隐藏 - 属性选择器 */
 html[data-sidebar="compact"] .card-description {
   display: none;
 }
+
+
 
 /* 压缩模式下降低卡片高度 - 类选择器 */
 .content-area.compact-mode .website-card {

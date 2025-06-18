@@ -70,6 +70,9 @@ function toggleCategoriesMode() {
     } else {
         toggleIcon.className = 'fa-solid fa-down-left-and-up-right-to-center';
     }
+    
+    // 重新渲染"最近添加"部分以更新显示的网站数量
+    renderRecentCategory();
 }
 
 // 加载压缩模式设置
@@ -1338,14 +1341,20 @@ function renderRecentCategory() {
     // 取最近添加的12个网站
     const recentWebsites = allWebsites.slice(0, 12);
     
-    // 创建前6个卡片
-    const visibleWebsites = recentWebsites.slice(0, 6);
+    // 判断当前是否处于压缩模式
+    const isCompactMode = document.documentElement.getAttribute('data-sidebar') === 'compact';
+    
+    // 根据模式设置显示的网站数量
+    const visibleCount = isCompactMode ? 4 : 3;
+    
+    // 创建前几个卡片（根据模式显示3个或4个）
+    const visibleWebsites = recentWebsites.slice(0, visibleCount);
     visibleWebsites.forEach(website => {
         const cardHTML = createCardHTML(website);
         recentContainer.insertAdjacentHTML('beforeend', cardHTML);
     });
     
-    console.log(`显示了 ${visibleWebsites.length} 个网站`);
+    console.log(`显示了 ${visibleWebsites.length} 个网站（${isCompactMode ? '压缩模式' : '正常模式'}）`);
     
     // 为主容器中的卡片添加事件监听器
     recentContainer.querySelectorAll('.website-card').forEach(card => {
@@ -1365,8 +1374,8 @@ function renderRecentCategory() {
         }
     });
     
-    // 如果有超过6个网站，创建"展开更多"按钮和隐藏的网站容器
-    if (recentWebsites.length > 6) {
+    // 如果有超过显示数量的网站，创建"展开更多"按钮和隐藏的网站容器
+    if (recentWebsites.length > visibleCount) {
         // 创建隐藏的网站容器（与主容器并列，而不是嵌套）
         const hiddenContainer = document.createElement('div');
         hiddenContainer.id = 'recent-hidden-cards';
@@ -1374,7 +1383,7 @@ function renderRecentCategory() {
         hiddenContainer.style.display = 'none';
         
         // 添加剩余的卡片到隐藏容器
-        const hiddenWebsites = recentWebsites.slice(6);
+        const hiddenWebsites = recentWebsites.slice(visibleCount);
         hiddenWebsites.forEach(website => {
             const cardHTML = createCardHTML(website);
             hiddenContainer.insertAdjacentHTML('beforeend', cardHTML);
