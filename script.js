@@ -64,12 +64,19 @@ function toggleCategoriesMode() {
     // 保存当前模式到本地存储，以便下次访问时保持相同模式
     localStorage.setItem('categoriesCompactMode', isCompactMode);
     
-    // 旋转图标（已通过CSS处理）
+    // 切换图标
+    if (isCompactMode) {
+        toggleIcon.className = 'fa-solid fa-up-right-and-down-left-from-center';
+    } else {
+        toggleIcon.className = 'fa-solid fa-down-left-and-up-right-to-center';
+    }
 }
 
 // 加载压缩模式设置
 function loadCategoriesMode() {
     const isCompactMode = localStorage.getItem('categoriesCompactMode') === 'true';
+    const toggleIcon = document.getElementById('toggle-icon');
+    
     if (isCompactMode) {
         const mainContainer = document.querySelector('.main-container');
         const sidebar = document.querySelector('.categories-sidebar');
@@ -78,6 +85,16 @@ function loadCategoriesMode() {
         sidebar.classList.add('compact-mode');
         mainContainer.classList.add('compact-mode');
         contentArea.classList.add('compact-mode');
+        
+        // 设置压缩模式图标
+        if (toggleIcon) {
+            toggleIcon.className = 'fa-solid fa-up-right-and-down-left-from-center';
+        }
+    } else {
+        // 设置正常模式图标
+        if (toggleIcon) {
+            toggleIcon.className = 'fa-solid fa-down-left-and-up-right-to-center';
+        }
     }
 }
 
@@ -1138,13 +1155,20 @@ function submitWebsiteForm() {
                 // 高亮显示新添加的卡片
                 const categorySection = document.getElementById(category);
                 if (categorySection) {
-                    const firstCard = categorySection.querySelector('.cards-grid .website-card:first-child');
-                    if (firstCard) {
-                        firstCard.classList.add('highlight-card');
-                        setTimeout(() => {
-                            firstCard.classList.remove('highlight-card');
-                        }, 3000);
-                    }
+
+                    const categoryCards = categorySection.querySelectorAll('.cards-grid .website-card');
+                    categoryCards.forEach(card => {
+                        const cardTitle = card.querySelector('.card-title').textContent;
+                        const cardUrl = card.querySelector('.card-url').textContent;
+                        
+                        if (cardTitle === name && cardUrl === url) {
+                            card.classList.add('simple-highlight');
+                            setTimeout(() => {
+                                card.classList.remove('simple-highlight');
+                            }, 1000);
+                        }
+
+                    });
                 }
             }
         } else if (categoryChanged) {
@@ -1154,16 +1178,21 @@ function submitWebsiteForm() {
             // 找到新添加的卡片并添加闪烁效果
             const categorySection = document.getElementById(category);
             if (categorySection) {
-                const firstCard = categorySection.querySelector('.cards-grid .website-card:first-child');
-                if (firstCard) {
-                    // 添加临时高亮效果 - 对于非置顶操作，保留脉冲效果
-                    firstCard.classList.add('highlight-card');
-                    // 3秒后移除高亮
-                    setTimeout(() => {
-                        firstCard.classList.remove('highlight-card');
-                    }, 3000);
+
+                    const categoryCards = categorySection.querySelectorAll('.cards-grid .website-card');
+                    categoryCards.forEach(card => {
+                        const cardTitle = card.querySelector('.card-title').textContent;
+                        const cardUrl = card.querySelector('.card-url').textContent;
+                        
+                        if (cardTitle === name && cardUrl === url) {
+                            card.classList.add('simple-highlight');
+                            setTimeout(() => {
+                                card.classList.remove('simple-highlight');
+                            }, 1000);
+                        }
+                        
+                    });
                 }
-            }
         }
     }, 100);
 }
@@ -1283,7 +1312,7 @@ function renderRecentCategory() {
         })));
     }
     
-    // 按添加时间排序（如果有）或按权重排序
+    // 仅按添加时间排序（如果有），而不考虑editedTime
     allWebsites.sort((a, b) => {
         // 如果两个都有添加时间，按时间排序（新的在前）
         if (a.addedTime && b.addedTime) {
@@ -1301,10 +1330,9 @@ function renderRecentCategory() {
         return (b.weight || 100) - (a.weight || 100);
     });
     
-    console.log('排序后的顺序(前几个):', allWebsites.slice(0, Math.min(5, allWebsites.length)).map(site => ({
+    console.log('按添加时间排序后的顺序(前几个):', allWebsites.slice(0, Math.min(5, allWebsites.length)).map(site => ({
         title: site.title,
-        addedTime: site.addedTime ? new Date(site.addedTime).toLocaleString() : '无',
-        pinned: site.pinned
+        addedTime: site.addedTime ? new Date(site.addedTime).toLocaleString() : '无'
     })));
     
     // 取最近添加的12个网站
