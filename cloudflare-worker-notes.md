@@ -29,3 +29,6 @@ npx wrangler deploy
 这样，每次您向关联的 Git 仓库推送代码时，Cloudflare 将自动构建您的 Worker 并将新版本设置为活动部署。
 
 `npx wrangler versions upload` 只是临时解决方案，让您可以控制何时手动激活新版本。一旦您准备好恢复自动部署流程，只需将部署命令改回 `npx wrangler deploy` 即可。
+
+
+## 环境
