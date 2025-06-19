@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>导航助手 - 您的网址导航专家</title>
+    <title>2047导航助手 - 次世代网络收藏夹</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -17,7 +17,7 @@
         if (theme === 'dark' || theme === 'light') {
           document.documentElement.setAttribute('data-theme', theme);
         }
-        
+
         // 读取并应用侧边栏模式设置
         var sidebarMode = localStorage.getItem('categoriesCompactMode');
         if (sidebarMode === 'true') {
@@ -35,14 +35,14 @@
         <div class="header-container">
             <a href="#" class="logo">
                 <i class="fas fa-compass"></i>
-                <span>导航助手</span>
+                <span>2047导航助手</span>
             </a>
-            
+
             <div class="search-container">
                 <i class="fas fa-search search-icon"></i>
                 <input type="text" class="search-box" placeholder="搜索网站...">
             </div>
-            
+
             <button class="theme-toggle" onclick="toggleTheme()">
                 <i class="fas fa-moon" id="theme-icon"></i>
             </button>
@@ -69,7 +69,7 @@
             <div class="categories-list">
                 <!-- 分类将由JavaScript动态加载 -->
             </div>
-            
+
         </aside>
 
         <!-- 网址卡片区域 -->
@@ -82,7 +82,7 @@
     <footer class="footer">
         <div class="footer-container">
             <div class="footer-text">
-                © 2025 导航助手. 让网络世界触手可及.
+				© 2025 2047导航助手，次世代网络收藏夹
             </div>
             <div class="footer-links">
                 <a href="#" class="footer-link">关于我们</a>
@@ -108,7 +108,7 @@
                     <i class="fas fa-times"></i>
                 </button>
             </div>
-            
+
             <form id="websiteForm" onsubmit="event.preventDefault(); submitWebsiteForm();">
                 <div class="form-row">
                     <div class="form-left">
@@ -133,7 +133,7 @@
                         </div>
                     </div>
                     <div class="icon-edit-group">
-                        
+
                         <div class="file-upload-area" id="iconUploadArea">
                             <i class="fas fa-cloud-upload-alt upload-icon"></i>
                             <div class="upload-text">点击上传图标或拖拽文件到此处<br>支持 JPG, PNG, SVG 格式</div>
@@ -177,7 +177,7 @@
                     <label class="form-label" for="websiteDescription">简短描述</label>
                     <textarea id="websiteDescription" class="form-textarea" placeholder="请输入网站描述（最多2行）"></textarea>
                 </div>
-                
+
                 <div class="form-buttons">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('websiteModal')">
                         <i class="fas fa-times"></i>
@@ -201,7 +201,7 @@
                     <i class="fas fa-times"></i>
                 </button>
             </div>
-            
+
             <div style="padding: 1rem 0;">
                 <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
                     <i class="fas fa-exclamation-triangle" style="font-size: 2rem; color: #f59e0b;"></i>
@@ -211,7 +211,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <div class="form-buttons">
                 <button type="button" class="btn btn-secondary" onclick="closeModal('deleteConfirmModal')">
                     <i class="fas fa-times"></i>
@@ -234,7 +234,7 @@
                     <i class="fas fa-times"></i>
                 </button>
                         </div>
-            
+
             <div style="padding: 1rem 0;">
                 <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
                     <i class="fas fa-exclamation-triangle" style="font-size: 2rem; color: #f59e0b;"></i>
@@ -245,7 +245,7 @@
                         </div>
                     </div>
                 </div>
-            
+
             <div class="form-buttons">
                 <button type="button" class="btn btn-secondary" onclick="closeCategoryModal('deleteCategoryModal')">
                     <i class="fas fa-times"></i>

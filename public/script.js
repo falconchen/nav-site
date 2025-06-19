@@ -2,7 +2,7 @@
 function toggleTheme() {
     const html = document.documentElement;
     const themeIcon = document.getElementById('theme-icon');
-    
+
     if (html.getAttribute('data-theme') === 'light') {
         html.setAttribute('data-theme', 'dark');
         themeIcon.className = 'fas fa-sun';
@@ -17,7 +17,7 @@ function toggleTheme() {
 // 分类切换功能
 function showCategory(categoryId) {
     if (isEditingCategories) return; // 编辑模式下不允许切换分类
-    
+
     // 获取目标分类区域
     const targetSection = document.getElementById(categoryId);
     if (targetSection) {
@@ -27,11 +27,11 @@ function showCategory(categoryId) {
             block: 'start'
         });
     }
-    
+
     // 更新侧边栏选中状态
     const categoryItems = document.querySelectorAll('.category-item');
     categoryItems.forEach(item => item.classList.remove('active'));
-    
+
     const selectedItem = document.querySelector(`.category-item[data-category="${categoryId}"]`);
     if (selectedItem) {
         selectedItem.classList.add('active');
@@ -45,32 +45,32 @@ function toggleCategoriesMode() {
     const contentArea = document.querySelector('.content-area');
     const toggleIcon = document.getElementById('toggle-icon');
     const html = document.documentElement;
-    
+
     // 检查当前是否处于编辑模式，如果是则不允许切换
     if (sidebar.classList.contains('editing')) {
         alert('请先退出编辑模式');
         return;
     }
-    
+
     // 切换压缩/展开模式
     sidebar.classList.toggle('compact-mode');
     mainContainer.classList.toggle('compact-mode');
     contentArea.classList.toggle('compact-mode');
-    
+
     // 更新HTML的data-sidebar属性
     const isCompactMode = sidebar.classList.contains('compact-mode');
     html.setAttribute('data-sidebar', isCompactMode ? 'compact' : 'normal');
-    
+
     // 保存当前模式到本地存储，以便下次访问时保持相同模式
     localStorage.setItem('categoriesCompactMode', isCompactMode);
-    
+
     // 切换图标
     if (isCompactMode) {
         toggleIcon.className = 'fa-solid fa-up-right-and-down-left-from-center';
     } else {
         toggleIcon.className = 'fa-solid fa-down-left-and-up-right-to-center';
     }
-    
+
     // 重新渲染"最近添加"部分以更新显示的网站数量
     renderRecentCategory();
 }
@@ -79,16 +79,16 @@ function toggleCategoriesMode() {
 function loadCategoriesMode() {
     const isCompactMode = localStorage.getItem('categoriesCompactMode') === 'true';
     const toggleIcon = document.getElementById('toggle-icon');
-    
+
     if (isCompactMode) {
         const mainContainer = document.querySelector('.main-container');
         const sidebar = document.querySelector('.categories-sidebar');
         const contentArea = document.querySelector('.content-area');
-        
+
         sidebar.classList.add('compact-mode');
         mainContainer.classList.add('compact-mode');
         contentArea.classList.add('compact-mode');
-        
+
         // 设置压缩模式图标
         if (toggleIcon) {
             toggleIcon.className = 'fa-solid fa-up-right-and-down-left-from-center';
@@ -112,18 +112,18 @@ function openModal(modalId) {
 
 function closeModal(modalId) {
     console.log(`开始关闭模态框: ${modalId}`);
-    
+
     // 检查当前编辑状态
     console.log('关闭前的编辑状态:', {
         currentEditingCard: currentEditingCard ? '存在' : '不存在',
         editingCards: document.querySelectorAll('.website-card.editing').length,
         modalId: modalId
     });
-    
+
     // 记录所有具有editing类的卡片
     const editingCards = document.querySelectorAll('.website-card.editing');
     if (editingCards.length > 0) {
-        console.log(`发现 ${editingCards.length} 个带有editing类的卡片:`, 
+        console.log(`发现 ${editingCards.length} 个带有editing类的卡片:`,
             Array.from(editingCards).map(card => {
                 const title = card.querySelector('.card-title')?.textContent || '无标题';
                 const category = card.closest('.category-section')?.id || '未知分类';
@@ -131,16 +131,16 @@ function closeModal(modalId) {
             })
         );
     }
-    
+
     const modal = document.getElementById(modalId);
     modal.classList.remove('active');
     document.body.style.overflow = '';
-    
+
     // 清理前再次检查
     console.log('清理前再次检查:', {
         editingCards: document.querySelectorAll('.website-card.editing').length
     });
-    
+
     // 如果是网站模态框，清除图片上传区域
     if (modalId === 'websiteModal') {
         // 清空图片数据
@@ -148,27 +148,27 @@ function closeModal(modalId) {
         if (iconInput) {
             iconInput.dataset.imageData = '';
         }
-        
+
         // 重置图标预览
         const iconPreview = document.getElementById('iconPreview');
         if (iconPreview) {
             iconPreview.innerHTML = '';
             iconPreview.className = 'fas fa-globe';
         }
-        
+
         // 重置上传区域
         resetIconUpload();
-        
+
         // 显示图标选择器，确保下次打开时状态正确
         toggleIconSelectorVisibility(false);
     }
-    
+
     // 重置当前编辑卡片引用
     if (currentEditingCard) {
         console.log('重置currentEditingCard');
         currentEditingCard = null;
     }
-    
+
     // 清除编辑状态
     document.querySelectorAll('.website-card.editing').forEach((card, index) => {
         console.log(`尝试清除第 ${index + 1} 个卡片的editing类`);
@@ -184,16 +184,16 @@ function closeModal(modalId) {
             console.error(`移除editing类时出错:`, error);
         }
     });
-    
+
     // 最终检查是否还有卡片带有editing类
     const remainingEditingCards = document.querySelectorAll('.website-card.editing');
     console.log('清理后检查:', {
         remainingEditingCards: remainingEditingCards.length,
         清理成功: remainingEditingCards.length === 0
     });
-    
+
     if (remainingEditingCards.length > 0) {
-        console.warn('警告: 仍有卡片带有editing类!', 
+        console.warn('警告: 仍有卡片带有editing类!',
             Array.from(remainingEditingCards).map(card => {
                 return {
                     title: card.querySelector('.card-title')?.textContent || '无标题',
@@ -203,7 +203,7 @@ function closeModal(modalId) {
                 };
             })
         );
-        
+
         // 强制再次尝试清理
         remainingEditingCards.forEach(card => {
             // 使用替代方法尝试移除类
@@ -215,7 +215,7 @@ function closeModal(modalId) {
             }
         });
     }
-    
+
     console.log(`模态框 ${modalId} 关闭完成`);
 }
 
@@ -225,7 +225,7 @@ function createCardHTML(website) {
     const weight = website.weight || 100;
     // 添加置顶样式类
     const pinnedClass = website.pinned ? 'pinned' : '';
-    
+
     // 判断是否有图片数据
     let iconContent = '';
     if (website.imageData) {
@@ -235,7 +235,7 @@ function createCardHTML(website) {
         // 否则显示图标
         iconContent = `<i class="${website.icon || 'fas fa-globe'}"></i>`;
     }
-    
+
     return `
         <div class="website-card ${pinnedClass}" data-weight="${weight}">
             <div class="card-header">
@@ -256,43 +256,43 @@ function createCardHTML(website) {
 function loadWebsitesFromData() {
     // 验证置顶状态的一致性
     validatePinnedStatus();
-    
+
     // 遍历每个分类
     Object.keys(websites).forEach(category => {
         if (category === 'pinned' || category === 'recent') return; // 跳过虚拟分类，我们会单独处理
-        
+
         const cardsContainer = document.getElementById(`${category}-cards`);
         if (!cardsContainer) return;
-        
+
         // 清空容器
         cardsContainer.innerHTML = '';
-        
+
         // 添加该分类下的所有网站卡片
         if (!websites[category] || !Array.isArray(websites[category])) {
             return;
         }
-        
+
         // 按权重排序网站 - 权重越大越靠前
         const sortedWebsites = [...websites[category]].sort((a, b) => {
             // 降序排序：b的权重 - a的权重
             return (b.weight || 100) - (a.weight || 100);
         });
-        
+
         // 更新排序后的数据
         websites[category] = sortedWebsites;
-        
+
         // 创建卡片
         sortedWebsites.forEach(website => {
             cardsContainer.insertAdjacentHTML('beforeend', createCardHTML(website));
         });
     });
-    
+
     // 渲染置顶分类
     renderPinnedCategory();
-    
+
     // 渲染最近添加分类
     renderRecentCategory();
-    
+
     // 为所有卡片添加事件监听器
     document.querySelectorAll('.website-card').forEach(addCardEventListeners);
 }
@@ -300,15 +300,15 @@ function loadWebsitesFromData() {
 // 验证置顶状态的一致性
 function validatePinnedStatus() {
     console.log('验证置顶状态的一致性...');
-    
+
     let dataChanged = false;
-    
+
     // 检查所有分类中的网站
     Object.keys(websites).forEach(category => {
         if (category === 'pinned') return; // 跳过置顶分类
-        
+
         if (!websites[category] || !Array.isArray(websites[category])) return;
-        
+
         websites[category].forEach(website => {
             // 确保所有网站都有pinned属性
             if (website.pinned === undefined) {
@@ -317,13 +317,13 @@ function validatePinnedStatus() {
             }
         });
     });
-    
+
     // 如果数据有变化，保存到localStorage
     if (dataChanged && window.saveNavData) {
         console.log('修复了网站的置顶状态数据');
         window.saveNavData();
     }
-    
+
     // 确保置顶分类是空的，我们不再在其中存储实际数据
     websites['pinned'] = [];
 }
@@ -332,19 +332,19 @@ function validatePinnedStatus() {
 function renderCategoryList() {
     const categoriesList = document.querySelector('.categories-list');
     if (!categoriesList) return;
-    
+
     // 清空列表
     categoriesList.innerHTML = '';
-    
+
     // 按顺序排序分类
     const sortedCategories = [...window.categories].sort((a, b) => a.order - b.order);
-    
+
     // 添加所有分类
     sortedCategories.forEach(category => {
         const categoryHTML = getCategoryItemTemplate(category);
         categoriesList.insertAdjacentHTML('beforeend', categoryHTML);
     });
-    
+
     // 默认选中第一个分类
     const firstCategory = sortedCategories[0];
     if (firstCategory) {
@@ -352,11 +352,11 @@ function renderCategoryList() {
         if (firstCategoryItem) {
             firstCategoryItem.classList.add('active');
         }
-        
+
         // 显示第一个分类的内容
         showCategory(firstCategory.id);
     }
-    
+
     // 渲染分类section
     renderCategorySections(sortedCategories);
 }
@@ -365,10 +365,10 @@ function renderCategoryList() {
 function renderCategorySections(categories) {
     const contentArea = document.querySelector('.content-area');
     if (!contentArea) return;
-    
+
     // 清空内容区域
     contentArea.innerHTML = '';
-    
+
     // 添加所有分类section
     categories.forEach((category) => {
         const sectionHTML = `
@@ -391,10 +391,10 @@ function createCategoryContentSection(categoryId) {
     // 查找对应的分类数据
     const category = window.categories.find(cat => cat.id === categoryId);
     if (!category) return;
-    
+
     const contentArea = document.querySelector('.content-area');
     if (!contentArea) return;
-    
+
     // 创建新的section
     const sectionHTML = `
         <section class="category-section" id="${category.id}">
@@ -408,12 +408,12 @@ function createCategoryContentSection(categoryId) {
         </section>
     `;
     contentArea.insertAdjacentHTML('beforeend', sectionHTML);
-    
+
     // 初始化该分类的网站数组
     if (!websites[category.id]) {
         websites[category.id] = [];
     }
-    
+
     return document.getElementById(category.id);
 }
 
@@ -421,14 +421,14 @@ function createCategoryContentSection(categoryId) {
 function updateCategorySections(updatedCategories) {
     const contentArea = document.querySelector('.content-area');
     if (!contentArea) return;
-    
+
     // 获取当前所有section的ID
     const currentSections = Array.from(contentArea.querySelectorAll('.category-section'))
         .map(section => section.id);
-    
+
     // 获取更新后的分类ID
     const updatedIds = updatedCategories.map(category => category.id);
-    
+
     // 删除不再存在的section
     currentSections.forEach(id => {
         if (!updatedIds.includes(id)) {
@@ -438,11 +438,11 @@ function updateCategorySections(updatedCategories) {
             }
         }
     });
-    
+
     // 添加新的section
     updatedCategories.forEach(category => {
         const existingSection = document.getElementById(category.id);
-        
+
         if (!existingSection) {
             // 创建新section
             createCategoryContentSection(category.id);
@@ -454,17 +454,17 @@ function updateCategorySections(updatedCategories) {
             }
         }
     });
-    
+
     // 重新排序section
     const sortedCategories = [...updatedCategories].sort((a, b) => a.order - b.order);
-    
+
     sortedCategories.forEach(category => {
         const section = document.getElementById(category.id);
         if (section) {
             contentArea.appendChild(section);
         }
     });
-    
+
     // 重新加载卡片数据
     loadWebsitesFromData();
 }
@@ -475,26 +475,26 @@ function openAddWebsiteModal() {
     document.getElementById('modalTitle').textContent = '添加网站';
     document.getElementById('submitBtn').innerHTML = '<i class="fas fa-plus"></i> 添加网站';
     currentEditingCard = null;
-    
+
     // 清空图片数据
     const iconInput = document.getElementById('websiteIcon');
     if (iconInput) {
         iconInput.value = 'fas fa-globe'; // 设置默认图标
         iconInput.dataset.imageData = ''; // 清空图片数据
     }
-    
+
     // 确保分类下拉菜单是最新的
     updateCategoryDropdown();
-    
+
     // 重置图标预览
     updateIconPreview('fas fa-globe');
-    
+
     // 重置上传区域
     resetIconUpload();
-    
+
     // 显示图标选择器
     toggleIconSelectorVisibility(false);
-    
+
     openModal('websiteModal');
 }
 
@@ -514,11 +514,11 @@ function confirmDeleteWebsite() {
         // 获取网站信息
         const title = websiteToDelete.querySelector('.card-title').textContent;
         const url = websiteToDelete.querySelector('.card-url').textContent;
-        
+
         // 获取分类ID
         const categorySection = websiteToDelete.closest('.category-section');
         const categoryId = categorySection.id;
-        
+
         // 如果是从虚拟分类（置顶或最近添加）删除，需要找到原始分类
         if (categoryId === 'pinned' || categoryId === 'recent') {
             const originalCategory = websiteToDelete.dataset.originalCategory;
@@ -526,20 +526,20 @@ function confirmDeleteWebsite() {
                 // 在原分类中查找并删除网站
                 const originalCategoryWebsites = websites[originalCategory];
                 if (originalCategoryWebsites) {
-                    const siteIndex = originalCategoryWebsites.findIndex(site => 
+                    const siteIndex = originalCategoryWebsites.findIndex(site =>
                         site.title === title && site.url === url);
-                    
+
                     if (siteIndex >= 0) {
                         // 获取网站信息，用于处理另一个虚拟分类
                         const siteInfo = originalCategoryWebsites[siteIndex];
-                        
+
                         // 删除网站
                         originalCategoryWebsites.splice(siteIndex, 1);
                         console.log(`已从原始分类 ${originalCategory} 中删除网站: ${title}`);
-                        
+
                         // 更新原分类UI（如果当前可见）
                         refreshCategoryUI(originalCategory);
-                        
+
                         // 如果是从置顶分类删除，同时更新最近添加分类
                         if (categoryId === 'pinned') {
                             removeFromRecentUI(title, url);
@@ -556,33 +556,33 @@ function confirmDeleteWebsite() {
         } else {
             // 从数据对象中删除
             const cardIndex = Array.from(websiteToDelete.parentNode.children).indexOf(websiteToDelete);
-            
+
             if (websites[categoryId] && websites[categoryId][cardIndex]) {
                 // 获取网站信息，用于在置顶分类中查找
                 const siteInfo = websites[categoryId][cardIndex];
                 websites[categoryId].splice(cardIndex, 1);
-                
+
                 // 从置顶分类UI中删除对应网站（如果存在）
                 removeSiteFromPinnedUI(siteInfo.title, siteInfo.url);
-                
+
                 // 从最近添加分类UI中删除对应网站（如果存在）
                 removeFromRecentUI(siteInfo.title, siteInfo.url);
             }
         }
-        
+
         // 保存数据到localStorage
         if (window.saveNavData) {
             window.saveNavData();
         }
-        
+
         // 添加删除动画
         websiteToDelete.style.animation = 'fadeOut 0.3s ease-out';
-        
+
         // 延迟移除，让动画有时间播放
         setTimeout(() => {
             websiteToDelete.remove();
             websiteToDelete = null;
-            
+
             // 如果是在虚拟分类中删除，需要重新渲染对应分类
             if (categoryId === 'pinned') {
                 renderPinnedCategory();
@@ -598,17 +598,17 @@ function confirmDeleteWebsite() {
 function removeSiteFromPinnedUI(title, url) {
     const pinnedContainer = document.getElementById('pinned-cards');
     if (!pinnedContainer) return;
-    
+
     // 查找匹配的网站卡片
     const cards = pinnedContainer.querySelectorAll('.website-card');
     cards.forEach(card => {
         const cardTitle = card.querySelector('.card-title').textContent;
         const cardUrl = card.querySelector('.card-url').textContent;
-        
+
         if (cardTitle === title && cardUrl === url) {
             // 添加删除动画
             card.style.animation = 'fadeOut 0.3s ease-out';
-            
+
             // 延迟移除，让动画有时间播放
             setTimeout(() => {
                 card.remove();
@@ -621,24 +621,24 @@ function removeSiteFromPinnedUI(title, url) {
 function removeFromRecentUI(title, url) {
     const recentContainer = document.getElementById('recent-cards');
     if (!recentContainer) return;
-    
+
     // 查找匹配的网站卡片
     const cards = recentContainer.querySelectorAll('.website-card');
     cards.forEach(card => {
         const cardTitle = card.querySelector('.card-title').textContent;
         const cardUrl = card.querySelector('.card-url').textContent;
-        
+
         if (cardTitle === title && cardUrl === url) {
             // 添加删除动画
             card.style.animation = 'fadeOut 0.3s ease-out';
-            
+
             // 延迟移除，让动画有时间播放
             setTimeout(() => {
                 card.remove();
             }, 300);
         }
     });
-    
+
     // 同样检查隐藏的卡片容器
     const hiddenContainer = document.getElementById('recent-hidden-cards');
     if (hiddenContainer) {
@@ -646,11 +646,11 @@ function removeFromRecentUI(title, url) {
         hiddenCards.forEach(card => {
             const cardTitle = card.querySelector('.card-title').textContent;
             const cardUrl = card.querySelector('.card-url').textContent;
-            
+
             if (cardTitle === title && cardUrl === url) {
                 // 添加删除动画
                 card.style.animation = 'fadeOut 0.3s ease-out';
-                
+
                 // 延迟移除，让动画有时间播放
                 setTimeout(() => {
                     card.remove();
@@ -664,26 +664,26 @@ function removeFromRecentUI(title, url) {
 function refreshCategoryUI(categoryId) {
     const cardsContainer = document.getElementById(`${categoryId}-cards`);
     if (!cardsContainer) return;
-    
+
     // 当前分类的网站数据
     const categoryWebsites = websites[categoryId];
     if (!categoryWebsites || !Array.isArray(categoryWebsites)) return;
-    
+
     // 清空容器
     cardsContainer.innerHTML = '';
-    
+
     // 按权重排序
-    const sortedWebsites = [...categoryWebsites].sort((a, b) => 
+    const sortedWebsites = [...categoryWebsites].sort((a, b) =>
         (b.weight || 100) - (a.weight || 100));
-    
+
     // 更新排序后的数据
     websites[categoryId] = sortedWebsites;
-    
+
     // 创建卡片
     sortedWebsites.forEach(website => {
         cardsContainer.insertAdjacentHTML('beforeend', createCardHTML(website));
     });
-    
+
     // 为所有卡片添加事件监听器
     cardsContainer.querySelectorAll('.website-card').forEach(addCardEventListeners);
 }
@@ -693,50 +693,50 @@ function editWebsite(card) {
     const title = card.querySelector('.card-title').textContent;
     const url = card.querySelector('.card-url').textContent;
     const description = card.querySelector('.card-description').textContent.trimStart();
-    
+
     // 检查是否有图标或图片
     const iconElement = card.querySelector('.card-icon i');
     const iconClass = iconElement ? iconElement.className : '';
-    
+
     // 检查是否有图片
     const imgElement = card.querySelector('.card-icon img');
     let imageData = '';
-    
+
     // 获取置顶状态
     const isPinned = card.classList.contains('pinned');
-    
+
     // 填充表单
     document.getElementById('websiteName').value = title;
     document.getElementById('websiteUrl').value = url;
     document.getElementById('websiteDescription').value = description;
     document.getElementById('websiteIcon').value = iconClass;
     document.getElementById('websitePinned').checked = isPinned;
-    
+
     // 获取卡片的分类
     let categoryId;
     const categorySection = card.closest('.category-section');
-    
+
     if (categorySection.id === 'pinned' || categorySection.id === 'recent') {
         // 如果是从虚拟分类（置顶或最近添加）编辑，使用存储在卡片上的原始分类
         categoryId = card.dataset.originalCategory;
-        
+
         // 如果没有获取到原始分类，尝试通过标题和URL在所有分类中查找
         if (!categoryId) {
             const cardTitle = card.querySelector('.card-title').textContent;
             const cardUrl = card.querySelector('.card-url').textContent;
-            
+
             // 在所有非虚拟分类中查找匹配的网站
             Object.keys(websites).forEach(catId => {
                 if (catId !== 'pinned' && catId !== 'recent' && !categoryId) {
-                    const foundSite = websites[catId].find(site => 
+                    const foundSite = websites[catId].find(site =>
                         site.title === cardTitle && site.url === cardUrl);
                     if (foundSite) {
                         categoryId = catId;
                         console.log(`找到网站的原始分类: ${categoryId}`);
-                        
+
                         // 将原始分类ID保存到卡片上，以便将来使用
                         card.dataset.originalCategory = categoryId;
-                        
+
                         // 如果找到的网站有图片数据，设置到表单
                         if (foundSite.imageData) {
                             imageData = foundSite.imageData;
@@ -745,18 +745,18 @@ function editWebsite(card) {
                     }
                 }
             });
-            
+
             // 如果仍然没有找到，使用默认分类
             if (!categoryId) {
                 categoryId = 'uncategorized';
                 console.warn(`无法找到网站的原始分类，使用默认分类: ${categoryId}`);
-                
+
                 // 将默认分类ID保存到卡片上
                 card.dataset.originalCategory = categoryId;
             }
         } else {
             // 已经有原始分类，现在查找该分类中的网站以获取图片数据
-            const foundSite = websites[categoryId].find(site => 
+            const foundSite = websites[categoryId].find(site =>
                 site.title === title && site.url === url);
             if (foundSite && foundSite.imageData) {
                 imageData = foundSite.imageData;
@@ -765,7 +765,7 @@ function editWebsite(card) {
         }
     } else {
         categoryId = categorySection.id;
-        
+
         // 查找网站数据，获取可能存在的图片数据
         const cardIndex = Array.from(card.parentNode.children).indexOf(card);
         if (websites[categoryId] && websites[categoryId][cardIndex]) {
@@ -776,19 +776,19 @@ function editWebsite(card) {
             }
         }
     }
-    
+
     // 如果在DOM中直接找到图片元素，也可以获取图片数据
     if (!imageData && imgElement && imgElement.src) {
         imageData = imgElement.src;
         document.getElementById('websiteIcon').dataset.imageData = imageData;
     }
-    
+
     // 设置分类下拉菜单的值
     const categorySelect = document.getElementById('websiteCategory');
     if (categoryId && categorySelect) {
         // 检查该分类是否存在于下拉菜单中
         const categoryOption = Array.from(categorySelect.options).find(option => option.value === categoryId);
-        
+
         if (categoryOption) {
             categorySelect.value = categoryId;
         } else {
@@ -799,12 +799,12 @@ function editWebsite(card) {
             }
         }
     }
-    
+
     // 检查图片：如果有图片数据，显示图片预览；如果没有，则显示图标
     if (imageData) {
         // 更新图标预览为图片
         updateIconPreview('', imageData);
-        
+
         // 更新上传区域显示已上传的图片
         const uploadArea = document.getElementById('iconUploadArea');
         uploadArea.innerHTML = `
@@ -816,28 +816,28 @@ function editWebsite(card) {
             </div>
             <div class="upload-text">图片已上传</div>
         `;
-        
+
         // 隐藏图标选择器
         toggleIconSelectorVisibility(true);
     } else {
         // 更新图标预览
         updateIconPreview(iconClass);
-        
+
         // 重置文件上传区域
         resetIconUpload();
-        
+
         // 显示图标选择器
         toggleIconSelectorVisibility(false);
     }
-    
+
     // 更新模态框标题和按钮
     document.getElementById('modalTitle').textContent = '编辑网站';
     document.getElementById('submitBtn').innerHTML = '<i class="fas fa-save"></i> 保存更改';
-    
+
     // 标记当前编辑的卡片
     currentEditingCard = card;
     card.classList.add('editing');
-    
+
     openModal('websiteModal');
 }
 
@@ -852,35 +852,35 @@ function submitWebsiteForm() {
     const isPinned = document.getElementById('websitePinned').checked;
     // 获取图片数据（如果有）
     const imageData = document.getElementById('websiteIcon').dataset.imageData || '';
-    
+
     if (!name || !url || !category) {
         alert('请填写所有必填字段');
         return;
     }
-    
+
     // 保存原始卡片的引用，以确保我们可以清除其编辑状态
     const originalCard = currentEditingCard;
-    
+
     // 计算该分类中的最大权重
     const getMaxWeight = (categoryId) => {
         if (!websites[categoryId] || websites[categoryId].length === 0) return 100;
         return Math.max(...websites[categoryId].map(site => site.weight || 100)) + 10;
     };
-    
+
     // 获取所有分类中的最大权重，确保置顶网站权重最高
     const getGlobalMaxWeight = () => {
         let maxWeight = 100;
-        
+
         Object.keys(websites).forEach(cat => {
             if (websites[cat] && websites[cat].length > 0) {
                 const catMaxWeight = Math.max(...websites[cat].map(site => site.weight || 100));
                 maxWeight = Math.max(maxWeight, catMaxWeight);
             }
         });
-        
+
         return maxWeight + 10; // 比全局最大权重高10
     };
-    
+
     // 根据是否置顶设置权重
     let newWeight;
     if (isPinned) {
@@ -890,7 +890,7 @@ function submitWebsiteForm() {
         // 非置顶网站获取所在分类的最大权重
         newWeight = getMaxWeight(category);
     }
-    
+
     // 记录分类是否变更，以便决定是否需要滚动到新分类
     let categoryChanged = false;
     // 记录置顶状态是否变更
@@ -899,7 +899,7 @@ function submitWebsiteForm() {
     let weightChanged = false;
     // 当前时间戳，用于记录添加/编辑时间
     const currentTime = Date.now();
-    
+
     if (currentEditingCard) {
         // 编辑现有卡片
         let oldCategoryId;
@@ -907,7 +907,7 @@ function submitWebsiteForm() {
         let oldPinned = false; // 记录旧置顶状态
         let oldWeight = 0; // 记录旧权重
         const categorySection = currentEditingCard.closest('.category-section');
-        
+
         if (categorySection.id === 'pinned' || categorySection.id === 'recent') {
             // 如果是从虚拟分类编辑，使用存储在卡片上的原始分类
             oldCategoryId = currentEditingCard.dataset.originalCategory;
@@ -918,52 +918,52 @@ function submitWebsiteForm() {
             oldCategoryId = categorySection.id;
             oldPinned = currentEditingCard.classList.contains('pinned');
         }
-        
+
         // 检查置顶状态是否变更
         pinnedChanged = oldPinned !== isPinned;
-        
+
         // 确保编辑的旧分类存在
         if (!oldCategoryId || !websites[oldCategoryId]) {
             console.error('无法找到原始分类:', oldCategoryId);
             closeModal('websiteModal');
             return;
         }
-        
+
         // 在原始分类中找到卡片索引
         let cardIndex = -1;
-        
+
         // 如果是编辑虚拟分类中的卡片，需要在原始分类中查找匹配的网站
         if (categorySection.id === 'pinned' || categorySection.id === 'recent') {
-            cardIndex = websites[oldCategoryId].findIndex(site => 
+            cardIndex = websites[oldCategoryId].findIndex(site =>
                 site.title === oldTitle && site.url === oldUrl);
         } else {
             cardIndex = Array.from(currentEditingCard.parentNode.children).indexOf(currentEditingCard);
         }
-        
+
         // 获取旧权重
         if (cardIndex >= 0 && websites[oldCategoryId][cardIndex]) {
             oldWeight = websites[oldCategoryId][cardIndex].weight || 100;
             // 检查权重是否变更
             weightChanged = isPinned ? (newWeight !== oldWeight) : false;
         }
-        
+
         // 确保移除编辑状态
         if (currentEditingCard.classList.contains('editing')) {
             currentEditingCard.classList.remove('editing');
         }
-        
+
         // 检查分类是否有变化
         if (oldCategoryId !== category && cardIndex >= 0) {
             categoryChanged = true;
-            
+
             // 从旧分类中移除
             const websiteData = websites[oldCategoryId].splice(cardIndex, 1)[0];
-            
+
             // 移动到新分类
             if (!websites[category]) {
                 websites[category] = [];
             }
-            
+
             // 使用新的数据更新网站信息
             websites[category].push({
                 title: name,
@@ -976,11 +976,11 @@ function submitWebsiteForm() {
                 addedTime: websiteData.addedTime || currentTime, // 保留原添加时间或使用当前时间
                 editedTime: currentTime // 记录编辑时间
             });
-            
+
             // 如果当前正在编辑非虚拟分类中的卡片，先隐藏旧卡片，准备移除
             if (categorySection.id !== 'pinned' && categorySection.id !== 'recent') {
                 currentEditingCard.style.display = 'none';
-                
+
                 // 设置延迟移除旧卡片
                 setTimeout(() => {
                     if (currentEditingCard && currentEditingCard.parentNode) {
@@ -988,14 +988,14 @@ function submitWebsiteForm() {
                     }
                 }, 0);
             }
-            
+
             // 对新分类和旧分类进行排序并刷新UI
             sortAndRefreshCategory(oldCategoryId);
             sortAndRefreshCategory(category);
-            
+
             // 不需要再次创建卡片，因为sortAndRefreshCategory已经刷新了UI
             // createWebsiteCard(name, url, description, category, iconUrl, isPinned);
-            
+
             console.log('网站已移动到新分类:', {
                 from: oldCategoryId,
                 to: category,
@@ -1009,7 +1009,7 @@ function submitWebsiteForm() {
             const newSiteWeight = isPinned ? newWeight : (websites[oldCategoryId][cardIndex].weight || 100);
             // 检查权重是否变更
             weightChanged = newSiteWeight !== oldWeight;
-            
+
             websites[oldCategoryId][cardIndex] = {
                 title: name,
                 url: url,
@@ -1021,7 +1021,7 @@ function submitWebsiteForm() {
                 addedTime: websites[oldCategoryId][cardIndex].addedTime || currentTime, // 保留原添加时间或使用当前时间
                 editedTime: currentTime // 记录编辑时间
             };
-            
+
             // 如果权重或置顶状态变更，需要重新排序并刷新UI
             if (weightChanged || pinnedChanged) {
                 sortAndRefreshCategory(oldCategoryId);
@@ -1034,12 +1034,12 @@ function submitWebsiteForm() {
                     refreshCategoryUI(oldCategoryId);
                 }
             }
-            
+
             // 如果标题或URL有变化，且是从虚拟分类编辑的，需要删除旧卡片
             if ((categorySection.id === 'pinned' || categorySection.id === 'recent') && (oldTitle !== name || oldUrl !== url)) {
                 // 添加删除动画
                 currentEditingCard.style.animation = 'fadeOut 0.3s ease-out';
-                
+
                 // 延迟移除，让动画有时间播放
                 setTimeout(() => {
                     if (currentEditingCard && currentEditingCard.parentNode) {
@@ -1050,19 +1050,19 @@ function submitWebsiteForm() {
         } else {
             console.error('无法在分类中找到卡片:', oldCategoryId, cardIndex);
         }
-        
+
         // 清除全局编辑卡片引用
         currentEditingCard = null;
     } else {
         // 创建新卡片
         categoryChanged = true; // 新网站当作分类变更处理
         pinnedChanged = isPinned; // 如果新网站有置顶，记录为置顶变更
-        
+
         // 更新数据对象
         if (!websites[category]) {
             websites[category] = [];
         }
-        
+
         websites[category].push({
             title: name,
             url: url,
@@ -1074,13 +1074,13 @@ function submitWebsiteForm() {
             addedTime: currentTime, // 记录添加时间
             editedTime: currentTime // 记录编辑时间（与添加时间相同）
         });
-        
+
         // 对分类进行排序并刷新UI
         sortAndRefreshCategory(category);
-        
+
         // 不需要再次创建卡片，因为sortAndRefreshCategory已经刷新了UI
         // createWebsiteCard(name, url, description, category, iconUrl, isPinned);
-        
+
         console.log('创建了新网站:', {
             category: category,
             website: name,
@@ -1089,30 +1089,30 @@ function submitWebsiteForm() {
             addedTime: new Date(currentTime).toLocaleString()
         });
     }
-    
+
     // 更新虚拟分类
     renderPinnedCategory();
     renderRecentCategory();
-    
+
     // 保存数据到localStorage
     if (window.saveNavData) {
         window.saveNavData();
     }
-    
+
     // 最后确保没有卡片还处于编辑状态
     document.querySelectorAll('.website-card.editing').forEach(card => {
         card.classList.remove('editing');
     });
-    
+
     closeModal('websiteModal');
-    
+
     // 延迟一点时间后滚动到目标分类，确保DOM更新完成
     setTimeout(() => {
         // 定位逻辑：如果置顶状态变更，优先显示置顶分类；否则，如果分类变更，显示新分类
         if (pinnedChanged && isPinned) {
             // 优先显示置顶分类
             showCategory('pinned');
-            
+
             // 在置顶分类中找到并高亮刚编辑的网站卡片
             const pinnedSection = document.getElementById('pinned');
             if (pinnedSection) {
@@ -1120,7 +1120,7 @@ function submitWebsiteForm() {
                 pinnedCards.forEach(card => {
                     const cardTitle = card.querySelector('.card-title').textContent;
                     const cardUrl = card.querySelector('.card-url').textContent;
-                    
+
                     if (cardTitle === name && cardUrl === url) {
                         // 添加临时高亮效果
                         card.classList.add('simple-highlight');
@@ -1143,7 +1143,7 @@ function submitWebsiteForm() {
                     pinnedCards.forEach(card => {
                         const cardTitle = card.querySelector('.card-title').textContent;
                         const cardUrl = card.querySelector('.card-url').textContent;
-                        
+
                         if (cardTitle === name && cardUrl === url) {
                             card.classList.add('simple-highlight');
                             setTimeout(() => {
@@ -1163,7 +1163,7 @@ function submitWebsiteForm() {
                     categoryCards.forEach(card => {
                         const cardTitle = card.querySelector('.card-title').textContent;
                         const cardUrl = card.querySelector('.card-url').textContent;
-                        
+
                         if (cardTitle === name && cardUrl === url) {
                             card.classList.add('simple-highlight');
                             setTimeout(() => {
@@ -1177,7 +1177,7 @@ function submitWebsiteForm() {
         } else if (categoryChanged) {
             // 其次是显示变更的分类
             showCategory(category);
-            
+
             // 找到新添加的卡片并添加闪烁效果
             const categorySection = document.getElementById(category);
             if (categorySection) {
@@ -1186,14 +1186,14 @@ function submitWebsiteForm() {
                     categoryCards.forEach(card => {
                         const cardTitle = card.querySelector('.card-title').textContent;
                         const cardUrl = card.querySelector('.card-url').textContent;
-                        
+
                         if (cardTitle === name && cardUrl === url) {
                             card.classList.add('simple-highlight');
                             setTimeout(() => {
                                 card.classList.remove('simple-highlight');
                             }, 1000);
                         }
-                        
+
                     });
                 }
         }
@@ -1203,10 +1203,10 @@ function submitWebsiteForm() {
 // 对分类进行排序并刷新UI
 function sortAndRefreshCategory(categoryId) {
     if (!websites[categoryId] || !Array.isArray(websites[categoryId])) return;
-    
+
     // 按权重排序
     websites[categoryId].sort((a, b) => (b.weight || 100) - (a.weight || 100));
-    
+
     // 刷新分类UI
     refreshCategoryUI(categoryId);
 }
@@ -1215,16 +1215,16 @@ function sortAndRefreshCategory(categoryId) {
 function renderPinnedCategory() {
     const pinnedContainer = document.getElementById('pinned-cards');
     if (!pinnedContainer) return;
-    
+
     // 清空容器
     pinnedContainer.innerHTML = '';
-    
+
     // 从所有分类中收集置顶网站
     const pinnedWebsites = [];
-    
+
     Object.keys(websites).forEach(category => {
         if (category === 'pinned') return; // 跳过置顶分类自身
-        
+
         if (websites[category] && Array.isArray(websites[category])) {
             // 筛选有置顶属性的网站
             websites[category].forEach(website => {
@@ -1238,25 +1238,25 @@ function renderPinnedCategory() {
             });
         }
     });
-    
+
     // 按权重排序
     pinnedWebsites.sort((a, b) => (b.weight || 100) - (a.weight || 100));
-    
+
     // 创建卡片
     pinnedWebsites.forEach(website => {
         const cardHTML = createCardHTML(website);
         pinnedContainer.insertAdjacentHTML('beforeend', cardHTML);
     });
-    
+
     // 为所有卡片添加事件监听器
     pinnedContainer.querySelectorAll('.website-card').forEach(card => {
         addCardEventListeners(card);
-        
+
         // 保存原始分类信息到卡片元素
-        const websiteIndex = pinnedWebsites.findIndex(site => 
-            site.title === card.querySelector('.card-title').textContent && 
+        const websiteIndex = pinnedWebsites.findIndex(site =>
+            site.title === card.querySelector('.card-title').textContent &&
             site.url === card.querySelector('.card-url').textContent);
-        
+
         if (websiteIndex >= 0) {
             card.dataset.originalCategory = pinnedWebsites[websiteIndex].originalCategory;
         }
@@ -1266,32 +1266,32 @@ function renderPinnedCategory() {
 // 渲染最近添加分类
 function renderRecentCategory() {
     console.log('开始渲染最近添加分类');
-    
+
     // 获取分类section
     const recentSection = document.getElementById('recent');
     if (!recentSection) return;
-    
+
     // 获取或创建主卡片容器
     let recentContainer = document.getElementById('recent-cards');
     if (!recentContainer) return;
-    
+
     // 清空主容器
     recentContainer.innerHTML = '';
-    
+
     // 检查并移除可能已存在的隐藏容器和展开按钮
     const existingHiddenContainer = document.getElementById('recent-hidden-cards');
     if (existingHiddenContainer) existingHiddenContainer.remove();
-    
+
     const existingExpandButton = document.querySelector('#recent .expand-button');
     if (existingExpandButton) existingExpandButton.remove();
-    
+
     // 从所有分类中收集所有网站
     const allWebsites = [];
-    
+
     Object.keys(websites).forEach(category => {
         // 跳过虚拟分类
         if (category === 'pinned' || category === 'recent') return;
-        
+
         if (websites[category] && Array.isArray(websites[category])) {
             // 添加所有网站，带上原始分类信息
             websites[category].forEach(website => {
@@ -1302,9 +1302,9 @@ function renderRecentCategory() {
             });
         }
     });
-    
+
     console.log(`收集到 ${allWebsites.length} 个网站`);
-    
+
     // 打印一些网站示例来查看添加时间
     if (allWebsites.length > 0) {
         const sampleSites = allWebsites.slice(0, Math.min(5, allWebsites.length));
@@ -1314,13 +1314,13 @@ function renderRecentCategory() {
             pinned: site.pinned
         })));
     }
-    
+
     // 仅按添加时间排序（如果有），而不考虑editedTime
     allWebsites.sort((a, b) => {
         // 如果两个都有添加时间，按时间排序（新的在前）
         if (a.addedTime && b.addedTime) {
             return b.addedTime - a.addedTime;
-        } 
+        }
         // 如果只有a有添加时间，a排前面
         else if (a.addedTime) {
             return -1;
@@ -1332,48 +1332,48 @@ function renderRecentCategory() {
         // 都没有添加时间，按权重排序
         return (b.weight || 100) - (a.weight || 100);
     });
-    
+
     console.log('按添加时间排序后的顺序(前几个):', allWebsites.slice(0, Math.min(5, allWebsites.length)).map(site => ({
         title: site.title,
         addedTime: site.addedTime ? new Date(site.addedTime).toLocaleString() : '无'
     })));
-    
+
     // 取最近添加的12个网站
     const recentWebsites = allWebsites.slice(0, 12);
-    
+
     // 判断当前是否处于压缩模式
     const isCompactMode = document.documentElement.getAttribute('data-sidebar') === 'compact';
-    
+
     // 根据模式设置显示的网站数量
     const visibleCount = isCompactMode ? 4 : 3;
-    
+
     // 创建前几个卡片（根据模式显示3个或4个）
     const visibleWebsites = recentWebsites.slice(0, visibleCount);
     visibleWebsites.forEach(website => {
         const cardHTML = createCardHTML(website);
         recentContainer.insertAdjacentHTML('beforeend', cardHTML);
     });
-    
+
     console.log(`显示了 ${visibleWebsites.length} 个网站（${isCompactMode ? '压缩模式' : '正常模式'}）`);
-    
+
     // 为主容器中的卡片添加事件监听器
     recentContainer.querySelectorAll('.website-card').forEach(card => {
         addCardEventListeners(card);
-        
+
         // 从卡片标题和URL中找到对应的网站数据
         const cardTitle = card.querySelector('.card-title').textContent;
         const cardUrl = card.querySelector('.card-url').textContent;
-        
+
         // 在所有最近网站中查找匹配的网站
-        const matchedWebsite = visibleWebsites.find(site => 
+        const matchedWebsite = visibleWebsites.find(site =>
             site.title === cardTitle && site.url === cardUrl);
-        
+
         // 保存原始分类信息到卡片元素
         if (matchedWebsite) {
             card.dataset.originalCategory = matchedWebsite.originalCategory;
         }
     });
-    
+
     // 如果有超过显示数量的网站，创建"展开更多"按钮和隐藏的网站容器
     if (recentWebsites.length > visibleCount) {
         // 创建隐藏的网站容器（与主容器并列，而不是嵌套）
@@ -1381,17 +1381,17 @@ function renderRecentCategory() {
         hiddenContainer.id = 'recent-hidden-cards';
         hiddenContainer.className = 'cards-grid hidden-cards-container';
         hiddenContainer.style.display = 'none';
-        
+
         // 添加剩余的卡片到隐藏容器
         const hiddenWebsites = recentWebsites.slice(visibleCount);
         hiddenWebsites.forEach(website => {
             const cardHTML = createCardHTML(website);
             hiddenContainer.insertAdjacentHTML('beforeend', cardHTML);
         });
-        
+
         // 在主容器后面添加隐藏容器（作为兄弟元素而不是子元素）
         recentContainer.parentNode.insertBefore(hiddenContainer, recentContainer.nextSibling);
-        
+
         // 创建展开/收起按钮
         const expandButton = document.createElement('div');
         expandButton.className = 'expand-button';
@@ -1401,13 +1401,13 @@ function renderRecentCategory() {
                 <span>展开更多</span>
             </button>
         `;
-        
+
         // 添加展开/收起按钮点击事件
         expandButton.querySelector('.btn-expand').addEventListener('click', function() {
             const icon = this.querySelector('i');
             const text = this.querySelector('span');
             const isExpanded = hiddenContainer.style.display !== 'none';
-            
+
             if (isExpanded) {
                 // 收起
                 hiddenContainer.style.display = 'none';
@@ -1425,22 +1425,22 @@ function renderRecentCategory() {
                 text.textContent = '收起';
             }
         });
-        
+
         // 将展开按钮添加到分类section中，作为独立元素
         recentSection.appendChild(expandButton);
-        
+
         // 为隐藏容器中的卡片添加事件监听器
         hiddenContainer.querySelectorAll('.website-card').forEach(card => {
             addCardEventListeners(card);
-            
+
             // 从卡片标题和URL中找到对应的网站数据
             const cardTitle = card.querySelector('.card-title').textContent;
             const cardUrl = card.querySelector('.card-url').textContent;
-            
+
             // 在隐藏网站中查找匹配的网站
-            const matchedWebsite = hiddenWebsites.find(site => 
+            const matchedWebsite = hiddenWebsites.find(site =>
                 site.title === cardTitle && site.url === cardUrl);
-            
+
             // 保存原始分类信息到卡片元素
             if (matchedWebsite) {
                 card.dataset.originalCategory = matchedWebsite.originalCategory;
@@ -1453,16 +1453,16 @@ function renderRecentCategory() {
 function createWebsiteCard(name, url, description, category, iconUrl, isPinned) {
     const categorySection = document.getElementById(category);
     const cardsGrid = categorySection.querySelector('.cards-grid');
-    
+
     // 获取最大权重值，确保显示在前面
     const getMaxWeight = () => {
         if (!websites[category] || websites[category].length === 0) return 100;
         return Math.max(...websites[category].map(site => site.weight || 100)) + 10;
     };
-    
+
     const weight = getMaxWeight();
     const pinnedClass = isPinned ? 'pinned' : '';
-    
+
     const cardHTML = `
         <div class="website-card ${pinnedClass}" style="animation: fadeIn 0.5s ease-out" data-weight="${weight}">
             <div class="card-header">
@@ -1477,10 +1477,10 @@ function createWebsiteCard(name, url, description, category, iconUrl, isPinned) 
             <div class="card-description">${description.trimStart()}</div>
         </div>
     `;
-    
+
     // 插入到网格的开头而不是末尾，确保新卡片显示在最前面
     cardsGrid.insertAdjacentHTML('afterbegin', cardHTML);
-    
+
     // 为新卡片添加事件监听器
     const newCard = cardsGrid.firstElementChild;
     addCardEventListeners(newCard);
@@ -1491,10 +1491,10 @@ function updateWebsiteCard(card, name, url, description, iconUrl, isPinned) {
     card.querySelector('.card-title').textContent = name;
     card.querySelector('.card-url').textContent = url;
     card.querySelector('.card-description').textContent = description.trimStart();
-    
+
     // 获取图片数据
     const imageData = document.getElementById('websiteIcon').dataset.imageData || '';
-    
+
     // 更新图标或图片
     const cardIcon = card.querySelector('.card-icon');
     if (imageData) {
@@ -1504,33 +1504,33 @@ function updateWebsiteCard(card, name, url, description, iconUrl, isPinned) {
         // 否则显示图标
         cardIcon.innerHTML = `<i class="${iconUrl.startsWith('fa') ? iconUrl : 'fas fa-globe'}"></i>`;
     }
-    
+
     // 更新置顶状态
     if (isPinned) {
         card.classList.add('pinned');
     } else {
         card.classList.remove('pinned');
     }
-    
+
     // 移除编辑状态
     card.classList.remove('editing');
-    
+
     // 添加更新动画
     card.style.animation = 'pulse 0.5s ease-out';
     setTimeout(() => {
         card.style.animation = '';
     }, 500);
-    
+
     // 更新数据对象
     const categoryId = card.closest('.category-section').id;
     const cardIndex = Array.from(card.parentNode.children).indexOf(card);
-    
+
     // 检查索引是否有效
     if (websites[categoryId] && cardIndex >= 0 && cardIndex < websites[categoryId].length) {
         // 保留原有权重
         const currentWeight = websites[categoryId][cardIndex].weight || 100;
         const currentTime = Date.now();
-        
+
         websites[categoryId][cardIndex] = {
             title: name,
             url: url,
@@ -1542,7 +1542,7 @@ function updateWebsiteCard(card, name, url, description, iconUrl, isPinned) {
             addedTime: websites[categoryId][cardIndex].addedTime || currentTime, // 保留原添加时间，如果没有则使用当前时间
             editedTime: currentTime // 记录编辑时间
         };
-        
+
         // 保存数据到localStorage
         if (window.saveNavData) {
             window.saveNavData();
@@ -1561,7 +1561,7 @@ let contextMenu = null;
 
 function createContextMenu() {
     if (contextMenu) return contextMenu;
-    
+
     contextMenu = document.createElement('div');
     contextMenu.className = 'context-menu';
     contextMenu.style.position = 'fixed'; // 固定使用fixed定位
@@ -1579,14 +1579,14 @@ function createContextMenu() {
             <span>删除网站</span>
         </div>
     `;
-    
+
     document.body.appendChild(contextMenu);
-    
+
     // 使用addEventListener绑定事件
     const editBtn = contextMenu.querySelector('#edit-website-btn');
     const togglePinBtn = contextMenu.querySelector('#toggle-pin-btn');
     const deleteBtn = contextMenu.querySelector('#delete-website-btn');
-    
+
     editBtn.addEventListener('click', function() {
         console.log('点击了编辑按钮');
         if (contextMenuTarget) {
@@ -1594,7 +1594,7 @@ function createContextMenu() {
             hideContextMenu();
         }
     });
-    
+
     togglePinBtn.addEventListener('click', function() {
         console.log('点击了置顶/取消置顶按钮');
         if (contextMenuTarget) {
@@ -1602,7 +1602,7 @@ function createContextMenu() {
             hideContextMenu();
         }
     });
-    
+
     deleteBtn.addEventListener('click', function() {
         console.log('点击了删除按钮');
         if (contextMenuTarget) {
@@ -1610,7 +1610,7 @@ function createContextMenu() {
             hideContextMenu();
         }
     });
-    
+
     return contextMenu;
 }
 
@@ -1620,23 +1620,23 @@ function togglePinStatus(card) {
     const title = card.querySelector('.card-title').textContent;
     const url = card.querySelector('.card-url').textContent;
     const description = card.querySelector('.card-description').textContent.trimStart();
-    
+
     // 安全获取图标类名
     const iconElement = card.querySelector('.card-icon i');
     const iconClass = iconElement ? iconElement.className : 'fas fa-globe';
-    
+
     // 检查是否有图片
     const cardIcon = card.querySelector('.card-icon');
     const hasImage = cardIcon && cardIcon.querySelector('img');
-    
+
     // 获取当前置顶状态
     const isPinned = card.classList.contains('pinned');
     const newPinStatus = !isPinned; // 切换状态
-    
+
     // 获取分类ID
     let categoryId;
     const categorySection = card.closest('.category-section');
-    
+
     if (categorySection.id === 'pinned' || categorySection.id === 'recent') {
         // 如果是从置顶分类或最近添加分类，使用存储在卡片上的原始分类
         categoryId = card.dataset.originalCategory;
@@ -1647,58 +1647,58 @@ function togglePinStatus(card) {
     } else {
         categoryId = categorySection.id;
     }
-    
+
     // 确保分类存在
     if (!websites[categoryId]) {
         console.error('无法找到分类:', categoryId);
         return;
     }
-    
+
     // 在分类中查找网站
     let websiteIndex = -1;
-    
+
     // 如果是从置顶分类或最近添加分类，需要在原始分类中查找匹配的网站
     if (categorySection.id === 'pinned' || categorySection.id === 'recent') {
-        websiteIndex = websites[categoryId].findIndex(site => 
+        websiteIndex = websites[categoryId].findIndex(site =>
             site.title === title && site.url === url);
     } else {
         websiteIndex = Array.from(card.parentNode.children).indexOf(card);
-        
+
         // 验证索引
         if (websiteIndex < 0 || websiteIndex >= websites[categoryId].length) {
             // 尝试通过标题和URL查找
-            websiteIndex = websites[categoryId].findIndex(site => 
+            websiteIndex = websites[categoryId].findIndex(site =>
                 site.title === title && site.url === url);
         }
     }
-    
+
     if (websiteIndex < 0) {
         console.error('无法在分类中找到网站:', title, url);
         return;
     }
-    
+
     // 获取当前权重
     const currentWeight = websites[categoryId][websiteIndex].weight || 100;
-    
+
     // 计算新权重
     let newWeight = currentWeight;
     if (newPinStatus) {
         // 如果是置顶，设置全局最高权重
         newWeight = getGlobalMaxWeight();
     }
-    
+
     // 获取现有图片数据以确保保留
     const imageData = websites[categoryId][websiteIndex].imageData || '';
-    
+
     // 更新网站数据
     websites[categoryId][websiteIndex].pinned = newPinStatus;
     websites[categoryId][websiteIndex].weight = newWeight;
-    
+
     // 确保图片数据被保留
     if (imageData) {
         websites[categoryId][websiteIndex].imageData = imageData;
     }
-    
+
     // 更新UI
     if (categorySection.id === 'pinned' || categorySection.id === 'recent') {
         // 如果是在置顶分类或最近添加分类操作，我们需要在当前分类中移除它
@@ -1716,28 +1716,28 @@ function togglePinStatus(card) {
             card.classList.remove('pinned');
         }
     }
-    
+
     // 对分类进行排序并刷新UI
     sortAndRefreshCategory(categoryId);
-    
+
     // 更新置顶分类
     renderPinnedCategory();
-    
+
     // 如果是从"最近添加"分类中操作，需要重新渲染"最近添加"分类
     if (categorySection.id === 'recent') {
         renderRecentCategory();
     }
-    
+
     // 保存数据
     if (window.saveNavData) {
         window.saveNavData();
     }
-    
+
     // 如果是设置置顶，滚动到置顶分类
     if (newPinStatus) {
         setTimeout(() => {
             showCategory('pinned');
-            
+
             // 在置顶分类中找到并高亮卡片
             const pinnedSection = document.getElementById('pinned');
             if (pinnedSection) {
@@ -1745,7 +1745,7 @@ function togglePinStatus(card) {
                 pinnedCards.forEach(pinnedCard => {
                     const cardTitle = pinnedCard.querySelector('.card-title').textContent;
                     const cardUrl = pinnedCard.querySelector('.card-url').textContent;
-                    
+
                     if (cardTitle === title && cardUrl === url) {
                         // 添加临时高亮效果
                         pinnedCard.classList.add('simple-highlight');
@@ -1763,14 +1763,14 @@ function togglePinStatus(card) {
 // 获取所有分类中的最大权重，确保置顶网站权重最高
 function getGlobalMaxWeight() {
     let maxWeight = 100;
-    
+
     Object.keys(websites).forEach(cat => {
         if (websites[cat] && websites[cat].length > 0) {
             const catMaxWeight = Math.max(...websites[cat].map(site => site.weight || 100));
             maxWeight = Math.max(maxWeight, catMaxWeight);
         }
     });
-    
+
     return maxWeight + 10; // 比全局最大权重高10
 }
 
@@ -1779,7 +1779,7 @@ let contextMenuTarget = null;
 function showContextMenu(e, card) {
     e.preventDefault();
     e.stopPropagation();
-    
+
     // 调试日志
     console.log('右键菜单事件触发 - 坐标信息:', {
         clientX: e.clientX,
@@ -1790,16 +1790,16 @@ function showContextMenu(e, card) {
         scrollY: window.scrollY,
         cardTitle: card.querySelector('.card-title')?.textContent
     });
-    
+
     // 创建或获取菜单
     const menu = createContextMenu();
     contextMenuTarget = card;
-    
+
     // 根据卡片当前状态更新置顶/取消置顶菜单项
     const isPinned = card.classList.contains('pinned');
     const pinActionText = menu.querySelector('#pin-action-text');
     const pinIcon = menu.querySelector('#toggle-pin-btn i');
-    
+
     if (isPinned) {
         pinActionText.textContent = '取消置顶';
         pinIcon.style.transform = 'rotate(45deg)';
@@ -1807,25 +1807,25 @@ function showContextMenu(e, card) {
         pinActionText.textContent = '置顶网站';
         pinIcon.style.transform = 'rotate(0deg)';
     }
-    
+
     // 隐藏其他可能显示的菜单
     hideContextMenu();
-    
+
     // 首先，确保菜单位于文档正文中
     if (!document.body.contains(menu)) {
         document.body.appendChild(menu);
     }
-    
+
     // 确保菜单可见性重置（以防之前的隐藏操作影响）
     menu.style.display = 'block';
     menu.style.visibility = 'visible';
     menu.style.opacity = '0'; // 暂时设为不可见，以便测量尺寸
     menu.classList.add('active');
-    
+
     // 测量菜单尺寸
     const menuWidth = menu.offsetWidth;
     const menuHeight = menu.offsetHeight;
-    
+
     // 用于调试的输出
     console.log('菜单尺寸:', {
         width: menuWidth,
@@ -1833,31 +1833,31 @@ function showContextMenu(e, card) {
         viewportWidth: window.innerWidth,
         viewportHeight: window.innerHeight
     });
-    
+
     // 计算最佳位置
     let left = e.clientX;
     let top = e.clientY;
-    
+
     // 检查右边界
     if (left + menuWidth > window.innerWidth) {
         left = left - menuWidth;
     }
-    
+
     // 检查下边界
     if (top + menuHeight > window.innerHeight) {
         top = top - menuHeight;
     }
-    
+
     // 确保不超出左边界和上边界
     left = Math.max(0, left);
     top = Math.max(0, top);
-    
+
     // 应用位置
     menu.style.position = 'fixed'; // 使用fixed相对于视口定位
     menu.style.left = left + 'px';
     menu.style.top = top + 'px';
     menu.style.opacity = '1'; // 恢复可见性
-    
+
     console.log('菜单最终位置:', {left, top});
 }
 
@@ -1873,20 +1873,20 @@ function hideContextMenu() {
 // 搜索高亮功能
 function highlightSearchResults(searchTerm) {
     const cards = document.querySelectorAll('.website-card');
-    
+
     cards.forEach(card => {
         const title = card.querySelector('.card-title');
         const description = card.querySelector('.card-description');
-        
+
         // 清除之前的高亮
         title.innerHTML = title.textContent;
         description.innerHTML = description.textContent;
-        
+
         if (searchTerm) {
             // 添加高亮
             const titleText = title.textContent;
             const descText = description.textContent;
-            
+
             const highlightedTitle = titleText.replace(
                 new RegExp(`(${searchTerm})`, 'gi'),
                 '<span class="highlight">$1</span>'
@@ -1895,7 +1895,7 @@ function highlightSearchResults(searchTerm) {
                 new RegExp(`(${searchTerm})`, 'gi'),
                 '<span class="highlight">$1</span>'
             );
-            
+
             title.innerHTML = highlightedTitle;
             description.innerHTML = highlightedDesc;
         }
@@ -1907,10 +1907,10 @@ function addCardEventListeners(card) {
     // 先移除可能存在的事件监听器，防止重复绑定
     card.removeEventListener('contextmenu', handleContextMenu);
     card.removeEventListener('click', handleCardClick);
-    
+
     // 右键菜单
     card.addEventListener('contextmenu', handleContextMenu);
-    
+
     // 左键点击（访问网站）
     card.addEventListener('click', handleCardClick);
 }
@@ -1929,13 +1929,14 @@ function handleContextMenu(e) {
 // 处理卡片点击事件
 function handleCardClick(e) {
     if (e.target.closest('.context-menu')) return;
-    
+
     // 如果按住Ctrl键点击，则编辑网站
     if (e.ctrlKey) {
         editWebsite(this);
         return;
+
     }
-    
+
     const url = this.querySelector('.card-url').textContent;
     // 检查URL是否已包含协议
     const fullUrl = url.includes('://') ? url : `http://${url}`;
@@ -1947,18 +1948,18 @@ function setupFileUpload() {
     const uploadArea = document.getElementById('iconUploadArea');
     const fileInput = document.getElementById('iconFile');
     const iconUrlInput = document.getElementById('websiteIcon');
-    
+
     uploadArea.addEventListener('click', () => fileInput.click());
-    
+
     uploadArea.addEventListener('dragover', (e) => {
         e.preventDefault();
         uploadArea.classList.add('dragover');
     });
-    
+
     uploadArea.addEventListener('dragleave', () => {
         uploadArea.classList.remove('dragover');
     });
-    
+
     uploadArea.addEventListener('drop', (e) => {
         e.preventDefault();
         uploadArea.classList.remove('dragover');
@@ -1967,7 +1968,7 @@ function setupFileUpload() {
             handleFileUpload(files[0]);
         }
     });
-    
+
     fileInput.addEventListener('change', (e) => {
         if (e.target.files.length > 0) {
             handleFileUpload(e.target.files[0]);
@@ -1981,14 +1982,14 @@ function handleFileUpload(file) {
         const reader = new FileReader();
         reader.onload = function(e) {
             const base64Image = e.target.result;
-            
+
             // 保存base64图片数据
             document.getElementById('websiteIcon').value = ''; // 清空图标类
             document.getElementById('websiteIcon').dataset.imageData = base64Image;
-            
+
             // 更新图标预览为图片
             updateIconPreview('', base64Image);
-            
+
             // 更新上传区域显示
             const uploadArea = document.getElementById('iconUploadArea');
             uploadArea.innerHTML = `
@@ -2000,7 +2001,7 @@ function handleFileUpload(file) {
                 </div>
                 <div class="upload-text">图片已上传</div>
             `;
-            
+
             // 隐藏图标选择器
             toggleIconSelectorVisibility(true);
         };
@@ -2014,20 +2015,20 @@ function handleFileUpload(file) {
 function deleteUploadedImage(event) {
     event.preventDefault();
     event.stopPropagation();
-    
+
     // 清除图片数据
     document.getElementById('websiteIcon').dataset.imageData = '';
-    
+
     // 恢复默认图标
     const defaultIcon = 'fas fa-globe';
     document.getElementById('websiteIcon').value = defaultIcon;
-    
+
     // 更新图标预览
     updateIconPreview(defaultIcon);
-    
+
     // 重置上传区域
     resetIconUpload();
-    
+
     // 显示图标选择器
     toggleIconSelectorVisibility(false);
 }
@@ -2035,7 +2036,7 @@ function deleteUploadedImage(event) {
 // 更新图标预览函数，添加对图片的支持
 function updateIconPreview(iconClass, imageData) {
     const iconPreview = document.getElementById('iconPreview');
-    
+
     if (iconPreview) {
         if (imageData) {
             // 如果有图片数据，显示图片
@@ -2071,37 +2072,37 @@ document.addEventListener('DOMContentLoaded', function() {
         html.setAttribute('data-theme', 'light');
         if(themeIcon) themeIcon.className = 'fas fa-moon';
     }
-    
+
     // 初始化分类列表模式
     loadCategoriesMode();
-    
+
     // 更新分类下拉菜单
     updateCategoryDropdown();
-    
+
     // 加载数据并创建卡片
     loadWebsitesFromData();
-    
+
     // 设置文件上传
     setupFileUpload();
-    
+
     // 初始化图标选择器
     if (typeof initIconSelector === 'function') {
         initIconSelector();
     }
-    
+
     // 点击其他地方隐藏右键菜单
     document.addEventListener('click', hideContextMenu);
-    
+
     // ESC键关闭模态框
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             // 获取所有活动的模态框
             const activeModals = document.querySelectorAll('.modal-overlay.active');
-            
+
             activeModals.forEach(modal => {
                 const modalId = modal.id;
                 console.log('ESC键关闭模态框:', modalId);
-                
+
                 // 根据模态框ID判断使用哪个关闭函数
                 if (modalId === 'deleteCategoryModal') {
                     // 使用分类编辑相关的关闭函数
@@ -2113,15 +2114,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     closeModal(modalId);
                 }
             });
-            
+
             // 隐藏右键菜单
             hideContextMenu();
         }
     });
-    
+
     // 添加滚动监听，更新当前分类状态
     setupScrollSpy();
-    
+
     // 添加滚动监听，控制浮动按钮位置
     setupFloatingButtonPosition();
 });
@@ -2130,7 +2131,7 @@ document.addEventListener('DOMContentLoaded', function() {
 function setupScrollSpy() {
     // 确保所有分类section都存在
     if (document.querySelectorAll('.category-section').length === 0) return;
-    
+
     // 防抖函数，避免频繁触发
     function debounce(func, wait) {
         let timeout;
@@ -2141,12 +2142,12 @@ function setupScrollSpy() {
             timeout = setTimeout(() => func.apply(context, args), wait);
         };
     }
-    
+
     // 获取所有分类区域的位置信息
     function getCategorySections() {
         const sections = document.querySelectorAll('.category-section');
         const sectionPositions = [];
-        
+
         sections.forEach(section => {
             const rect = section.getBoundingClientRect();
             const offsetTop = rect.top + window.scrollY;
@@ -2156,24 +2157,24 @@ function setupScrollSpy() {
                 height: rect.height
             });
         });
-        
+
         return sectionPositions;
     }
-    
+
     // 更新当前分类的高亮状态
     const updateActiveCategory = debounce(function() {
         const scrollPosition = window.scrollY + 100; // 添加偏移量以提前激活
         const sectionPositions = getCategorySections();
-        
+
         // 找到当前滚动位置对应的分类
         let currentCategoryId = null;
         for (let i = 0; i < sectionPositions.length; i++) {
             const section = sectionPositions[i];
             const nextSection = sectionPositions[i + 1];
-            
+
             // 如果处于当前区域或者是最后一个区域
             if (
-                (scrollPosition >= section.offsetTop && 
+                (scrollPosition >= section.offsetTop &&
                 (!nextSection || scrollPosition < nextSection.offsetTop)) ||
                 (i === sectionPositions.length - 1 && scrollPosition >= section.offsetTop)
             ) {
@@ -2181,25 +2182,25 @@ function setupScrollSpy() {
                 break;
             }
         }
-        
+
         // 如果找到匹配的分类，更新侧边栏状态
         if (currentCategoryId) {
             const categoryItems = document.querySelectorAll('.category-item');
             categoryItems.forEach(item => item.classList.remove('active'));
-            
+
             const activeItem = document.querySelector(`.category-item[data-category="${currentCategoryId}"]`);
             if (activeItem) {
                 activeItem.classList.add('active');
             }
-            
+
             // 打印调试信息
             console.log('当前分类:', currentCategoryId);
         }
     }, 50);
-    
+
     // 添加滚动事件监听
     window.addEventListener('scroll', updateActiveCategory);
-    
+
     // 初始调用一次，设置初始状态
     updateActiveCategory();
 }
@@ -2208,26 +2209,26 @@ function setupScrollSpy() {
 function updateCategoryDropdown() {
     const categorySelect = document.getElementById('websiteCategory');
     if (!categorySelect) return;
-    
+
     // 保存当前选中的值
     const selectedValue = categorySelect.value;
-    
+
     // 清空除了第一个选项外的所有选项
     while (categorySelect.options.length > 1) {
         categorySelect.remove(1);
     }
-    
+
     // 添加所有分类，排除"置顶"分类和"最近添加"分类
     window.categories.forEach(category => {
         // 跳过置顶分类和最近添加分类
         if (category.id === 'pinned' || category.id === 'recent') return;
-        
+
         const option = document.createElement('option');
         option.value = category.id;
         option.textContent = category.name;
         categorySelect.appendChild(option);
     });
-    
+
     // 恢复选中值，如果之前选的是置顶分类或最近添加分类，则默认选择第一个可用分类
     if (selectedValue && selectedValue !== 'pinned' && selectedValue !== 'recent') {
         categorySelect.value = selectedValue;
@@ -2244,18 +2245,18 @@ const searchBox = document.querySelector('.search-box');
 searchBox.addEventListener('input', function(e) {
     const searchTerm = e.target.value.toLowerCase().trim();
     const cards = document.querySelectorAll('.website-card');
-    
+
     cards.forEach(card => {
         const title = card.querySelector('.card-title').textContent.toLowerCase();
         const description = card.querySelector('.card-description').textContent.toLowerCase();
-        
+
         if (title.includes(searchTerm) || description.includes(searchTerm)) {
             card.style.display = 'block';
         } else {
             card.style.display = searchTerm === '' ? 'block' : 'none';
         }
     });
-    
+
     // 添加搜索高亮
     highlightSearchResults(searchTerm);
 });
@@ -2264,14 +2265,14 @@ searchBox.addEventListener('input', function(e) {
 function setupFloatingButtonPosition() {
     const floatingBtn = document.querySelector('.floating-btn');
     const footer = document.querySelector('.footer');
-    
+
     if (!floatingBtn || !footer) return;
-    
+
     // 检测footer是否可见
     function checkFooterVisibility() {
         const footerRect = footer.getBoundingClientRect();
         const windowHeight = window.innerHeight;
-        
+
         // 如果footer进入视口
         if (footerRect.top < windowHeight) {
             floatingBtn.classList.add('footer-visible');
@@ -2279,13 +2280,13 @@ function setupFloatingButtonPosition() {
             floatingBtn.classList.remove('footer-visible');
         }
     }
-    
+
     // 初始检查
     checkFooterVisibility();
-    
+
     // 添加滚动监听
     window.addEventListener('scroll', checkFooterVisibility);
-    
+
     // 添加窗口大小变化监听
     window.addEventListener('resize', checkFooterVisibility);
 }
