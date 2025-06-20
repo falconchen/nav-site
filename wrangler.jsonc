@@ -9,7 +9,9 @@
 	"compatibility_flags": [
 		"nodejs_compat",
 		"global_fetch_strictly_public"
-	]
+	],
 
-	
+	"assets": {
+    "directory": "./"
+  }	
 }
