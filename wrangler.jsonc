@@ -4,7 +4,7 @@
  */
  {
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "nav-site",	
+	"name": "nav-site-staging",	
 	"compatibility_date": "2025-06-18",
 	"compatibility_flags": [
 		"nodejs_compat",
