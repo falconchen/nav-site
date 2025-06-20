@@ -1,1 +1,5 @@
 *.bak
+.dev.vars
+.dev.vars.production
+.dev.vars.staging
+node_modules/
