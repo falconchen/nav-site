@@ -1,6 +1,6 @@
 :root {
   /* 亮色模式变量 */
-  --primary-color: #4f46e5;
+  --primary-color: cadetblue;
   --primary-color-rgb: 79, 70, 229;
   --primary-hover: #4338ca;
   --secondary-color: #10b981;
@@ -18,7 +18,7 @@
 
 [data-theme="dark"] {
   /* 暗色模式变量 */
-  --primary-color: #6366f1;
+  --primary-color: cadetblue;
   --primary-color-rgb: 99, 102, 241;
   --primary-hover: #5b21b6;
   --secondary-color: #34d399;
