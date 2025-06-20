@@ -3,3 +3,6 @@
 .dev.vars.production
 .dev.vars.staging
 node_modules/
+dist/
+.wrangler/
+.DS_Store
