@@ -508,6 +508,12 @@ function openAddWebsiteModal() {
     // 显示图标选择器
     toggleIconSelectorVisibility(false);
 
+    // 确保AI识别按钮初始状态为禁用
+    const aiDetectBtn = document.getElementById('aiDetectBtn');
+    if (aiDetectBtn) {
+        aiDetectBtn.disabled = true;
+    }
+
     openModal('websiteModal');
 }
 
