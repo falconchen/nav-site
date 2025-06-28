@@ -2458,9 +2458,14 @@ function fillFormWithAIData(data) {
     if (data.icon) {
         // 如果是图片URL
         if (data.icon.startsWith('http')) {
-            // 将图片转换为base64并设置
-            fetch(data.icon)
-                .then(response => response.blob())
+            // 使用代理API获取图片，避免跨域问题
+            fetch(`/api/proxy-image?url=${encodeURIComponent(data.icon)}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('通过代理获取图片失败');
+                    }
+                    return response.blob();
+                })
                 .then(blob => {
                     const reader = new FileReader();
                     reader.onload = function(e) {
