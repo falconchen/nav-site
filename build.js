@@ -5,6 +5,7 @@ const path = require('path');
 // 保存当前工作目录
 const currentDir = process.cwd();
 
+
 try {
   // 备份public目录下的文件到bak目录
   console.log('开始备份public目录文件...');
@@ -43,6 +44,11 @@ try {
   console.log('正在将构建文件从dist目录复制到public根目录...');
   fs.copySync('./public/dist', './public', { overwrite: true });
   console.log('文件复制完成');
+
+  // 删除dist目录
+  console.log('正在删除dist目录...');
+  fs.removeSync('./public/dist');
+  console.log('dist目录已删除');
 
 } catch (error) {
   console.error('构建过程中发生错误:', error);
