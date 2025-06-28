@@ -31,4 +31,28 @@ npx wrangler deploy
 `npx wrangler versions upload` 只是临时解决方案，让您可以控制何时手动激活新版本。一旦您准备好恢复自动部署流程，只需将部署命令改回 `npx wrangler deploy` 即可。
 
 
-## 环境
+## 静态资源绑定的问题
+
+run_worker_first 为 true 时，需要这样设置，否则css及js等静态资源404
+
+```
+// wrangler.jsonc
+	"assets": {
+    "directory": "./public",
+		"run_worker_first": true,
+    "binding": "ASSETS"
+  },
+```
+
+``` js
+// 处理根路径请求
+app.get('/', async (c) => {
+	return await c.env.ASSETS.fetch(c.req.raw);
+});
+
+// 添加：处理所有静态资源请求 run_worker_first时需要这样设置，否则css及js等静态资源404
+app.get('/*', async (c) => {
+	return await c.env.ASSETS.fetch(c.req.raw);
+});
+
+```

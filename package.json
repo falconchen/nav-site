@@ -3,17 +3,22 @@
 	"version": "1.0.0",
 	"private": true,
 	"scripts": {
-		"deploy": "wrangler deploy",
+		"build": "node  build.js",
 		"dev": "wrangler dev",
 		"start": "wrangler dev",
-		"test": "vitest"
+		"test": "vitest",
+		"deploy": "npm run build && wrangler deploy"
 	},
 	"devDependencies": {
 		"@cloudflare/vitest-pool-workers": "^0.8.19",
+		"@types/fs-extra": "^11.0.4",
 		"vitest": "~3.2.0",
-		"wrangler": "^4.20.3"
+		"wrangler": "^4.22.0"
 	},
 	"dependencies": {
-		"hono": "^4.8.0"
+		"hono": "^4.8.0",
+		"esbuild": "^0.25.5",
+		"html-minifier-terser": "^7.2.0"
 	}
 }
+

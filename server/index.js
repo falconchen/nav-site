@@ -14,8 +14,13 @@ import { Hono } from 'hono';
 const app = new Hono();
 
 // 处理根路径请求
-app.get('/', async (c, env) => {
-	return await env.ASSETS.fetch(c.req.raw);
+app.get('/', async (c) => {
+	return await c.env.ASSETS.fetch(c.req.raw);
+});
+
+// 添加：处理所有静态资源请求 run_worker_first时需要这样设置
+app.get('/*', async (c) => {
+	return await c.env.ASSETS.fetch(c.req.raw);
 });
 
 // 返回问候消息
