@@ -23,7 +23,7 @@
 
 	"env": {
 		"production": {
-			"name": "nav-site-prod",
+			"name": "nav-site", // 生产环境名称,如果不一样会生成一个新的worker
 			"assets": {
 				"directory": "./dist",
 				"run_worker_first": true,
