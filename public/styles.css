@@ -300,7 +300,7 @@ html[data-sidebar="compact"] .cards-grid {
   .cards-grid {
     grid-template-columns: repeat(2, 1fr);
   }
-  
+
   .main-container.compact-mode .cards-grid,
   html[data-sidebar="compact"] .cards-grid {
     grid-template-columns: repeat(3, 1fr);
@@ -1332,14 +1332,14 @@ html[data-sidebar="compact"] .cards-grid {
   #categoryIconModal .icon-row {
     gap: 0.3rem;
   }
-  
+
   #categoryIconModal .icon-item {
     height: 2.2rem;
     width: 2.2rem;
     min-width: 2.2rem;
     font-size: 1.1rem;
   }
-  
+
   #categoryIconModal .modal {
     max-width: 95vw;
   }
@@ -1352,7 +1352,7 @@ html[data-sidebar="compact"] .cards-grid {
     min-width: 1.8rem;
     font-size: 0.9rem;
   }
-  
+
   #categoryIconModal .icon-row {
     gap: 0.25rem;
   }
@@ -1406,7 +1406,7 @@ html[data-sidebar="compact"] .cards-grid {
     height: 50px;
     font-size: 1.2rem;
   }
-  
+
   .floating-btn.footer-visible {
     transform: translateY(-80px);
   }
@@ -1435,7 +1435,7 @@ html[data-sidebar="compact"] .cards-grid {
     padding: 0.6rem 1.2rem;
     font-size: 0.8rem;
   }
-  
+
   .footer-links {
     flex-direction: column;
     gap: 0.8rem;
@@ -1498,12 +1498,12 @@ html[data-sidebar="compact"] .cards-grid {
   .cards-grid {
     grid-template-columns: repeat(2, 1fr);
   }
-  
+
   .hidden-cards-container {
     grid-template-columns: repeat(2, 1fr);
     gap: 0.8rem;
   }
-  
+
   /* 确保每个卡片的最小宽度适合两列布局 */
   .website-card {
     min-width: 0;
@@ -1516,15 +1516,15 @@ html[data-sidebar="compact"] .cards-grid {
   .main-container {
     gap: 1.5rem;
   }
-  
+
   .categories-sidebar {
     padding: 1.2rem;
   }
-  
+
   .category-item {
     padding: 0.6rem 0.8rem;
   }
-  
+
   .section-title {
     margin-bottom: 1.2rem;
   }
@@ -1533,28 +1533,28 @@ html[data-sidebar="compact"] .cards-grid {
 /* iPad 竖屏模式特定适配 */
 @media only screen and (min-width: 768px) and (max-width: 834px) and (orientation: portrait) {
   /* 确保网格布局适合iPad竖屏 */
-  .cards-grid, 
+  .cards-grid,
   .hidden-cards-container {
     grid-template-columns: repeat(2, 1fr);
     gap: 0.8rem;
   }
-  
+
   .website-card {
     min-width: 0;
   }
-  
+
   /* 优化模态框在iPad竖屏下的显示 */
   .modal {
     max-width: 90%;
   }
-  
+
   /* 确保图标选择器在iPad竖屏下不会太拥挤 */
   .icon-item {
     height: 2rem;
     width: 2rem;
     min-width: 2rem;
   }
-  
+
   /* 页脚在iPad竖屏下居中显示 */
   .footer-container {
     flex-direction: column;
@@ -1562,7 +1562,7 @@ html[data-sidebar="compact"] .cards-grid {
     text-align: center;
     gap: 1.2rem;
   }
-  
+
   .footer-text,
   .footer-links {
     width: 100%;
@@ -1572,12 +1572,12 @@ html[data-sidebar="compact"] .cards-grid {
 
 /* iPad Pro 11英寸竖屏适配 */
 @media only screen and (min-width: 834px) and (max-width: 900px) and (orientation: portrait) {
-  .cards-grid, 
+  .cards-grid,
   .hidden-cards-container {
     grid-template-columns: repeat(2, 1fr);
     gap: 1rem;
   }
-  
+
   /* 页脚在iPad Pro竖屏下居中显示 */
   .footer-container {
     flex-direction: column;
@@ -1585,7 +1585,7 @@ html[data-sidebar="compact"] .cards-grid {
     text-align: center;
     gap: 1.2rem;
   }
-  
+
   .footer-text,
   .footer-links {
     width: 100%;
@@ -1620,7 +1620,7 @@ html[data-sidebar="compact"] .cards-grid {
 #categories-toggle-btn{
   margin-left: 0.5rem;
   border-radius: 50%;
-  
+
 }
 
 #category-edit-btn:hover, #categories-toggle-btn:hover {
@@ -1948,4 +1948,67 @@ html[data-sidebar="compact"] .website-card {
 /* 压缩模式下调整卡片悬停效果 - 属性选择器 */
 html[data-sidebar="compact"] .website-card:hover {
   transform: translateY(-0.15rem);
-} 
+}
+
+/* 输入组样式 */
+.input-group {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  position: relative;
+}
+
+.input-group .form-input {
+  flex: 1;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+/* AI识别按钮 */
+.ai-detect-btn {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 0 0.5rem 0.5rem 0;
+  padding: 0.5rem 0.75rem;
+  height: 100%;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.ai-detect-btn:hover {
+  background-color: var(--secondary-color);
+}
+
+.ai-detect-btn:disabled {
+  background-color: var(--border-color);
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+.ai-detect-btn.loading {
+  background-color: var(--border-color);
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+/* AI加载动画 */
+.ai-loading {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: ai-spin 0.75s linear infinite;
+}
+
+@keyframes ai-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

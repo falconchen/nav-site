@@ -2305,3 +2305,240 @@ function toggleIconSelectorVisibility(hasImage) {
         }
     }
 }
+
+// AI网站识别功能
+function setupAIDetection() {
+    const urlInput = document.getElementById('websiteUrl');
+    const aiDetectBtn = document.getElementById('aiDetectBtn');
+
+    // 监听URL输入变化，启用/禁用AI识别按钮
+    urlInput.addEventListener('input', function() {
+        const url = this.value.trim();
+        const isValidUrl = url.length > 0 && (url.startsWith('http://') || url.startsWith('https://'));
+        aiDetectBtn.disabled = !isValidUrl;
+    });
+
+    // AI识别按钮点击事件
+    aiDetectBtn.addEventListener('click', async function() {
+        const url = urlInput.value.trim();
+        if (!url) return;
+
+        // 显示加载状态
+        aiDetectBtn.disabled = true;
+        aiDetectBtn.classList.add('loading');
+        aiDetectBtn.innerHTML = '<span class="ai-loading"></span> 识别中...';
+
+        try {
+            // 获取所有可用分类
+            const categorySelect = document.getElementById('websiteCategory');
+            const categories = [];
+            for (let i = 0; i < categorySelect.options.length; i++) {
+                if (categorySelect.options[i].value &&
+                    categorySelect.options[i].value !== 'pinned' &&
+                    categorySelect.options[i].value !== 'recent') {
+                    categories.push({
+                        id: categorySelect.options[i].value,
+                        name: categorySelect.options[i].textContent
+                    });
+                }
+            }
+			console.log('网站分类:', categories);
+
+            // 发送AJAX请求到后端API
+            const response = await fetch('/api/analyze-website', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    url,
+                    categories // 发送所有可用分类
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('网站分析请求失败');
+            }
+
+            const data = await response.json();
+            console.log('AI识别结果:', data);
+
+            // 填充表单
+            fillFormWithAIData(data);
+        } catch (error) {
+            console.error('AI识别错误:', error);
+            alert('网站识别失败: ' + error.message);
+        } finally {
+            // 恢复按钮状态
+            aiDetectBtn.disabled = false;
+            aiDetectBtn.classList.remove('loading');
+            aiDetectBtn.innerHTML = '<i class="fas fa-robot"></i> AI识别';
+        }
+    });
+}
+
+// 根据AI识别结果填充表单
+function fillFormWithAIData(data) {
+    // 填充网站名称
+    if (data.title) {
+        document.getElementById('websiteName').value = data.title;
+    }
+
+    // 填充描述
+    if (data.description) {
+        document.getElementById('websiteDescription').value = data.description;
+    }
+
+    // 选择合适的分类
+    if (data.category) {
+        const categorySelect = document.getElementById('websiteCategory');
+        // 尝试找到最匹配的分类
+        let foundMatch = false;
+
+        // 从所有选项中查找包含该分类关键词的选项
+        for (let i = 0; i < categorySelect.options.length; i++) {
+            const option = categorySelect.options[i];
+            const optionText = option.textContent.toLowerCase();
+            const categoryLower = data.category.toLowerCase();
+
+            if (optionText.includes(categoryLower) || categoryLower.includes(optionText)) {
+                categorySelect.selectedIndex = i;
+                foundMatch = true;
+                break;
+            }
+        }
+		console.log('找到匹配分类:', foundMatch);
+
+        // 如果没有找到匹配项，选择"未分类"
+        if (!foundMatch && categorySelect.options.length > 0) {
+            // 查找未分类选项
+            for (let i = 0; i < categorySelect.options.length; i++) {
+                if (categorySelect.options[i].value === 'uncategorized') {
+                    categorySelect.selectedIndex = i;
+                    break;
+                }
+            }
+        }
+    }
+
+    // 设置图标
+    if (data.icon) {
+        // 如果是图片URL
+        if (data.icon.startsWith('http')) {
+            // 将图片转换为base64并设置
+            fetch(data.icon)
+                .then(response => response.blob())
+                .then(blob => {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const base64Image = e.target.result;
+
+                        // 保存base64图片数据
+                        document.getElementById('websiteIcon').value = ''; // 清空图标类
+                        document.getElementById('websiteIcon').dataset.imageData = base64Image;
+
+                        // 更新图标预览为图片
+                        updateIconPreview('', base64Image);
+
+                        // 更新上传区域显示
+                        const uploadArea = document.getElementById('iconUploadArea');
+                        uploadArea.innerHTML = `
+                            <div class="uploaded-image-preview">
+                                <img src="${base64Image}" alt="上传的图标">
+                                <button type="button" class="delete-image-btn" onclick="deleteUploadedImage(event)">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <div class="upload-text">图片已上传</div>
+                        `;
+
+                        // 隐藏图标选择器
+                        toggleIconSelectorVisibility(true);
+                    };
+                    reader.readAsDataURL(blob);
+                })
+                .catch(error => {
+                    console.error('无法加载网站图标:', error);
+                    // 使用默认图标作为备选
+                    const defaultIcon = 'fas fa-globe';
+                    document.getElementById('websiteIcon').value = defaultIcon;
+                    updateIconPreview(defaultIcon);
+                });
+        } else {
+            // 如果是Font Awesome类名
+            document.getElementById('websiteIcon').value = data.icon;
+            updateIconPreview(data.icon);
+        }
+    }
+}
+
+// 页面初始化时添加AI检测功能
+document.addEventListener('DOMContentLoaded', function() {
+    // 读取localStorage主题
+    const savedTheme = localStorage.getItem('theme');
+    const html = document.documentElement;
+    const themeIcon = document.getElementById('theme-icon');
+    if (savedTheme === 'dark') {
+        html.setAttribute('data-theme', 'dark');
+        if(themeIcon) themeIcon.className = 'fas fa-sun';
+    } else if (savedTheme === 'light') {
+        html.setAttribute('data-theme', 'light');
+        if(themeIcon) themeIcon.className = 'fas fa-moon';
+    }
+
+    // 初始化分类列表模式
+    loadCategoriesMode();
+
+    // 更新分类下拉菜单
+    updateCategoryDropdown();
+
+    // 加载数据并创建卡片
+    loadWebsitesFromData();
+
+    // 设置文件上传
+    setupFileUpload();
+
+    // 初始化图标选择器
+    if (typeof initIconSelector === 'function') {
+        initIconSelector();
+    }
+
+    // 初始化AI识别功能
+    setupAIDetection();
+
+    // 点击其他地方隐藏右键菜单
+    document.addEventListener('click', hideContextMenu);
+
+    // ESC键关闭模态框
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            // 获取所有活动的模态框
+            const activeModals = document.querySelectorAll('.modal-overlay.active');
+
+            activeModals.forEach(modal => {
+                const modalId = modal.id;
+                console.log('ESC键关闭模态框:', modalId);
+
+                // 根据模态框ID判断使用哪个关闭函数
+                if (modalId === 'deleteCategoryModal') {
+                    // 使用分类编辑相关的关闭函数
+                    if (typeof closeCategoryModal === 'function') {
+                        closeCategoryModal(modalId);
+                    }
+                } else {
+                    // 使用网站编辑相关的关闭函数
+                    closeModal(modalId);
+                }
+            });
+
+            // 隐藏右键菜单
+            hideContextMenu();
+        }
+    });
+
+    // 添加滚动监听，更新当前分类状态
+    setupScrollSpy();
+
+    // 添加滚动监听，控制浮动按钮位置
+    setupFloatingButtonPosition();
+});

@@ -9,16 +9,20 @@
  */
 
 import { Hono } from 'hono';
+import { cors } from 'hono/cors';
 
 // 创建 Hono 应用
 const app = new Hono();
+
+// 启用CORS
+app.use('*', cors());
 
 // 处理根路径请求
 app.get('/', async (c) => {
 	return await c.env.ASSETS.fetch(c.req.raw);
 });
 
-// 添加：处理所有静态资源请求 run_worker_first时需要这样设置
+// 添加：处理所有静态资源请求
 app.get('/*', async (c) => {
 	return await c.env.ASSETS.fetch(c.req.raw);
 });
@@ -32,6 +36,291 @@ app.get('/message', (c) => {
 app.get('/random', (c) => {
 	return c.text(crypto.randomUUID());
 });
+
+// 网站分析API
+app.post('/api/analyze-website', async (c) => {
+  try {
+    // 获取请求体中的URL和分类列表
+    const { url, categories } = await c.req.json();
+
+    if (!url) {
+      return c.json({ error: '缺少URL参数' }, 400);
+    }
+
+    console.log('分析网站:', url);
+    console.log('可用分类:', categories?.map(cat => cat.name).join(', ') || '无分类信息');
+
+    // 抓取网页内容
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; NavHelper/1.0; +https://example.com/bot)'
+      }
+    });
+
+    if (!response.ok) {
+      return c.json({ error: '无法获取网页内容' }, 500);
+    }
+
+    const html = await response.text();
+
+    // 提取网页标题
+    let title = '';
+    const titleMatch = html.match(/<title>(.*?)<\/title>/i);
+    if (titleMatch && titleMatch[1]) {
+      title = titleMatch[1].trim();
+    }
+
+    // 提取网页描述
+    let description = '';
+    const descMatch = html.match(/<meta\s+name=["']description["']\s+content=["'](.*?)["']/i);
+    if (descMatch && descMatch[1]) {
+      description = descMatch[1].trim();
+    }
+
+    // 提取网页图标
+    let icon = '';
+    const faviconMatch = html.match(/<link\s+[^>]*?rel=["'](?:icon|shortcut icon)["'][^>]*?href=["'](.*?)["'][^>]*?>/i);
+    if (faviconMatch && faviconMatch[1]) {
+      // 处理相对路径
+      if (faviconMatch[1].startsWith('/')) {
+        const urlObj = new URL(url);
+        icon = `${urlObj.origin}${faviconMatch[1]}`;
+      } else if (!faviconMatch[1].startsWith('http')) {
+        const urlObj = new URL(url);
+        icon = `${urlObj.origin}/${faviconMatch[1]}`;
+      } else {
+        icon = faviconMatch[1];
+      }
+    } else {
+      // 如果没有找到图标，使用默认favicon.ico
+      const urlObj = new URL(url);
+      icon = `${urlObj.origin}/favicon.ico`;
+    }
+
+    // 使用Cloudflare AI分析网页内容
+    // 注意：如果环境中没有配置AI，可以使用简单的规则判断分类
+    let category = '';
+
+    try {
+      if (c.env.AI) {
+        // 提取网页正文内容
+        let content = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, ' ');
+        content = content.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, ' ');
+        content = content.replace(/<[^>]+>/g, ' ');
+        content = content.replace(/\s+/g, ' ').trim();
+
+        // 限制内容长度
+        content = content.substring(0, 1000);
+
+        // 构建分类选项列表
+        let categoryOptions = '';
+        if (categories && categories.length > 0) {
+          // 使用用户提供的分类
+          categoryOptions = categories.map(cat => `${cat.name} (${cat.id})`).join('、');
+        } else {
+          // 使用默认分类
+          categoryOptions = '社交媒体、实用工具、设计资源、开发技术、新闻资讯、娱乐休闲';
+        }
+
+        // 使用AI分析内容
+        const input = `根据这个网页内容，确定最合适的分类（${categoryOptions}）:
+
+        标题: ${title}
+        描述: ${description}
+        内容摘要: ${content}
+
+        请只返回一个最匹配的分类名称，不要包含任何解释。如果是自定义分类，请使用括号中的ID。`;
+				console.log('AI输入:', input);
+
+        const aiResponse = await c.env.AI.run('@cf/meta/llama-2-7b-chat-int8', {
+          messages: [
+            { role: 'system', content: '你是一个网站分类助手。根据提供的网站内容，确定最适合的分类。只返回分类名称或ID，不要解释。' },
+            { role: 'user', content: input }
+          ]
+        });
+
+        // 提取AI返回的分类
+        category = aiResponse.response.trim();
+				console.log('AI返回的分类:', category);
+
+        // 尝试匹配分类ID
+        if (categories && categories.length > 0) {
+          // 首先尝试直接匹配分类ID
+          const exactIdMatch = categories.find(cat => cat.id.toLowerCase() === category.toLowerCase());
+          if (exactIdMatch) {
+            category = exactIdMatch.id;
+          } else {
+            // 尝试在分类名称中查找匹配项
+            for (const cat of categories) {
+              if (category.toLowerCase().includes(cat.name.toLowerCase()) ||
+                  category.toLowerCase().includes(cat.id.toLowerCase())) {
+                category = cat.id;
+                break;
+              }
+            }
+
+            // 如果仍然没有找到匹配，使用简单规则进行判断
+            if (!categories.some(cat => cat.id === category)) {
+              category = getCategoryByKeywords(title, description, html, categories);
+            }
+          }
+        } else {
+          // 如果没有提供分类，尝试映射到默认分类
+          const categoryMapping = {
+            '社交媒体': 'social',
+            '实用工具': 'tools',
+            '设计资源': 'design',
+            '开发技术': 'dev',
+            '新闻资讯': 'news',
+            '娱乐休闲': 'entertainment'
+          };
+
+          // 遍历映射关系查找匹配
+          let matched = false;
+          for (const [key, value] of Object.entries(categoryMapping)) {
+            if (category.includes(key)) {
+              category = value;
+              matched = true;
+              break;
+            }
+          }
+
+          // 如果没有匹配到预定义分类，默认为"未分类"
+          if (!matched) {
+            category = 'uncategorized';
+          }
+        }
+      } else {
+        // 如果没有AI环境，使用简单规则判断分类
+        category = getCategoryByKeywords(title, description, html, categories);
+      }
+    } catch (aiError) {
+      console.error('AI分析错误:', aiError);
+      // 发生错误时使用简单规则判断分类
+      category = getCategoryByKeywords(title, description, html, categories);
+    }
+
+    // 生成短描述（如果没有meta描述）
+    if (!description) {
+      // 提取网页中的第一段文本作为描述
+      const paragraphMatch = html.match(/<p[^>]*>(.*?)<\/p>/is);
+      if (paragraphMatch && paragraphMatch[1]) {
+        let text = paragraphMatch[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+        description = text.substring(0, 100) + (text.length > 100 ? '...' : '');
+      } else {
+        description = title; // 没有找到合适的描述，使用标题
+      }
+    }
+
+    // 返回分析结果
+    return c.json({
+      title,
+      description,
+      icon,
+      category,
+      url
+    });
+  } catch (error) {
+    console.error('网站分析错误:', error);
+    return c.json({ error: '网站分析失败: ' + error.message }, 500);
+  }
+});
+
+// 使用简单规则判断分类
+function getCategoryByKeywords(title, description, html, categories) {
+  const contentLower = (title + ' ' + description).toLowerCase();
+
+  // 如果提供了自定义分类，尝试匹配这些分类
+  if (categories && categories.length > 0) {
+    // 基于关键词得分系统
+    const categoryScores = {};
+
+    // 初始化所有分类得分为0
+    categories.forEach(cat => {
+      categoryScores[cat.id] = 0;
+    });
+
+    // 为每个分类评分
+    categories.forEach(cat => {
+      // 使用分类名称作为关键词
+      const catNameWords = cat.name.toLowerCase().split(/\s+/);
+      catNameWords.forEach(word => {
+        if (word.length > 2 && contentLower.includes(word)) {
+          categoryScores[cat.id] += 10; // 分类名称中的词在内容中出现，加高分
+        }
+      });
+
+      // 使用分类ID作为关键词
+      if (contentLower.includes(cat.id.toLowerCase())) {
+        categoryScores[cat.id] += 5;
+      }
+    });
+
+    // 使用一些通用关键词来辅助分类
+    const keywordCategories = {
+      'social': ['社交', '微博', 'twitter', 'facebook', 'instagram', 'linkedin', '社区', '粉丝', '关注'],
+      'tools': ['工具', '计算器', '转换器', '搜索', '查询', '地图', '天气', '翻译', '云盘'],
+      'design': ['设计', '创意', '图片', '素材', '模板', '颜色', '字体', 'figma', 'sketch', 'photoshop'],
+      'dev': ['编程', '开发', '代码', 'github', '程序', 'javascript', 'python', 'java', '框架'],
+      'news': ['新闻', '资讯', '头条', '时事', '报道', '财经', '政治', '国际'],
+      'entertainment': ['游戏', '娱乐', '视频', '影视', '音乐', '电影', '电视剧', '动漫']
+    };
+
+    // 根据关键词添加分数
+    Object.entries(keywordCategories).forEach(([catId, keywords]) => {
+      // 只有当这个分类ID在提供的分类列表中存在时才评分
+      if (categories.some(cat => cat.id === catId)) {
+        keywords.forEach(keyword => {
+          if (contentLower.includes(keyword)) {
+            categoryScores[catId] = (categoryScores[catId] || 0) + 3;
+          }
+        });
+      }
+    });
+
+    // 找出得分最高的分类
+    let maxScore = -1;
+    let bestCategory = 'uncategorized';
+
+    Object.entries(categoryScores).forEach(([catId, score]) => {
+      if (score > maxScore) {
+        maxScore = score;
+        bestCategory = catId;
+      }
+    });
+
+    // 如果所有分类得分都是0，返回"未分类"
+    return maxScore > 0 ? bestCategory : 'uncategorized';
+  }
+
+  // 如果没有提供分类，使用默认逻辑
+  if (/社交|微博|twitter|facebook|instagram|linkedin|社区|粉丝|关注|朋友圈/i.test(contentLower)) {
+    return 'social';
+  }
+
+  if (/工具|计算器|转换器|搜索|查询|地图|天气|翻译|云盘|存储/i.test(contentLower)) {
+    return 'tools';
+  }
+
+  if (/设计|创意|图片|素材|模板|颜色|字体|figma|sketch|photoshop|illustrator/i.test(contentLower)) {
+    return 'design';
+  }
+
+  if (/编程|开发|代码|github|程序|javascript|python|java|框架|api|sdk|文档|开源/i.test(contentLower)) {
+    return 'dev';
+  }
+
+  if (/新闻|资讯|头条|时事|报道|财经|政治|国际|国内|热点|事件/i.test(contentLower)) {
+    return 'news';
+  }
+
+  if (/游戏|娱乐|视频|影视|音乐|电影|电视剧|动漫|综艺|直播|节目|明星/i.test(contentLower)) {
+    return 'entertainment';
+  }
+
+  // 默认为未分类
+  return 'uncategorized';
+}
 
 // 404 处理
 app.notFound((c) => {
