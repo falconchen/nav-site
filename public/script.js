@@ -486,6 +486,19 @@ function openAddWebsiteModal() {
     // 确保分类下拉菜单是最新的
     updateCategoryDropdown();
 
+    // 默认选中"未分类"选项
+    const categorySelect = document.getElementById('websiteCategory');
+    if (categorySelect) {
+        // 查找未分类选项
+        for (let i = 0; i < categorySelect.options.length; i++) {
+            if (categorySelect.options[i].value === 'uncategorized') {
+                categorySelect.selectedIndex = i;
+                categorySelect.options[i].setAttribute('selected', 'selected');
+                break;
+            }
+        }
+    }
+
     // 重置图标预览
     updateIconPreview('fas fa-globe');
 
@@ -839,6 +852,15 @@ function editWebsite(card) {
     card.classList.add('editing');
 
     openModal('websiteModal');
+
+    // 手动更新AI识别按钮状态，因为URL已经填充
+    const aiDetectBtn = document.getElementById('aiDetectBtn');
+    if (aiDetectBtn) {
+        const urlInput = document.getElementById('websiteUrl');
+        const url = urlInput.value.trim();
+        const isValidUrl = url.length > 0 && (url.startsWith('http://') || url.startsWith('https://'));
+        aiDetectBtn.disabled = !isValidUrl;
+    }
 }
 
 // 提交表单
@@ -2318,6 +2340,13 @@ function setupAIDetection() {
         aiDetectBtn.disabled = !isValidUrl;
     });
 
+    // 初始检查URL输入框是否已有值（用于编辑模式）
+    if (urlInput && aiDetectBtn) {
+        const url = urlInput.value.trim();
+        const isValidUrl = url.length > 0 && (url.startsWith('http://') || url.startsWith('https://'));
+        aiDetectBtn.disabled = !isValidUrl;
+    }
+
     // AI识别按钮点击事件
     aiDetectBtn.addEventListener('click', async function() {
         const url = urlInput.value.trim();
@@ -2398,27 +2427,25 @@ function fillFormWithAIData(data) {
         // 从所有选项中查找包含该分类关键词的选项
         for (let i = 0; i < categorySelect.options.length; i++) {
             const option = categorySelect.options[i];
-            const optionText = option.textContent.toLowerCase();
-            const categoryLower = data.category.toLowerCase();
+			//获取option的value
+			const optionValue = option.value.toLowerCase();
+			//跳过空选项
+			if (optionValue==="") {
+				continue;
+			}
 
-            if (optionText.includes(categoryLower) || categoryLower.includes(optionText)) {
+            const categoryLower = data.category.toLowerCase();
+			console.log('categoryLower:', categoryLower);
+            if (optionValue == categoryLower) {
                 categorySelect.selectedIndex = i;
+				categorySelect.options[i].setAttribute('selected', 'selected');
                 foundMatch = true;
                 break;
             }
         }
-		console.log('找到匹配分类:', foundMatch);
 
-        // 如果没有找到匹配项，选择"未分类"
-        if (!foundMatch && categorySelect.options.length > 0) {
-            // 查找未分类选项
-            for (let i = 0; i < categorySelect.options.length; i++) {
-                if (categorySelect.options[i].value === 'uncategorized') {
-                    categorySelect.selectedIndex = i;
-                    break;
-                }
-            }
-        }
+
+
     }
 
     // 设置图标
