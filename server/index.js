@@ -49,13 +49,16 @@ app.post('/api/analyze-website', async (c) => {
     // 抓取网页内容
     const response = await fetch(url, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; NavHelper/1.0; +https://example.com/bot)'
+        'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)'
       }
     });
 
     if (!response.ok) {
       return c.json({ error: '无法获取网页内容' }, 500);
     }
+
+    // 获取跳转后的最终URL
+    const finalUrl = response.url;
 
     const html = await response.text();
 
@@ -75,22 +78,68 @@ app.post('/api/analyze-website', async (c) => {
 
     // 提取网页图标
     let icon = '';
+
+    // 1. 优先从meta itemprop="image"提取
+    const metaImageMatch = html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*itemprop=["']image["'][^>]*>/i) ||
+                           html.match(/<meta[^>]*itemprop=["']image["'][^>]*content=["']([^"']+)["'][^>]*>/i);
+		console.log('metaImageMatch:', metaImageMatch);
+
+    // 2. 尝试从link标签提取favicon
     const faviconMatch = html.match(/<link\s+[^>]*?rel=["'](?:icon|shortcut icon)["'][^>]*?href=["'](.*?)["'][^>]*?>/i);
-    if (faviconMatch && faviconMatch[1]) {
-      // 处理相对路径
-      if (faviconMatch[1].startsWith('/')) {
-        const urlObj = new URL(url);
-        icon = `${urlObj.origin}${faviconMatch[1]}`;
-      } else if (!faviconMatch[1].startsWith('http')) {
-        const urlObj = new URL(url);
-        icon = `${urlObj.origin}/${faviconMatch[1]}`;
-      } else {
-        icon = faviconMatch[1];
-      }
+
+    // 3. 尝试从apple-touch-icon提取
+    const appleTouchIconMatch = html.match(/<link\s+[^>]*?rel=["']apple-touch-icon["'][^>]*?href=["'](.*?)["'][^>]*?>/i);
+
+    // 4. 从alt="logo"的img标签提取
+    const logoImgMatch = html.match(/<img[^>]*src=["']?([^"'\s>]+)["']?[^>]*alt=["']?logo["']?[^>]*>/i) ||
+                         html.match(/<img[^>]*alt=["']?logo["']?[^>]*src=["']?([^"'\s>]+)["']?[^>]*>/i);
+
+
+
+    // 5. 获取第一个img标签的src
+    const firstImgMatch = html.match(/<img[^>]*src=["']?([^"'\s>]+)["']?[^>]*>/i);
+
+
+    // 处理找到的图标URL
+    if (metaImageMatch && metaImageMatch[1]) {
+      // 处理meta itemprop="image"
+      processIconUrl(metaImageMatch[1]);
+    } else if (faviconMatch && faviconMatch[1]) {
+      // 处理favicon
+      processIconUrl(faviconMatch[1]);
+    } else if (appleTouchIconMatch && appleTouchIconMatch[1]) {
+      // 处理apple-touch-icon
+      processIconUrl(appleTouchIconMatch[1]);
+    } else if (logoImgMatch && logoImgMatch[1]) {
+      // 处理 img alt="logo"
+      processIconUrl(logoImgMatch[1]);
+    } else if (firstImgMatch && firstImgMatch[1]) {
+      // 处理第一个 img
+      processIconUrl(firstImgMatch[1]);
     } else {
       // 如果没有找到图标，使用默认favicon.ico
-      const urlObj = new URL(url);
+      const urlObj = new URL(finalUrl);
       icon = `${urlObj.origin}/favicon.ico`;
+    }
+
+    // 处理图标URL的函数
+    function processIconUrl(iconUrl) {
+      if (iconUrl.startsWith('//')) {
+        // 处理协议相对URL（以//开头）
+        const urlObj = new URL(finalUrl);
+        icon = `${urlObj.protocol}${iconUrl}`;
+      } else if (iconUrl.startsWith('/')) {
+        // 处理根相对路径
+        const urlObj = new URL(finalUrl);
+        icon = `${urlObj.origin}${iconUrl}`;
+      } else if (!iconUrl.startsWith('http')) {
+        // 处理相对路径
+        const urlObj = new URL(finalUrl);
+        icon = `${urlObj.origin}/${iconUrl}`;
+      } else {
+        // 完整URL
+        icon = iconUrl;
+      }
     }
 
     // 使用Cloudflare AI分析网页内容
@@ -335,13 +384,15 @@ app.get('/api/proxy-image', async (c) => {
     // 请求图片
     const response = await fetch(imageUrl, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; NavHelper/1.0; +https://example.com/bot)'
+        'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1',
+				'Referer': imageUrl
       }
     });
 
     if (!response.ok) {
       return c.json({ error: '无法获取图片' }, 500);
     }
+
 
     // 获取图片内容类型
     const contentType = response.headers.get('content-type') || 'image/png';
