@@ -82,15 +82,17 @@ app.post('/api/analyze-website', async (c) => {
     let icon = '';
 
     // 1. 优先从meta itemprop="image"提取
-    const metaImageMatch = html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*itemprop=["']image["'][^>]*>/i) ||
-                           html.match(/<meta[^>]*itemprop=["']image["'][^>]*content=["']([^"']+)["'][^>]*>/i);
-		console.log('metaImageMatch:', metaImageMatch);
+    const metaImageMatch = html.match(/<meta[^>]*content=["']?([^"'\s>]+)["']?[^>]*itemprop=["']?image["']?[^>]*>/i) ||
+                           html.match(/<meta[^>]*itemprop=["']?image["']?[^>]*content=["']?([^"'\s>]+)["']?[^>]*>/i);
+
 
     // 2. 尝试从link标签提取favicon
-    const faviconMatch = html.match(/<link\s+[^>]*?rel=["'](?:icon|shortcut icon)["'][^>]*?href=["'](.*?)["'][^>]*?>/i);
+    const faviconMatch = html.match(/<link\s+[^>]*?rel=["']?(?:icon|shortcut icon)["']?[^>]*?href=["']?([^"'\s>]+)["']?[^>]*?>/i) ||
+                         html.match(/<link\s+[^>]*?href=["']?([^"'\s>]+)["']?[^>]*?rel=["']?(?:icon|shortcut icon)["']?[^>]*?>/i);
 
     // 3. 尝试从apple-touch-icon提取
-    const appleTouchIconMatch = html.match(/<link\s+[^>]*?rel=["']apple-touch-icon["'][^>]*?href=["'](.*?)["'][^>]*?>/i);
+    const appleTouchIconMatch = html.match(/<link\s+[^>]*?rel=["']?apple-touch-icon["']?[^>]*?href=["']?([^"'\s>]+)["']?[^>]*?>/i) ||
+                               html.match(/<link\s+[^>]*?href=["']?([^"'\s>]+)["']?[^>]*?rel=["']?apple-touch-icon["']?[^>]*?>/i);
 
     // 4. 从alt="logo"的img标签提取
     const logoImgMatch = html.match(/<img[^>]*src=["']?([^"'\s>]+)["']?[^>]*alt=["']?logo["']?[^>]*>/i) ||
@@ -106,12 +108,12 @@ app.post('/api/analyze-website', async (c) => {
     if (metaImageMatch && metaImageMatch[1]) {
       // 处理meta itemprop="image"
       processIconUrl(metaImageMatch[1]);
+    } else if (appleTouchIconMatch && appleTouchIconMatch[1]) {
+      // 处理apple-touch-icon (优先于 favicon)
+      processIconUrl(appleTouchIconMatch[1]);
     } else if (faviconMatch && faviconMatch[1]) {
       // 处理favicon
       processIconUrl(faviconMatch[1]);
-    } else if (appleTouchIconMatch && appleTouchIconMatch[1]) {
-      // 处理apple-touch-icon
-      processIconUrl(appleTouchIconMatch[1]);
     } else if (logoImgMatch && logoImgMatch[1]) {
       // 处理 img alt="logo"
       processIconUrl(logoImgMatch[1]);
@@ -119,9 +121,21 @@ app.post('/api/analyze-website', async (c) => {
       // 处理第一个 img
       processIconUrl(firstImgMatch[1]);
     } else {
-      // 如果没有找到图标，使用默认favicon.ico
+      // 如果没有找到图标，尝试检测默认favicon.ico是否存在
       const urlObj = new URL(finalUrl);
-      icon = `${urlObj.origin}/favicon.ico`;
+      const faviconUrl = `${urlObj.origin}/favicon.ico`;
+      try {
+        const headResp = await fetch(faviconUrl, { method: 'HEAD' });
+        // 仅当请求成功且返回的是图片类型才使用
+        if (headResp.ok) {
+          const ct = headResp.headers.get('content-type') || '';
+          if (ct.startsWith('image')) {
+            icon = faviconUrl;
+          }
+        }
+      } catch (_) {
+        // 忽略错误，保持icon为空
+      }
     }
 
     // 处理图标URL的函数
