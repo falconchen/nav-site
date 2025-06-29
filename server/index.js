@@ -85,39 +85,37 @@ app.post('/api/analyze-website', async (c) => {
     const metaImageMatch = html.match(/<meta[^>]*content=["']?([^"'\s>]+)["']?[^>]*itemprop=["']?image["']?[^>]*>/i) ||
                            html.match(/<meta[^>]*itemprop=["']?image["']?[^>]*content=["']?([^"'\s>]+)["']?[^>]*>/i);
 
-
-    // 2. 尝试从link标签提取favicon
-    const faviconMatch = html.match(/<link\s+[^>]*?rel=["']?(?:icon|shortcut icon)["']?[^>]*?href=["']?([^"'\s>]+)["']?[^>]*?>/i) ||
-                         html.match(/<link\s+[^>]*?href=["']?([^"'\s>]+)["']?[^>]*?rel=["']?(?:icon|shortcut icon)["']?[^>]*?>/i);
+		// 2. 从alt="logo"的img标签提取
+    const logoImgMatch = html.match(/<img[^>]*src=["']?([^"'\s>]+)["']?[^>]*alt=["']?logo["']?[^>]*>/i) ||
+		html.match(/<img[^>]*alt=["']?logo["']?[^>]*src=["']?([^"'\s>]+)["']?[^>]*>/i);
 
     // 3. 尝试从apple-touch-icon提取
     const appleTouchIconMatch = html.match(/<link\s+[^>]*?rel=["']?apple-touch-icon["']?[^>]*?href=["']?([^"'\s>]+)["']?[^>]*?>/i) ||
                                html.match(/<link\s+[^>]*?href=["']?([^"'\s>]+)["']?[^>]*?rel=["']?apple-touch-icon["']?[^>]*?>/i);
-
-    // 4. 从alt="logo"的img标签提取
-    const logoImgMatch = html.match(/<img[^>]*src=["']?([^"'\s>]+)["']?[^>]*alt=["']?logo["']?[^>]*>/i) ||
-                         html.match(/<img[^>]*alt=["']?logo["']?[^>]*src=["']?([^"'\s>]+)["']?[^>]*>/i);
-
+    // 4. 尝试从link标签提取favicon
+    const faviconMatch = html.match(/<link\s+[^>]*?rel=["']?(?:icon|shortcut icon)["']?[^>]*?href=["']?([^"'\s>]+)["']?[^>]*?>/i) ||
+                         html.match(/<link\s+[^>]*?href=["']?([^"'\s>]+)["']?[^>]*?rel=["']?(?:icon|shortcut icon)["']?[^>]*?>/i);
 
 
-    // 5. 获取第一个img标签的src
-    const firstImgMatch = html.match(/<img[^>]*src=["']?([^"'\s>]+)["']?[^>]*>/i);
+
+    // 5. 获取第一个img标签的src（排除引号或反引号包裹的script字符串中的<img）
+    const firstImgMatch = html.match(/(?:^|[^"'`])<img[^>]*src=["']?([^"'\s>]+)["']?[^>]*>/i);
 
 
     // 处理找到的图标URL
     if (metaImageMatch && metaImageMatch[1]) {
       // 处理meta itemprop="image"
       processIconUrl(metaImageMatch[1]);
+    } else if (logoImgMatch && logoImgMatch[1]) {
+      // 处理 img alt="logo"
+      processIconUrl(logoImgMatch[1]);
     } else if (appleTouchIconMatch && appleTouchIconMatch[1]) {
       // 处理apple-touch-icon (优先于 favicon)
       processIconUrl(appleTouchIconMatch[1]);
     } else if (faviconMatch && faviconMatch[1]) {
       // 处理favicon
       processIconUrl(faviconMatch[1]);
-    } else if (logoImgMatch && logoImgMatch[1]) {
-      // 处理 img alt="logo"
-      processIconUrl(logoImgMatch[1]);
-    } else if (firstImgMatch && firstImgMatch[1]) {
+    }  else if (firstImgMatch && firstImgMatch[1]) {
       // 处理第一个 img
       processIconUrl(firstImgMatch[1]);
     } else {
@@ -396,13 +394,17 @@ app.get('/api/proxy-image', async (c) => {
     }
 
     console.log('代理获取图片:', imageUrl);
+		//获取图片的协议和域名，在referer中添加
+		const imageUrlObj = new URL(imageUrl);
 
+		const referer = imageUrlObj.protocol+'//' + imageUrlObj.host;
+		console.log('referer:', referer);
     // 请求图片
     const response = await fetch(imageUrl, {
       headers: {
 				'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36',
 				'Accept-Language': 'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7',
-				'Referer': 'https://www.google.com/search?q=' + encodeURIComponent(imageUrl)
+				'Referer': referer
       }
     });
 
