@@ -225,6 +225,8 @@ function createCardHTML(website) {
     const weight = website.weight || 100;
     // 添加置顶样式类
     const pinnedClass = website.pinned ? 'pinned' : '';
+    // 根据是否有图片决定是否添加背景去除类
+    const withImgClass = website.imageData ? 'with-img' : '';
 
     // 判断是否有图片数据
     let iconContent = '';
@@ -239,7 +241,7 @@ function createCardHTML(website) {
     return `
         <div class="website-card ${pinnedClass}" data-weight="${weight}">
             <div class="card-header">
-                <div class="card-icon">
+                <div class="card-icon ${withImgClass}">
                     ${iconContent}
                 </div>
                 <div>
@@ -1528,9 +1530,11 @@ function updateWebsiteCard(card, name, url, description, iconUrl, isPinned) {
     if (imageData) {
         // 如果有图片数据，显示图片
         cardIcon.innerHTML = `<img src="${imageData}" alt="${name}">`;
+        cardIcon.classList.add('with-img');
     } else if (iconUrl) {
         // 否则显示图标
         cardIcon.innerHTML = `<i class="${iconUrl.startsWith('fa') ? iconUrl : 'fas fa-globe'}"></i>`;
+        cardIcon.classList.remove('with-img');
     }
 
     // 更新置顶状态

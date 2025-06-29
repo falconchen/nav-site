@@ -2012,3 +2012,8 @@ html[data-sidebar="compact"] .website-card:hover {
     transform: rotate(360deg);
   }
 }
+
+/* 当 card-icon 中包含图片时移除背景 */
+.card-icon.with-img {
+  background: none;
+}
