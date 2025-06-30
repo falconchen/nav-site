@@ -2374,7 +2374,9 @@ function setupAIDetection() {
             for (let i = 0; i < categorySelect.options.length; i++) {
                 if (categorySelect.options[i].value &&
                     categorySelect.options[i].value !== 'pinned' &&
-                    categorySelect.options[i].value !== 'recent') {
+                    categorySelect.options[i].value !== 'recent' &&
+					categorySelect.options[i].value !== 'uncategorized'
+				) {
                     categories.push({
                         id: categorySelect.options[i].value,
                         name: categorySelect.options[i].textContent
@@ -2446,7 +2448,8 @@ function fillFormWithAIData(data) {
 
             const categoryLower = data.category.toLowerCase();
 			console.log('categoryLower:', categoryLower);
-            if (optionValue == categoryLower) {
+            if (optionValue === categoryLower
+				|| optionValue === `category-${categoryLower}`) {
                 categorySelect.selectedIndex = i;
 				categorySelect.options[i].setAttribute('selected', 'selected');
                 foundMatch = true;

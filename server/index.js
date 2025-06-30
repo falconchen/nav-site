@@ -62,16 +62,16 @@ app.post('/api/analyze-website', async (c) => {
 
     // 提取网页标题
     let title = '';
-    const titleMatch = html.match(/<title>(.*?)<\/title>/i);
+    const titleMatch = html.match(/<title>(.*?)<\/title>/is);
     if (titleMatch && titleMatch[1]) {
-      title = titleMatch[1].trim();
+      title = titleMatch[1].replace(/\s+/g, ' ').trim();
     }
 
     // 提取网页描述
     let description = '';
-    const descMatch = html.match(/<meta\s+name=["']description["']\s+content=["'](.*?)["']/i);
+    const descMatch = html.match(/<meta\s+name=["']description["']\s+content=["'](.*?)["']/is);
     if (descMatch && descMatch[1]) {
-      description = descMatch[1].trim();
+      description = descMatch[1].replace(/\s+/g, ' ').trim();
     }
 
     // 提取网页图标
@@ -201,7 +201,7 @@ app.post('/api/analyze-website', async (c) => {
         }
 
         // 使用AI分析内容
-        const input = `你是网站分类助手，根据提供的网页信息，请从括号中的ID列表中选择最匹配的分类ID，若都不合适返回 uncategorized：${categoryOptions}。
+        const input = `你是网站分类助手，根据提供的网页信息，请从括号中的ID列表中选择最匹配的分类ID：${categoryOptions}。
 
 网页信息：
 网站链接：${url}
@@ -236,7 +236,11 @@ app.post('/api/analyze-website', async (c) => {
                   category.toLowerCase().includes(cat.id.toLowerCase())) {
                 category = cat.id;
                 break;
-              }
+              }else if (cat.id === category
+								|| cat.id === `category-${category}`) {
+									category = cat.id;
+									break;
+								}
             }
 
             // 如果AI返回的ID仍未匹配，标记为未分类
