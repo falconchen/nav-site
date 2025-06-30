@@ -3,7 +3,7 @@
 	"version": "1.0.0",
 	"private": true,
 	"scripts": {
-		"build": "esbuild public/styles.css public/data.js public/script.js public/category-edit.js public/icon-selector.js --minify --outdir=dist && html-minifier-terser --collapse-whitespace --remove-comments --remove-redundant-attributes --remove-script-type-attributes --remove-tag-whitespace --use-short-doctype --minify-css true --minify-js true -o dist/index.html public/index.html && echo \"\" >> dist/index.html && echo \"<!-- 构建时间: $(date '+%Y-%m-%d %H:%M:%S %z') -->\" >> dist/index.html",
+		"build": "esbuild public/styles.css public/data.js public/script.js public/category-edit.js public/icon-selector.js --minify --outdir=dist && html-minifier-terser --collapse-whitespace --remove-comments --remove-redundant-attributes --remove-script-type-attributes --remove-tag-whitespace --use-short-doctype --minify-css true --minify-js true -o dist/index.html public/index.html && ts=$(TZ='Asia/Shanghai' date '+%y%m%d%H%M') && sed -i '' \"s/id=\\\"version\\\">[^<]*/id=\\\"version\\\">$ts/\" dist/index.html && echo \"<!-- 构建时间: $ts -->\" >> dist/index.html",
 		"dev": "wrangler dev",
 		"start": "wrangler dev",
 		"test": "vitest",

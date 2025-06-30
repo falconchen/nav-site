@@ -73,6 +73,8 @@ body {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  flex-wrap: wrap;
+  row-gap: 0.15rem;
   font-size: 1.5rem;
   font-weight: 700;
   color: var(--primary-color);
@@ -81,6 +83,23 @@ body {
 
 .logo i {
   font-size: 2rem;
+}
+
+/* Logo 版本号 */
+.version {
+  /* 独占一行且宽度自适应内容 */
+  display: block;
+  width: fit-content;
+  font-size: 0.7rem;
+  line-height: 1;
+  font-weight: 500;
+  color: var(--primary-color);
+  background-color: rgba(var(--primary-color-rgb, 79, 70, 229), 0.08);
+  padding: 0.1rem 0.45rem;
+  border-radius: 0.25rem;
+  letter-spacing: 0.03em;
+  margin-left: 2.5rem;
+  margin-top: -0.15rem;
 }
 
 .search-container {
