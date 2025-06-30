@@ -88,8 +88,7 @@ body {
 /* Logo 版本号 */
 .version {
   /* 独占一行且宽度自适应内容 */
-  display: block;
-  width: fit-content;
+
   font-size: 0.7rem;
   line-height: 1;
   font-weight: 500;
