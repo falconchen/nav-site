@@ -98,8 +98,19 @@ body {
   padding: 0.1rem 0.45rem;
   border-radius: 0.25rem;
   letter-spacing: 0.03em;
-  margin-left: 2.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: calc(2rem + 0.75rem);
   margin-top: -0.15rem;
+  width: fit-content;
+}
+
+/* 版本号内的图标 */
+.version-icon {
+  font-size: 0.65rem;
+  color: var(--primary-color);
+  transform: translateY(1px);
 }
 
 .search-container {
@@ -934,7 +945,7 @@ html[data-sidebar="compact"] .cards-grid {
 /* 置顶后的简单高亮效果 */
 .simple-highlight {
   border: 1px solid var(--primary-color);
-  box-shadow: 0 0 5px rgba(var(--primary-color-rgb, 79, 70, 229), 0.5);
+  box-shadow: 0 0 5px rgba(var(--primary-color-rgb), 0.5);
   position: relative;
   z-index: 2;
 }
