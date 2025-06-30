@@ -156,21 +156,28 @@ app.post('/api/analyze-website', async (c) => {
       }
     }
 
+    // 提取meta关键词
+    let keywords = '';
+    const kwMatch = html.match(/<meta\s+name=["']keywords["']\s+content=["'](.*?)["']/i);
+    if (kwMatch && kwMatch[1]) {
+      keywords = kwMatch[1].trim();
+    }
+
+    // 提取纯文本内容（用于AI分析）
+    let plainContent = html
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, ' ')
+      .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, ' ')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .substring(0, 5000);
+
     // 使用Cloudflare AI分析网页内容
     // 注意：如果环境中没有配置AI，可以使用简单的规则判断分类
     let category = '';
 
     try {
       if (c.env.AI) {
-        // 提取网页正文内容
-        let content = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, ' ');
-        content = content.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, ' ');
-        content = content.replace(/<[^>]+>/g, ' ');
-        content = content.replace(/\s+/g, ' ').trim();
-
-        // 限制内容长度
-        content = content.substring(0, 1000);
-
         // 构建分类选项列表
         let categoryOptions = '';
         if (categories && categories.length > 0) {
@@ -186,7 +193,7 @@ app.post('/api/analyze-website', async (c) => {
 
         标题: ${title}
         描述: ${description}
-        内容摘要: ${content}
+        内容摘要: ${plainContent}
 
         请只返回一个最匹配的分类名称，不要包含任何解释。如果是自定义分类，请使用括号中的ID。`;
 				console.log('AI输入:', input);
@@ -249,6 +256,36 @@ app.post('/api/analyze-website', async (c) => {
             category = 'uncategorized';
           }
         }
+
+        /* 使用 AI 生成简洁中文描述 */
+        try {
+          const descPrompt = `请根据以下网页信息，用简体中文生成不超过两句话的简洁描述，直接给出描述内容，不要包含"简洁描述"或类似前缀，也不要添加任何解释:\n标题: ${title}\n关键词: ${keywords}\n已有描述: ${description}\n正文内容: ${plainContent}`;
+
+          console.log('AI描述输入:', descPrompt.substring(0, 500) + (descPrompt.length > 500 ? '...[截断]' : ''));
+
+          const aiDescResp = await c.env.AI.run('@cf/meta/llama-3.2-3b-instruct', {
+            messages: [
+              { role: 'system', content: '你是一个网页描述生成器。用于收藏网页时使用，请根据用户提供信息生成极简、连贯的中文总结，不超过两句，每句尽量简短。不要包含任何前缀或解释，如Here is the simplified summary: ' },
+              { role: 'user', content: descPrompt }
+            ]
+          });
+
+          let aiDesc = aiDescResp.response.trim();
+          // 取前两句话，按中文句号、问号、感叹号或换行分割
+          const parts = aiDesc.replace(/\n+/g, ' ').split(/[。！？.!?]$/).filter(p => p.trim());
+          aiDesc = parts.slice(0, 2).join('。');
+          if (!/[。！？.!?]$/.test(aiDesc)) {
+            aiDesc += '。';
+          }
+          // 控制整体长度（可选）
+          aiDesc = aiDesc.substring(0, 120);
+          console.log('AI描述输出:', aiDesc);
+          if (aiDesc) {
+            description = aiDesc;
+          }
+        } catch (descErr) {
+          console.error('AI 生成描述错误:', descErr);
+        }
       } else {
         // 如果没有AI环境，使用简单规则判断分类
         category = getCategoryByKeywords(title, description, html, categories);
@@ -259,7 +296,7 @@ app.post('/api/analyze-website', async (c) => {
       category = getCategoryByKeywords(title, description, html, categories);
     }
 
-    // 生成短描述（如果没有meta描述）
+    // 如果仍未获得描述（当无AI或AI失败），生成简短描述
     if (!description) {
       // 提取网页中的第一段文本作为描述
       const paragraphMatch = html.match(/<p[^>]*>(.*?)<\/p>/is);
