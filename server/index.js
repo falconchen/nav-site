@@ -10,6 +10,7 @@
 
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
+import * as htmlparser2 from 'htmlparser2';
 
 // 创建 Hono 应用
 const app = new Hono();
@@ -22,11 +23,6 @@ app.get('/', async (c) => {
 	return await c.env.ASSETS.fetch(c.req.raw);
 });
 
-
-// 返回问候消息
-app.get('/message', (c) => {
-	return c.text('你好，世界！');
-});
 
 // 返回随机 UUID
 app.get('/random', (c) => {
@@ -163,44 +159,62 @@ app.post('/api/analyze-website', async (c) => {
       keywords = kwMatch[1].trim();
     }
 
-    // 提取纯文本内容（用于AI分析）
-    let plainContent = html
-      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, ' ')
-      .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, ' ')
-      .replace(/<[^>]+>/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim()
-      .substring(0, 5000);
 
+    // 提取纯文本内容（用于AI分析）
+    let plainContent = '';
+    let inScriptOrStyle = false;
+    const parser = new htmlparser2.Parser({
+        onopentagname(name) {
+            if (name === "script" || name === "style") {
+                inScriptOrStyle = true;
+            }
+        },
+        ontext(text) {
+            if (!inScriptOrStyle) {
+                plainContent += text + ' ';
+            }
+        },
+        onclosetag(name) {
+            if (name === "script" || name === "style") {
+                inScriptOrStyle = false;
+            }
+        }
+    }, { decodeEntities: true });
+    parser.write(html);
+    parser.end();
+
+    plainContent = plainContent.replace(/\s+/g, ' ').trim().substring(0, 5000);
+
+		console.log('plainContent:', plainContent);
     // 使用Cloudflare AI分析网页内容
     // 注意：如果环境中没有配置AI，可以使用简单的规则判断分类
     let category = '';
 
     try {
       if (c.env.AI) {
-        // 构建分类选项列表
+        // 构建分类选项列表（仅列出ID）
         let categoryOptions = '';
         if (categories && categories.length > 0) {
-          // 使用用户提供的分类
-          categoryOptions = categories.map(cat => `${cat.name} (${cat.id})`).join('、');
+          categoryOptions = categories.map(cat => `${cat.name}(${cat.id})`).join('、');
         } else {
-          // 使用默认分类
-          categoryOptions = '社交媒体、实用工具、设计资源、开发技术、新闻资讯、娱乐休闲';
+          categoryOptions = 'social、tools、design、dev、news、entertainment、uncategorized';
         }
 
         // 使用AI分析内容
-        const input = `根据这个网页内容，确定最合适的分类（${categoryOptions}）:
+        const input = `你是网站分类助手，根据提供的网页信息，请从括号中的ID列表中选择最匹配的分类ID，若都不合适返回 uncategorized：${categoryOptions}。
 
-        标题: ${title}
-        描述: ${description}
-        内容摘要: ${plainContent}
+网页信息：
+网站链接：${url}
+标题：${title}
+描述：${description}
+内容摘要：${plainContent}
 
-        请只返回一个最匹配的分类名称，不要包含任何解释。如果是自定义分类，请使用括号中的ID。`;
+仅输出ID，其余内容不得输出。`;
 				console.log('AI输入:', input);
 
-        const aiResponse = await c.env.AI.run('@cf/meta/llama-2-7b-chat-int8', {
+        const aiResponse = await c.env.AI.run('@cf/meta/llama-3.2-3b-instruct', {
           messages: [
-            { role: 'system', content: '你是一个网站分类助手。根据提供的网站内容，确定最适合的分类。只返回分类名称或ID，不要解释。' },
+            { role: 'system', content: '你是一个网站分类助手。根据用户提供信息，从给定ID列表中选出最匹配的分类ID，不要输出多余文本，若都不匹配返回 uncategorized。' },
             { role: 'user', content: input }
           ]
         });
@@ -225,9 +239,9 @@ app.post('/api/analyze-website', async (c) => {
               }
             }
 
-            // 如果仍然没有找到匹配，使用简单规则进行判断
+            // 如果AI返回的ID仍未匹配，标记为未分类
             if (!categories.some(cat => cat.id === category)) {
-              category = getCategoryByKeywords(title, description, html, categories);
+              category = 'uncategorized';
             }
           }
         } else {
@@ -259,7 +273,7 @@ app.post('/api/analyze-website', async (c) => {
 
         /* 使用 AI 生成简洁中文描述 */
         try {
-          const descPrompt = `请根据以下网页信息，用简体中文生成不超过两句话的简洁描述，直接给出描述内容，不要包含"简洁描述"或类似前缀，也不要添加任何解释:\n标题: ${title}\n关键词: ${keywords}\n已有描述: ${description}\n正文内容: ${plainContent}`;
+          const descPrompt = `请根据以下网页信息，用简体中文生成不超过两句话的简洁总结，直接给出描述内容，不要包含"简洁总结"或类似前缀，也不要添加任何解释:\n标题: ${title}\n关键词: ${keywords}\n描述: ${description}\n正文内容: ${plainContent}`;
 
           console.log('AI描述输入:', descPrompt.substring(0, 500) + (descPrompt.length > 500 ? '...[截断]' : ''));
 
