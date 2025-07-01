@@ -56,3 +56,13 @@ app.get('/*', async (c) => {
 });
 
 ```
+
+## 设置正式环境的环境变量
+
+```
+npx wrangler secret put USER_AGENT --env production
+```
+
+```
+npx wrangler secret put ACCEPT_LANGUAGE --env production
+```
