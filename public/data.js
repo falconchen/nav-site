@@ -231,22 +231,20 @@ function loadData() {
     // 尝试从localStorage加载分类数据
     const savedCategories = localStorage.getItem('navSiteCategories');
     const savedWebsites = localStorage.getItem('navSiteWebsites');
-    
+
     if (savedCategories && savedWebsites) {
-      console.log('从localStorage加载数据');
       categories = JSON.parse(savedCategories);
       websites = JSON.parse(savedWebsites);
-      window.websites = websites;    
-      window.categories = categories; // 添加别名      
+      window.websites = websites;
+      window.categories = categories; // 添加别名
       // 确保固定分类存在且位置正确
       ensureFixedCategories();
     } else {
-      console.log('使用默认数据');
       // 如果localStorage中没有数据，使用默认数据
       categories = [...defaultCategories];
       websites = JSON.parse(JSON.stringify(defaultWebsites)); // 深拷贝
     }
-    
+
     // 清空虚拟分类中的数据
     if (websites['pinned']) {
       websites['pinned'] = [];
@@ -254,12 +252,12 @@ function loadData() {
     if (websites['recent']) {
       websites['recent'] = [];
     }
-    
+
     window.websites = websites;
-    
+
     // 初始化全局分类数据
     window.categories = categories; // 添加别名
-    
+
     // 渲染分类列表
     renderCategoryList();
   } catch (error) {
@@ -267,13 +265,13 @@ function loadData() {
     // 发生错误时使用默认数据
     categories = [...defaultCategories];
     websites = JSON.parse(JSON.stringify(defaultWebsites)); // 深拷贝
-    window.websites = websites;    
+    window.websites = websites;
     window.categories = categories; // 添加别名
     // 确保固定分类存在且位置正确
     ensureFixedCategories();
-    
 
-    
+
+
     // 渲染分类列表
     renderCategoryList();
   }
@@ -283,7 +281,7 @@ function loadData() {
 function ensurePinnedCategory() {
   // 查找置顶分类
   const pinnedIndex = categories.findIndex(cat => cat.id === 'pinned');
-  
+
   if (pinnedIndex < 0) {
     // 如果不存在，则添加置顶分类
     categories.unshift({
@@ -293,7 +291,7 @@ function ensurePinnedCategory() {
       order: 0,
       fixed: true
     });
-    
+
     // 更新其他分类的order
     categories.forEach((cat, index) => {
       if (cat.id !== 'pinned') {
@@ -305,7 +303,7 @@ function ensurePinnedCategory() {
     const pinnedCategory = categories.splice(pinnedIndex, 1)[0];
     pinnedCategory.order = 0;
     categories.unshift(pinnedCategory);
-    
+
     // 更新其他分类的order
     categories.forEach((cat, index) => {
       if (cat.id !== 'pinned') {
@@ -313,13 +311,13 @@ function ensurePinnedCategory() {
       }
     });
   }
-  
+
   // 确保置顶分类是固定的
   const pinnedCategory = categories.find(cat => cat.id === 'pinned');
   if (pinnedCategory) {
     pinnedCategory.fixed = true;
   }
-  
+
   // 确保置顶分类数据是空的
   websites['pinned'] = [];
 }
@@ -331,7 +329,7 @@ function ensureFixedCategories() {
     console.error('分类数据未正确初始化');
     return;
   }
-  
+
   // 查找置顶分类、最近添加分类以及未分类分类
   let pinnedCategory = window.categories.find(cat => cat.id === 'pinned');
   let recentCategory = window.categories.find(cat => cat.id === 'recent');
@@ -360,7 +358,7 @@ function ensureFixedCategories() {
     };
     window.categories.push(recentCategory);
   }
-  
+
   // 如果未分类分类不存在，添加它
   if (!uncategorizedCategory) {
     uncategorizedCategory = {
@@ -376,30 +374,30 @@ function ensureFixedCategories() {
   // 确保固定分类的属性和顺序正确，无论其他分类的order值如何
   pinnedCategory.order = -3; // 使用负数确保始终排在最前面
   pinnedCategory.fixed = true;
-  
+
   recentCategory.order = -2; // 使用负数确保始终排在第二位
   recentCategory.fixed = true;
-  
+
   uncategorizedCategory.order = 1000; // 使用很大的数字确保始终排在最后
   uncategorizedCategory.fixed = true;
 
   // 自定义排序函数，优先考虑固定分类的特殊位置
   window.categories.sort((a, b) => {
 
-    
+
     // 对于其他分类，按照order值排序
     return a.order - b.order;
   });
-  
+
   // 确保网站数据对象中包含置顶、最近添加和未分类的键
   if (!window.websites.pinned) {
     window.websites.pinned = [];
   }
-  
+
   if (!window.websites.recent) {
     window.websites.recent = [];
   }
-  
+
   if (!window.websites.uncategorized) {
     window.websites.uncategorized = [];
   }
@@ -409,29 +407,29 @@ function ensureFixedCategories() {
 function renderCategoryList() {
   const categoriesContainer = document.querySelector('.categories-list');
   if (!categoriesContainer) return;
-  
+
   let html = '';
-  
+
   // 使用与ensureFixedCategories相同的排序逻辑
   const sortedCategories = [...categories].sort((a, b) => {
     // 如果是固定分类，按照特殊顺序排序
     if (a.id === 'pinned') return -1; // 置顶分类始终排在最前面
     if (b.id === 'pinned') return 1;
-    
+
     if (a.id === 'recent') return -1; // 最近添加分类排在第二位
     if (b.id === 'recent') return 1;
-    
+
     if (a.id === 'uncategorized') return 1; // 未分类分类始终排在最后
     if (b.id === 'uncategorized') return -1;
-    
+
     // 对于其他分类，按照order值排序
     return a.order - b.order;
   });
-  
+
   // 查找当前活动的分类
   const activeSection = document.querySelector('.category-section.active');
   const activeCategoryId = activeSection ? activeSection.id : 'social';
-  
+
   sortedCategories.forEach(category => {
     html += `
       <div class="category-item${category.id === activeCategoryId ? ' active' : ''}" data-category="${category.id}" onclick="showCategory('${category.id}')">
@@ -440,7 +438,7 @@ function renderCategoryList() {
       </div>
     `;
   });
-  
+
   categoriesContainer.innerHTML = html;
 }
 
@@ -451,18 +449,16 @@ function saveNavData() {
     if (window.categories) {
       categoriesFromGlobal = window.categories;
     }
-    
+
     if (categoriesFromGlobal) {
       categories = categoriesFromGlobal;
-    } else {
-      console.warn('没有找到全局分类数据!');
     }
-    
+
     // 同步websites变量
     if (window.websites) {
       websites = window.websites;
     }
-    
+
     localStorage.setItem('navSiteCategories', JSON.stringify(categories));
     localStorage.setItem('navSiteWebsites', JSON.stringify(websites));
   } catch (error) {
@@ -476,7 +472,7 @@ function exportData() {
     // 确保使用最新的数据
     let categoriesFromGlobal = window.categories || categories;
     let websitesFromGlobal = window.websites || websites;
-    
+
     // 创建导出对象
     const exportData = {
       categories: categoriesFromGlobal,
@@ -484,29 +480,29 @@ function exportData() {
       exportDate: new Date().toISOString(),
       version: '1.0'
     };
-    
+
     // 转换为JSON字符串
     const jsonString = JSON.stringify(exportData, null, 2);
-    
+
     // 创建Blob对象
     const blob = new Blob([jsonString], { type: 'application/json' });
-    
+
     // 创建下载链接
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = `导航助手数据_${new Date().toISOString().slice(0, 10)}.json`;
-    
+
     // 触发下载
     document.body.appendChild(a);
     a.click();
-    
+
     // 清理
     setTimeout(() => {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     }, 100);
-    
+
     return true;
   } catch (error) {
     console.error('导出数据出错:', error);
@@ -520,50 +516,50 @@ function importData(jsonFile) {
   return new Promise((resolve, reject) => {
     try {
       const reader = new FileReader();
-      
+
       reader.onload = function(event) {
         try {
           // 解析JSON
           const importedData = JSON.parse(event.target.result);
-          
+
           // 验证数据格式
           if (!importedData.categories || !importedData.websites) {
             throw new Error('导入的数据格式不正确，缺少必要的字段');
           }
-          
+
           // 更新全局数据
           window.categories = importedData.categories;
           window.websites = importedData.websites;
           categories = importedData.categories;
           websites = importedData.websites;
-          
+
           // 确保固定分类存在
           ensureFixedCategories();
-          
+
           // 保存到localStorage
           localStorage.setItem('navSiteCategories', JSON.stringify(categories));
           localStorage.setItem('navSiteWebsites', JSON.stringify(websites));
-          
+
           // 刷新UI
           if (typeof renderCategoryList === 'function') {
             renderCategoryList();
           }
-          
+
           if (typeof loadWebsitesFromData === 'function') {
             loadWebsitesFromData();
           }
-          
+
           resolve(true);
         } catch (error) {
           console.error('解析导入数据出错:', error);
           reject(error);
         }
       };
-      
+
       reader.onerror = function() {
         reject(new Error('读取文件时出错'));
       };
-      
+
       // 开始读取文件
       reader.readAsText(jsonFile);
     } catch (error) {
@@ -579,64 +575,64 @@ function createImportExportUI() {
   if (document.getElementById('import-export-container')) {
     return;
   }
-  
+
   // 查找footer链接区域
   const footerLinks = document.querySelector('.footer-links');
   if (!footerLinks) {
     console.error('找不到footer-links元素');
     return;
   }
-  
+
   // 创建导入导出按钮组
   const exportBtn = document.createElement('a');
   exportBtn.href = '#';
   exportBtn.className = 'footer-link export-data-btn';
   exportBtn.innerHTML = '<i class="fas fa-download"></i> 导出数据';
-  
+
   const importBtn = document.createElement('label');
   importBtn.className = 'footer-link import-data-btn';
   importBtn.innerHTML = '<i class="fas fa-upload"></i> 导入数据 <input type="file" id="import-file" accept=".json" style="display: none;">';
   importBtn.style.cursor = 'pointer';
-  
+
   // 添加到footer链接区域
   footerLinks.appendChild(exportBtn);
   footerLinks.appendChild(importBtn);
-  
+
   // 添加事件监听
   exportBtn.addEventListener('click', (e) => {
     e.preventDefault();
     exportData();
   });
-  
+
   const importFile = importBtn.querySelector('#import-file');
   importFile.addEventListener('change', async (event) => {
     const file = event.target.files[0];
     if (!file) return;
-    
+
     try {
       // 显示加载中
       const originalText = importBtn.innerHTML;
       importBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 导入中...';
-      
+
       // 导入数据
       await importData(file);
-      
+
       // 导入成功
       importBtn.innerHTML = '<i class="fas fa-check"></i> 导入成功';
       setTimeout(() => {
         importBtn.innerHTML = originalText;
       }, 2000);
-      
+
       // 刷新页面
       setTimeout(() => {
         window.location.reload();
       }, 1000);
     } catch (error) {
       alert('导入数据失败: ' + error.message);
-      
+
       // 重置按钮
       importBtn.innerHTML = '<i class="fas fa-upload"></i> 导入数据 <input type="file" id="import-file" accept=".json" style="display: none;">';
-      
+
       // 重新绑定事件
       document.getElementById('import-file').addEventListener('change', arguments.callee);
     }
@@ -646,7 +642,7 @@ function createImportExportUI() {
 // 页面加载时自动加载数据
 document.addEventListener('DOMContentLoaded', function() {
   loadData();
-  
+
   // 创建导入导出UI
   createImportExportUI();
 });
@@ -657,4 +653,4 @@ window.exportData = exportData;
 window.importData = importData;
 
 // 全局分类数据变量（已经在loadData中设置）
-// window.categoryData = categories; 
+// window.categoryData = categories;

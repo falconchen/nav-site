@@ -111,35 +111,9 @@ function openModal(modalId) {
 }
 
 function closeModal(modalId) {
-    console.log(`开始关闭模态框: ${modalId}`);
-
-    // 检查当前编辑状态
-    console.log('关闭前的编辑状态:', {
-        currentEditingCard: currentEditingCard ? '存在' : '不存在',
-        editingCards: document.querySelectorAll('.website-card.editing').length,
-        modalId: modalId
-    });
-
-    // 记录所有具有editing类的卡片
-    const editingCards = document.querySelectorAll('.website-card.editing');
-    if (editingCards.length > 0) {
-        console.log(`发现 ${editingCards.length} 个带有editing类的卡片:`,
-            Array.from(editingCards).map(card => {
-                const title = card.querySelector('.card-title')?.textContent || '无标题';
-                const category = card.closest('.category-section')?.id || '未知分类';
-                return { title, category };
-            })
-        );
-    }
-
     const modal = document.getElementById(modalId);
     modal.classList.remove('active');
     document.body.style.overflow = '';
-
-    // 清理前再次检查
-    console.log('清理前再次检查:', {
-        editingCards: document.querySelectorAll('.website-card.editing').length
-    });
 
     // 如果是网站模态框，清除图片上传区域
     if (modalId === 'websiteModal') {
@@ -171,20 +145,15 @@ function closeModal(modalId) {
 
     // 重置当前编辑卡片引用
     if (currentEditingCard) {
-        console.log('重置currentEditingCard');
         currentEditingCard = null;
     }
 
     // 清除编辑状态
     document.querySelectorAll('.website-card.editing').forEach((card, index) => {
-        console.log(`尝试清除第 ${index + 1} 个卡片的editing类`);
         try {
             // 检查卡片在DOM中是否有效
             if (card.isConnected) {
                 card.classList.remove('editing');
-                console.log(`成功移除editing类`);
-            } else {
-                console.log(`卡片不在DOM中，无法移除类`);
             }
         } catch (error) {
             console.error(`移除editing类时出错:`, error);
@@ -193,36 +162,18 @@ function closeModal(modalId) {
 
     // 最终检查是否还有卡片带有editing类
     const remainingEditingCards = document.querySelectorAll('.website-card.editing');
-    console.log('清理后检查:', {
-        remainingEditingCards: remainingEditingCards.length,
-        清理成功: remainingEditingCards.length === 0
-    });
 
     if (remainingEditingCards.length > 0) {
-        console.warn('警告: 仍有卡片带有editing类!',
-            Array.from(remainingEditingCards).map(card => {
-                return {
-                    title: card.querySelector('.card-title')?.textContent || '无标题',
-                    category: card.closest('.category-section')?.id || '未知分类',
-                    classList: card.className,
-                    inDOM: card.isConnected
-                };
-            })
-        );
-
         // 强制再次尝试清理
         remainingEditingCards.forEach(card => {
             // 使用替代方法尝试移除类
             try {
                 card.className = card.className.replace('editing', '').trim();
-                console.log('使用替代方法清理成功');
             } catch (error) {
                 console.error('替代清理方法失败:', error);
             }
         });
     }
-
-    console.log(`模态框 ${modalId} 关闭完成`);
 }
 
 // 根据数据创建卡片HTML
@@ -307,8 +258,6 @@ function loadWebsitesFromData() {
 
 // 验证置顶状态的一致性
 function validatePinnedStatus() {
-    console.log('验证置顶状态的一致性...');
-
     let dataChanged = false;
 
     // 检查所有分类中的网站
@@ -328,7 +277,6 @@ function validatePinnedStatus() {
 
     // 如果数据有变化，保存到localStorage
     if (dataChanged && window.saveNavData) {
-        console.log('修复了网站的置顶状态数据');
         window.saveNavData();
     }
 
@@ -567,7 +515,6 @@ function confirmDeleteWebsite() {
 
                         // 删除网站
                         originalCategoryWebsites.splice(siteIndex, 1);
-                        console.log(`已从原始分类 ${originalCategory} 中删除网站: ${title}`);
 
                         // 更新原分类UI（如果当前可见）
                         refreshCategoryUI(originalCategory);
@@ -764,7 +711,6 @@ function editWebsite(card) {
                         site.title === cardTitle && site.url === cardUrl);
                     if (foundSite) {
                         categoryId = catId;
-                        console.log(`找到网站的原始分类: ${categoryId}`);
 
                         // 将原始分类ID保存到卡片上，以便将来使用
                         card.dataset.originalCategory = categoryId;
@@ -781,7 +727,6 @@ function editWebsite(card) {
             // 如果仍然没有找到，使用默认分类
             if (!categoryId) {
                 categoryId = 'uncategorized';
-                console.warn(`无法找到网站的原始分类，使用默认分类: ${categoryId}`);
 
                 // 将默认分类ID保存到卡片上
                 card.dataset.originalCategory = categoryId;
@@ -824,7 +769,6 @@ function editWebsite(card) {
         if (categoryOption) {
             categorySelect.value = categoryId;
         } else {
-            console.warn(`分类 ${categoryId} 不存在于下拉菜单中，使用第一个可用分类`);
             // 选择第一个非空选项
             if (categorySelect.options.length > 1) {
                 categorySelect.selectedIndex = 1;
@@ -1311,8 +1255,6 @@ function renderPinnedCategory() {
 
 // 渲染最近添加分类
 function renderRecentCategory() {
-    console.log('开始渲染最近添加分类');
-
     // 获取分类section
     const recentSection = document.getElementById('recent');
     if (!recentSection) return;
@@ -1349,18 +1291,6 @@ function renderRecentCategory() {
         }
     });
 
-    console.log(`收集到 ${allWebsites.length} 个网站`);
-
-    // 打印一些网站示例来查看添加时间
-    if (allWebsites.length > 0) {
-        const sampleSites = allWebsites.slice(0, Math.min(5, allWebsites.length));
-        console.log('网站示例(含添加时间):', sampleSites.map(site => ({
-            title: site.title,
-            addedTime: site.addedTime ? new Date(site.addedTime).toLocaleString() : '无',
-            pinned: site.pinned
-        })));
-    }
-
     // 仅按添加时间排序（如果有），而不考虑editedTime
     allWebsites.sort((a, b) => {
         // 如果两个都有添加时间，按时间排序（新的在前）
@@ -1379,11 +1309,6 @@ function renderRecentCategory() {
         return (b.weight || 100) - (a.weight || 100);
     });
 
-    console.log('按添加时间排序后的顺序(前几个):', allWebsites.slice(0, Math.min(5, allWebsites.length)).map(site => ({
-        title: site.title,
-        addedTime: site.addedTime ? new Date(site.addedTime).toLocaleString() : '无'
-    })));
-
     // 取最近添加的12个网站
     const recentWebsites = allWebsites.slice(0, 12);
 
@@ -1399,8 +1324,6 @@ function renderRecentCategory() {
         const cardHTML = createCardHTML(website);
         recentContainer.insertAdjacentHTML('beforeend', cardHTML);
     });
-
-    console.log(`显示了 ${visibleWebsites.length} 个网站（${isCompactMode ? '压缩模式' : '正常模式'}）`);
 
     // 为主容器中的卡片添加事件监听器
     recentContainer.querySelectorAll('.website-card').forEach(card => {
@@ -1492,6 +1415,10 @@ function renderRecentCategory() {
                 card.dataset.originalCategory = matchedWebsite.originalCategory;
             }
         });
+    }
+
+    if (window.saveNavData) {
+        window.saveNavData();
     }
 }
 
@@ -1636,7 +1563,6 @@ function createContextMenu() {
     const deleteBtn = contextMenu.querySelector('#delete-website-btn');
 
     editBtn.addEventListener('click', function() {
-        console.log('点击了编辑按钮');
         if (contextMenuTarget) {
             editWebsite(contextMenuTarget);
             hideContextMenu();
@@ -1644,7 +1570,6 @@ function createContextMenu() {
     });
 
     togglePinBtn.addEventListener('click', function() {
-        console.log('点击了置顶/取消置顶按钮');
         if (contextMenuTarget) {
             togglePinStatus(contextMenuTarget);
             hideContextMenu();
@@ -1652,7 +1577,6 @@ function createContextMenu() {
     });
 
     deleteBtn.addEventListener('click', function() {
-        console.log('点击了删除按钮');
         if (contextMenuTarget) {
             deleteWebsite(contextMenuTarget);
             hideContextMenu();
@@ -1828,17 +1752,6 @@ function showContextMenu(e, card) {
     e.preventDefault();
     e.stopPropagation();
 
-    // 调试日志
-    console.log('右键菜单事件触发 - 坐标信息:', {
-        clientX: e.clientX,
-        clientY: e.clientY,
-        pageX: e.pageX,
-        pageY: e.pageY,
-        scrollX: window.scrollX,
-        scrollY: window.scrollY,
-        cardTitle: card.querySelector('.card-title')?.textContent
-    });
-
     // 创建或获取菜单
     const menu = createContextMenu();
     contextMenuTarget = card;
@@ -1875,12 +1788,12 @@ function showContextMenu(e, card) {
     const menuHeight = menu.offsetHeight;
 
     // 用于调试的输出
-    console.log('菜单尺寸:', {
-        width: menuWidth,
-        height: menuHeight,
-        viewportWidth: window.innerWidth,
-        viewportHeight: window.innerHeight
-    });
+    // console.log('菜单尺寸:', {
+    //     width: menuWidth,
+    //     height: menuHeight,
+    //     viewportWidth: window.innerWidth,
+    //     viewportHeight: window.innerHeight
+    // });
 
     // 计算最佳位置
     let left = e.clientX;
@@ -1906,7 +1819,7 @@ function showContextMenu(e, card) {
     menu.style.top = top + 'px';
     menu.style.opacity = '1'; // 恢复可见性
 
-    console.log('菜单最终位置:', {left, top});
+    // console.log('菜单最终位置:', {left, top});
 }
 
 function hideContextMenu() {
@@ -1965,12 +1878,6 @@ function addCardEventListeners(card) {
 
 // 处理卡片右键菜单事件
 function handleContextMenu(e) {
-    console.log('右键菜单触发:', {
-        card: this.querySelector('.card-title')?.textContent,
-        eventType: e.type,
-        target: e.target.tagName,
-        container: this.closest('.category-section')?.id
-    });
     showContextMenu(e, this);
 }
 
@@ -1995,9 +1902,23 @@ function handleCardClick(e) {
 function setupFileUpload() {
     const uploadArea = document.getElementById('iconUploadArea');
     const fileInput = document.getElementById('iconFile');
-    const iconUrlInput = document.getElementById('websiteIcon');
 
-    uploadArea.addEventListener('click', () => fileInput.click());
+    const modal = document.getElementById('websiteModal');
+    if (modal) {
+        modal.addEventListener('click', function(e) {
+            if (e.target.closest('.delete-image-btn')) {
+                deleteUploadedImage();
+                return;
+            }
+
+            const targetUploadArea = e.target.closest('#iconUploadArea');
+            if (targetUploadArea) {
+                if (!targetUploadArea.querySelector('.uploaded-image-preview')) {
+                    fileInput.click();
+                }
+            }
+        });
+    }
 
     uploadArea.addEventListener('dragover', (e) => {
         e.preventDefault();
@@ -2021,6 +1942,8 @@ function setupFileUpload() {
         if (e.target.files.length > 0) {
             handleFileUpload(e.target.files[0]);
         }
+        // 解决重复选择同一文件不触发change事件的问题
+        e.target.value = null;
     });
 }
 
@@ -2043,7 +1966,7 @@ function handleFileUpload(file) {
             uploadArea.innerHTML = `
                 <div class="uploaded-image-preview">
                     <img src="${base64Image}" alt="上传的图标">
-                    <button type="button" class="delete-image-btn" onclick="deleteUploadedImage(event)">
+                    <button type="button" class="delete-image-btn">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
@@ -2060,10 +1983,7 @@ function handleFileUpload(file) {
 }
 
 // 删除已上传的图片
-function deleteUploadedImage(event) {
-    event.preventDefault();
-    event.stopPropagation();
-
+function deleteUploadedImage() {
     // 清除图片数据
     document.getElementById('websiteIcon').dataset.imageData = '';
 
@@ -2138,6 +2058,9 @@ document.addEventListener('DOMContentLoaded', function() {
         initIconSelector();
     }
 
+    // 初始化AI识别功能
+    setupAIDetection();
+
     // 点击其他地方隐藏右键菜单
     document.addEventListener('click', hideContextMenu);
 
@@ -2149,7 +2072,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
             activeModals.forEach(modal => {
                 const modalId = modal.id;
-                console.log('ESC键关闭模态框:', modalId);
 
                 // 根据模态框ID判断使用哪个关闭函数
                 if (modalId === 'deleteCategoryModal') {
@@ -2242,7 +2164,7 @@ function setupScrollSpy() {
             }
 
             // 打印调试信息
-            console.log('当前分类:', currentCategoryId);
+            // console.log('当前分类:', currentCategoryId);
         }
     }, 50);
 
@@ -2532,74 +2454,3 @@ function fillFormWithAIData(data) {
         }
     }
 }
-
-// 页面初始化时添加AI检测功能
-document.addEventListener('DOMContentLoaded', function() {
-    // 读取localStorage主题
-    const savedTheme = localStorage.getItem('theme');
-    const html = document.documentElement;
-    const themeIcon = document.getElementById('theme-icon');
-    if (savedTheme === 'dark') {
-        html.setAttribute('data-theme', 'dark');
-        if(themeIcon) themeIcon.className = 'fas fa-sun';
-    } else if (savedTheme === 'light') {
-        html.setAttribute('data-theme', 'light');
-        if(themeIcon) themeIcon.className = 'fas fa-moon';
-    }
-
-    // 初始化分类列表模式
-    loadCategoriesMode();
-
-    // 更新分类下拉菜单
-    updateCategoryDropdown();
-
-    // 加载数据并创建卡片
-    loadWebsitesFromData();
-
-    // 设置文件上传
-    setupFileUpload();
-
-    // 初始化图标选择器
-    if (typeof initIconSelector === 'function') {
-        initIconSelector();
-    }
-
-    // 初始化AI识别功能
-    setupAIDetection();
-
-    // 点击其他地方隐藏右键菜单
-    document.addEventListener('click', hideContextMenu);
-
-    // ESC键关闭模态框
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            // 获取所有活动的模态框
-            const activeModals = document.querySelectorAll('.modal-overlay.active');
-
-            activeModals.forEach(modal => {
-                const modalId = modal.id;
-                console.log('ESC键关闭模态框:', modalId);
-
-                // 根据模态框ID判断使用哪个关闭函数
-                if (modalId === 'deleteCategoryModal') {
-                    // 使用分类编辑相关的关闭函数
-                    if (typeof closeCategoryModal === 'function') {
-                        closeCategoryModal(modalId);
-                    }
-                } else {
-                    // 使用网站编辑相关的关闭函数
-                    closeModal(modalId);
-                }
-            });
-
-            // 隐藏右键菜单
-            hideContextMenu();
-        }
-    });
-
-    // 添加滚动监听，更新当前分类状态
-    setupScrollSpy();
-
-    // 添加滚动监听，控制浮动按钮位置
-    setupFloatingButtonPosition();
-});

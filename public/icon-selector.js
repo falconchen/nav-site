@@ -45,7 +45,6 @@ let iconSelectorDocumentListenerAttached = false;
 function _handleIconSelectorToggle(e) {
     const iconSelectorDropdown = document.getElementById('iconSelectorDropdown');
     const iconSearch = document.getElementById('iconSearch');
-    console.log('Icon selector trigger clicked:', e.currentTarget.id);
     e.preventDefault();
     toggleIconDropdown(iconSelectorDropdown, iconSearch);
 }
