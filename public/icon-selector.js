@@ -19,7 +19,7 @@ window.iconSets = {
         'fas fa-cloud', 'fas fa-cloud-upload-alt', 'fas fa-cloud-download-alt', 'fas fa-paper-plane',
         'fas fa-copy', 'fas fa-save', 'fas fa-cut', 'fas fa-paste', 'fas fa-edit',
         'fas fa-lock', 'fas fa-unlock', 'fas fa-key', 'fas fa-shield-alt', 'fas fa-check','fas fa-undo', 'fas fa-redo', 'fas fa-share', 'fas fa-reply', 'fas fa-retweet',
-        'fas fa-chart-area', 'fas fa-palette', 'fas fa-paint-brush', 'fas fa-gamepad', 'fas fa-tv', 
+        'fas fa-chart-area', 'fas fa-palette', 'fas fa-paint-brush', 'fas fa-gamepad', 'fas fa-tv',
         'fas fa-headphones', 'fas fa-microphone', 'fas fa-camera-retro', 'fas fa-film', 'fas fa-photo-video',
         'fas fa-play', 'fas fa-pause', 'fas fa-stop', 'fas fa-volume-up', 'fas fa-volume-mute',
         'fas fa-users', 'fas fa-user-plus', 'fas fa-user-minus', 'fas fa-user-check', 'fas fa-user-shield'
@@ -39,6 +39,16 @@ window.iconSets = {
 
 window.currentIconCategory = 'regular';
 let isCompactMode = false;
+let iconSelectorDocumentListenerAttached = false;
+
+// 统一的事件处理函数，用于打开/关闭图标选择器
+function _handleIconSelectorToggle(e) {
+    const iconSelectorDropdown = document.getElementById('iconSelectorDropdown');
+    const iconSearch = document.getElementById('iconSearch');
+    console.log('Icon selector trigger clicked:', e.currentTarget.id);
+    e.preventDefault();
+    toggleIconDropdown(iconSelectorDropdown, iconSearch);
+}
 
 // 初始化图标选择器
 function initIconSelector() {
@@ -49,12 +59,12 @@ function initIconSelector() {
     const iconCategoryTabs = document.getElementById('iconCategoryTabs');
     const iconInput = document.getElementById('websiteIcon');
     const iconPreview = document.getElementById('iconPreview');
-    
+
     if (!iconSelectorBtn || !iconSelectorDropdown) return;
-    
+
     // 检查是否在模态框内并设置紧凑模式
     isCompactMode = !!document.getElementById('websiteModal');
-    
+
     // 给选择器容器添加紧凑模式类
     if (isCompactMode) {
         const container = document.querySelector('.icon-selector-container');
@@ -62,70 +72,73 @@ function initIconSelector() {
             // container.classList.add('compact-mode');
         }
     }
-    
+
     // 加载初始图标集
     renderIconGrid(window.iconSets.regular);
-    
+
+    // 移除旧的事件监听器以防止重复绑定
+    iconSelectorBtn.removeEventListener('click', _handleIconSelectorToggle);
+    if (iconInput) {
+        iconInput.removeEventListener('click', _handleIconSelectorToggle);
+    }
+
     // 切换下拉菜单显示/隐藏
-    iconSelectorBtn.addEventListener('click', function(e) {
-        e.preventDefault();
-        toggleIconDropdown(iconSelectorDropdown, iconSearch);
-    });
-    
+    iconSelectorBtn.addEventListener('click', _handleIconSelectorToggle);
+
     // 点击输入框也打开下拉菜单
     if (iconInput) {
-        iconInput.addEventListener('click', function(e) {
-            e.preventDefault();
-            toggleIconDropdown(iconSelectorDropdown, iconSearch);
-        });
+        iconInput.addEventListener('click', _handleIconSelectorToggle);
     }
-    
+
     // 点击图标外部关闭下拉菜单
-    document.addEventListener('click', function(e) {
-        if (!e.target.closest('.icon-selector-container') && iconSelectorDropdown.classList.contains('active')) {
-            iconSelectorDropdown.classList.remove('active');
-        }
-    });
-    
+    if (!iconSelectorDocumentListenerAttached) {
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.icon-selector-container') && iconSelectorDropdown.classList.contains('active')) {
+                iconSelectorDropdown.classList.remove('active');
+            }
+        });
+        iconSelectorDocumentListenerAttached = true;
+    }
+
     // 切换图标类别
     if (iconCategoryTabs) {
         iconCategoryTabs.addEventListener('click', function(e) {
             const tab = e.target.closest('.icon-category-tab');
             if (!tab) return;
-            
+
             // 移除所有选项卡的活动状态
             const tabs = iconCategoryTabs.querySelectorAll('.icon-category-tab');
             tabs.forEach(t => t.classList.remove('active'));
-            
+
             // 设置当前选项卡为活动状态
             tab.classList.add('active');
-            
+
             // 获取选项卡的数据类别
             const category = tab.dataset.category;
             window.currentIconCategory = category;
-            
+
             // 渲染对应类别的图标
             renderIconGrid(window.iconSets[category] || []);
-            
+
             // 清空搜索框
             iconSearch.value = '';
         });
     }
-    
+
     // 图标搜索功能
     if (iconSearch) {
         iconSearch.addEventListener('input', function() {
             const searchTerm = this.value.toLowerCase();
-            
+
             // 如果没有搜索词，显示当前类别的所有图标
             if (!searchTerm) {
                 renderIconGrid(window.iconSets[window.currentIconCategory] || []);
                 return;
             }
-            
+
             // 搜索所有类别的图标
             const results = [];
-            
+
             // 首先搜索当前类别
             const currentIcons = window.iconSets[window.currentIconCategory] || [];
             currentIcons.forEach(icon => {
@@ -133,12 +146,12 @@ function initIconSelector() {
                     results.push(icon);
                 }
             });
-            
+
             // 如果当前类别没有足够的结果，搜索其他类别
             if (results.length < 5) {
                 Object.keys(window.iconSets).forEach(category => {
                     if (category === window.currentIconCategory) return;
-                    
+
                     window.iconSets[category].forEach(icon => {
                         if (icon.toLowerCase().includes(searchTerm) && !results.includes(icon)) {
                             results.push(icon);
@@ -146,33 +159,33 @@ function initIconSelector() {
                     });
                 });
             }
-            
+
             // 渲染搜索结果
             renderIconGrid(results);
         });
     }
-    
+
     // 图标选择事件委托
     if (iconGrid) {
         iconGrid.addEventListener('click', function(e) {
             const iconItem = e.target.closest('.icon-item');
             if (!iconItem) return;
-            
+
             const iconClass = iconItem.dataset.icon;
-            
+
             // 更新输入框和预览
             iconInput.value = iconClass;
             iconPreview.className = iconClass;
-            
+
             // 关闭下拉菜单
             iconSelectorDropdown.classList.remove('active');
-            
+
             // 触发change事件，便于其他脚本可能需要监听
             const event = new Event('change', { bubbles: true });
             iconInput.dispatchEvent(event);
         });
     }
-    
+
     // 初始化时根据当前值设置预览
     if (iconInput && iconInput.value) {
         iconPreview.className = iconInput.value;
@@ -182,13 +195,13 @@ function initIconSelector() {
 // 切换图标下拉菜单的显示/隐藏
 function toggleIconDropdown(iconSelectorDropdown, iconSearch) {
     iconSelectorDropdown.classList.toggle('active');
-    
+
     // 检查下拉菜单是否会超出视窗底部
     if (iconSelectorDropdown.classList.contains('active')) {
         // 获取下拉菜单在视窗中的位置
         const dropdownRect = iconSelectorDropdown.getBoundingClientRect();
         const viewportHeight = window.innerHeight;
-        
+
         // 如果下拉菜单底部超出视窗底部
         if (dropdownRect.bottom > viewportHeight) {
             // 计算需要向上移动的距离
@@ -196,7 +209,7 @@ function toggleIconDropdown(iconSelectorDropdown, iconSearch) {
                 dropdownRect.bottom - viewportHeight + 10, // 加10px的缓冲
                 dropdownRect.height - 50 // 不要将下拉菜单完全移出视图顶部
             );
-            
+
             // 应用样式调整
             if (moveUpDistance > 0) {
                 iconSelectorDropdown.style.top = 'auto';
@@ -211,7 +224,7 @@ function toggleIconDropdown(iconSelectorDropdown, iconSearch) {
             iconSelectorDropdown.style.marginTop = '0.25rem';
             iconSelectorDropdown.style.marginBottom = '0';
         }
-        
+
         // 如果显示了下拉菜单，聚焦搜索框
         setTimeout(() => {
             iconSearch.focus();
@@ -223,16 +236,16 @@ function toggleIconDropdown(iconSelectorDropdown, iconSearch) {
 function renderIconGrid(icons) {
     const iconGrid = document.getElementById('iconGrid');
     if (!iconGrid) return;
-    
+
     let html = '';
-    
+
     // 计算每行要显示的图标数量
     const iconsPerRow = isCompactMode ? 13 : 13;
     let currentRow = [];
-    
+
     icons.forEach((icon, index) => {
         currentRow.push(icon);
-        
+
         // 当达到每行所需图标数量时，生成HTML
         if (currentRow.length === iconsPerRow || index === icons.length - 1) {
             html += '<div class="icon-row">';
@@ -247,13 +260,13 @@ function renderIconGrid(icons) {
             currentRow = [];
         }
     });
-    
+
     if (icons.length === 0) {
         html = '<div style="text-align: center; padding: 0.5rem; color: var(--text-muted);">没有找到匹配的图标</div>';
     }
-    
+
     iconGrid.innerHTML = html;
-    
+
     // 高亮当前选中的图标
     const selectedIcon = document.getElementById('websiteIcon').value;
     if (selectedIcon) {

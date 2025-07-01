@@ -161,6 +161,12 @@ function closeModal(modalId) {
 
         // 显示图标选择器，确保下次打开时状态正确
         toggleIconSelectorVisibility(false);
+
+        // 确保图标选择器下拉菜单关闭
+        const iconSelectorDropdown = document.getElementById('iconSelectorDropdown');
+        if (iconSelectorDropdown) {
+            iconSelectorDropdown.classList.remove('active');
+        }
     }
 
     // 重置当前编辑卡片引用
@@ -517,6 +523,11 @@ function openAddWebsiteModal() {
     }
 
     openModal('websiteModal');
+
+    // 在模态框打开后重新初始化图标选择器
+    if (typeof initIconSelector === 'function') {
+        initIconSelector();
+    }
 }
 
 // 删除网站功能 - 显示确认对话框
@@ -860,6 +871,11 @@ function editWebsite(card) {
     card.classList.add('editing');
 
     openModal('websiteModal');
+
+    // 在模态框打开后重新初始化图标选择器
+    if (typeof initIconSelector === 'function') {
+        initIconSelector();
+    }
 
     // 手动更新AI识别按钮状态，因为URL已经填充
     const aiDetectBtn = document.getElementById('aiDetectBtn');
