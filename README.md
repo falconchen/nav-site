@@ -41,7 +41,18 @@
 - 右上角点击"月亮/太阳"按钮可切换亮色/暗色主题
 - 主题选择会自动保存，下次访问自动应用
 
----
 
-如有建议或需求，欢迎反馈与交流！
+## 配色备考：
 
+
+``` css
+--purple: #14003c;
+--pink: #ff1365;
+--blue: #0d002a;
+--grey: #c4bfce;
+--border-radius: 4px;
+--color-text: white;
+--color-primary: #7026b9;
+--color-code-bg: #6e768166;
+--color-code: white;
+```

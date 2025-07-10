@@ -2287,12 +2287,9 @@ searchBox.addEventListener('input', function(e) {
                 hasVisibleCards = true;
             }
 
-            // 如果是recent分类，还需要检查隐藏容器
-            if (section.id === 'recent' && hiddenContainer) {
-                const hiddenVisibleCards = hiddenContainer.querySelectorAll('.website-card[style="display: block;"]');
-                if (hiddenVisibleCards.length > 0) {
-                    hasVisibleCards = true;
-                }
+			//隐藏pinned和recent section
+			if (section.id === 'recent' || section.id === 'pinned') {
+				hasVisibleCards = false;
             }
 
             section.style.display = hasVisibleCards ? 'block' : 'none';
