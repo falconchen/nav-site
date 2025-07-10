@@ -2215,7 +2215,9 @@ const searchBox = document.querySelector('.search-box');
 searchBox.addEventListener('input', function(e) {
     const searchTerm = e.target.value.toLowerCase().trim();
     const cards = document.querySelectorAll('.website-card');
+    const categorySections = document.querySelectorAll('.category-section');
 
+    // 处理卡片显示/隐藏
     cards.forEach(card => {
         const title = card.querySelector('.card-title').textContent.toLowerCase();
         const description = card.querySelector('.card-description').textContent.toLowerCase();
@@ -2226,6 +2228,20 @@ searchBox.addEventListener('input', function(e) {
             card.style.display = searchTerm === '' ? 'block' : 'none';
         }
     });
+
+    // 处理分类区域显示/隐藏
+    if (searchTerm === '') {
+        // 如果搜索词为空，显示所有分类
+        categorySections.forEach(section => {
+            section.style.display = 'block';
+        });
+    } else {
+        // 如果有搜索词，检查每个分类是否有匹配的卡片
+        categorySections.forEach(section => {
+            const visibleCards = section.querySelectorAll('.website-card[style="display: block;"]');
+            section.style.display = visibleCards.length > 0 ? 'block' : 'none';
+        });
+    }
 
     // 添加搜索高亮
     highlightSearchResults(searchTerm);
