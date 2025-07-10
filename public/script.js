@@ -1838,15 +1838,18 @@ function highlightSearchResults(searchTerm) {
     cards.forEach(card => {
         const title = card.querySelector('.card-title');
         const description = card.querySelector('.card-description');
+        const url = card.querySelector('.card-url');
 
         // 清除之前的高亮
         title.innerHTML = title.textContent;
         description.innerHTML = description.textContent;
+        url.innerHTML = url.textContent;
 
         if (searchTerm) {
             // 添加高亮
             const titleText = title.textContent;
             const descText = description.textContent;
+            const urlText = url.textContent;
 
             const highlightedTitle = titleText.replace(
                 new RegExp(`(${searchTerm})`, 'gi'),
@@ -1856,9 +1859,14 @@ function highlightSearchResults(searchTerm) {
                 new RegExp(`(${searchTerm})`, 'gi'),
                 '<span class="highlight">$1</span>'
             );
+            const highlightedUrl = urlText.replace(
+                new RegExp(`(${searchTerm})`, 'gi'),
+                '<span class="highlight">$1</span>'
+            );
 
             title.innerHTML = highlightedTitle;
             description.innerHTML = highlightedDesc;
+            url.innerHTML = highlightedUrl;
         }
     });
 }
@@ -2223,8 +2231,9 @@ searchBox.addEventListener('input', function(e) {
     cards.forEach(card => {
         const title = card.querySelector('.card-title').textContent.toLowerCase();
         const description = card.querySelector('.card-description').textContent.toLowerCase();
+        const url = card.querySelector('.card-url').textContent.toLowerCase();
 
-        if (title.includes(searchTerm) || description.includes(searchTerm)) {
+        if (title.includes(searchTerm) || description.includes(searchTerm) || url.includes(searchTerm)) {
             card.style.display = 'block';
         } else {
             card.style.display = searchTerm === '' ? 'block' : 'none';
