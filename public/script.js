@@ -2216,6 +2216,8 @@ searchBox.addEventListener('input', function(e) {
     const searchTerm = e.target.value.toLowerCase().trim();
     const cards = document.querySelectorAll('.website-card');
     const categorySections = document.querySelectorAll('.category-section');
+    const hiddenContainer = document.getElementById('recent-hidden-cards');
+    const expandButton = document.querySelector('#recent .expand-button .btn-expand');
 
     // 处理卡片显示/隐藏
     cards.forEach(card => {
@@ -2229,6 +2231,36 @@ searchBox.addEventListener('input', function(e) {
         }
     });
 
+    // 自动展开隐藏容器，如果有搜索匹配项
+    if (searchTerm && hiddenContainer) {
+        const hiddenMatchingCards = hiddenContainer.querySelectorAll('.website-card[style="display: block;"]');
+        if (hiddenMatchingCards.length > 0) {
+            // 展开隐藏容器
+            hiddenContainer.style.display = 'grid';
+
+            // 更新展开按钮状态（如果按钮存在）
+            if (expandButton) {
+                const icon = expandButton.querySelector('i');
+                const text = expandButton.querySelector('span');
+
+                if (icon) icon.className = 'fas fa-chevron-up';
+                if (text) text.textContent = '收起';
+            }
+        }
+    } else if (hiddenContainer && searchTerm === '') {
+        // 搜索词为空时恢复隐藏状态
+        hiddenContainer.style.display = 'none';
+
+        // 重置展开按钮状态
+        if (expandButton) {
+            const icon = expandButton.querySelector('i');
+            const text = expandButton.querySelector('span');
+
+            if (icon) icon.className = 'fas fa-chevron-down';
+            if (text) text.textContent = '展开更多';
+        }
+    }
+
     // 处理分类区域显示/隐藏
     if (searchTerm === '') {
         // 如果搜索词为空，显示所有分类
@@ -2238,8 +2270,23 @@ searchBox.addEventListener('input', function(e) {
     } else {
         // 如果有搜索词，检查每个分类是否有匹配的卡片
         categorySections.forEach(section => {
-            const visibleCards = section.querySelectorAll('.website-card[style="display: block;"]');
-            section.style.display = visibleCards.length > 0 ? 'block' : 'none';
+            let hasVisibleCards = false;
+
+            // 检查主卡片容器
+            const visibleCards = section.querySelectorAll('.cards-grid:not(#recent-hidden-cards) .website-card[style="display: block;"]');
+            if (visibleCards.length > 0) {
+                hasVisibleCards = true;
+            }
+
+            // 如果是recent分类，还需要检查隐藏容器
+            if (section.id === 'recent' && hiddenContainer) {
+                const hiddenVisibleCards = hiddenContainer.querySelectorAll('.website-card[style="display: block;"]');
+                if (hiddenVisibleCards.length > 0) {
+                    hasVisibleCards = true;
+                }
+            }
+
+            section.style.display = hasVisibleCards ? 'block' : 'none';
         });
     }
 
