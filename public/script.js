@@ -2287,9 +2287,9 @@ searchBox.addEventListener('input', function(e) {
                 hasVisibleCards = true;
             }
 
-			//隐藏pinned和recent section
-			if (section.id === 'recent' || section.id === 'pinned') {
-				hasVisibleCards = false;
+            //隐藏pinned和recent section
+            if (section.id === 'recent' || section.id === 'pinned') {
+                hasVisibleCards = false;
             }
 
             section.style.display = hasVisibleCards ? 'block' : 'none';
@@ -2299,6 +2299,46 @@ searchBox.addEventListener('input', function(e) {
     // 添加搜索高亮
     highlightSearchResults(searchTerm);
 });
+
+// 搜索高亮功能
+function highlightSearchResults(searchTerm) {
+    const cards = document.querySelectorAll('.website-card');
+
+    cards.forEach(card => {
+        const title = card.querySelector('.card-title');
+        const description = card.querySelector('.card-description');
+        const url = card.querySelector('.card-url');
+
+        // 清除之前的高亮
+        title.innerHTML = title.textContent;
+        description.innerHTML = description.textContent;
+        url.innerHTML = url.textContent;
+
+        if (searchTerm) {
+            // 添加高亮
+            const titleText = title.textContent;
+            const descText = description.textContent;
+            const urlText = url.textContent;
+
+            const highlightedTitle = titleText.replace(
+                new RegExp(`(${searchTerm})`, 'gi'),
+                '<span class="highlight">$1</span>'
+            );
+            const highlightedDesc = descText.replace(
+                new RegExp(`(${searchTerm})`, 'gi'),
+                '<span class="highlight">$1</span>'
+            );
+            const highlightedUrl = urlText.replace(
+                new RegExp(`(${searchTerm})`, 'gi'),
+                '<span class="highlight">$1</span>'
+            );
+
+            title.innerHTML = highlightedTitle;
+            description.innerHTML = highlightedDesc;
+            url.innerHTML = highlightedUrl;
+        }
+    });
+}
 
 // 控制浮动按钮位置
 function setupFloatingButtonPosition() {
