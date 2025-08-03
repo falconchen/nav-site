@@ -28,7 +28,7 @@ app.get('/', async (c) => {
 
 
 // 返回随机 UUID
-app.get('/random', (c) => {
+app.get('/uuid', (c) => {
 	return c.text(crypto.randomUUID());
 });
 
