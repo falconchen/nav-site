@@ -46,9 +46,36 @@
                 <input type="text" class="search-box" placeholder="搜索网站...">
             </div>
 
-            <button class="theme-toggle" onclick="toggleTheme()">
-                <i class="fas fa-moon" id="theme-icon"></i>
-            </button>
+            <div class="header-right">
+                <div class="user-info" id="userInfo" style="display: none;">
+                    <img id="userAvatar" class="user-avatar" src="" alt="User Avatar">
+                    <span id="userName"></span>
+                    <button class="user-menu-btn" onclick="toggleUserMenu()">
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="user-menu" id="userMenu">
+                        <div class="user-menu-item" onclick="syncUserData()">
+                            <i class="fas fa-sync"></i>
+                            同步数据
+                        </div>
+                        <div class="user-menu-item" onclick="loadUserDataFromCloud()">
+                            <i class="fas fa-download"></i>
+                            从云端加载
+                        </div>
+                        <div class="user-menu-item" onclick="logout()">
+                            <i class="fas fa-sign-out-alt"></i>
+                            退出登录
+                        </div>
+                    </div>
+                </div>
+                <button class="login-btn" id="loginBtn" onclick="login()">
+                    <i class="fab fa-github"></i>
+                    登录
+                </button>
+                <button class="theme-toggle" onclick="toggleTheme()">
+                    <i class="fas fa-moon" id="theme-icon"></i>
+                </button>
+            </div>
         </div>
     </header>
 
@@ -283,5 +310,6 @@
     <script src="script.js"></script>
     <script src="category-edit.js"></script>
     <script src="icon-selector.js"></script>
+    <script src="auth.js"></script>
 </body>
 </html>

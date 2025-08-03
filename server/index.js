@@ -12,6 +12,8 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import analyzeApi from './api/analyze.js';
 import proxyImageApi from './api/proxy-image.js';
+import authApi from './api/auth.js';
+import userDataApi from './api/user-data.js';
 
 // 创建 Hono 应用
 const app = new Hono();
@@ -33,6 +35,8 @@ app.get('/random', (c) => {
 // API 路由
 app.route('/api', analyzeApi);
 app.route('/api', proxyImageApi);
+app.route('/api', authApi);
+app.route('/api', userDataApi);
 
 // 添加：处理所有静态资源请求
 app.get('/*', async (c) => {

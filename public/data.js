@@ -461,9 +461,24 @@ function saveNavData() {
 
     localStorage.setItem('navSiteCategories', JSON.stringify(categories));
     localStorage.setItem('navSiteWebsites', JSON.stringify(websites));
+
+    // 触发数据变化事件，用于云端同步
+    const dataChangedEvent = new CustomEvent('dataChanged', {
+      detail: { categories, websites }
+    });
+    document.dispatchEvent(dataChangedEvent);
   } catch (error) {
     console.error('保存数据出错:', error);
   }
+}
+
+// 兼容函数 - 为auth.js提供
+function saveCategoriesToStorage() {
+  saveNavData();
+}
+
+function saveWebsitesToStorage() {
+  saveNavData();
 }
 
 // 导出数据到JSON文件

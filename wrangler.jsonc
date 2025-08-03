@@ -6,7 +6,7 @@
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"name": "nav-site",
 	"main": "server/index.js",
-	"compatibility_date": "2025-06-18",
+	"compatibility_date": "2025-06-17",
 	"compatibility_flags": [
 		"nodejs_compat",
 		"global_fetch_strictly_public"
@@ -25,6 +25,18 @@
 		"binding": "AI"
 	},
 
+	"kv_namespaces": [
+    {
+      "binding": "USER_SESSIONS",
+      "id": "208b00870543476cb91dbe4ed1c2673e", // 开发环境专用
+      "preview_id": "208b00870543476cb91dbe4ed1c2673e"
+    }
+  ],
+
+	"vars": {
+		"JWT_EXPIRATION_DAYS": "3"
+	},
+
 	"env": {
 		"production": {
 			"name": "nav-site", // 生产环境名称,如果不一样会生成一个新的worker
@@ -35,6 +47,15 @@
 			},
 			"ai": {
 				"binding": "AI"
+			},
+			"kv_namespaces": [
+				{
+					"binding": "USER_SESSIONS",
+					"id": "aba24a94e68a4b12818ff42924adbcf3" // 生产环境专用
+				}
+			],
+			"vars": {
+				"JWT_EXPIRATION_DAYS": "90"
 			}
 		}
 	}
