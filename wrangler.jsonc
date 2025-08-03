@@ -51,9 +51,10 @@
 			"kv_namespaces": [
 				{
 					"binding": "USER_SESSIONS",
-					"id": "aba24a94e68a4b12818ff42924adbcf3" // 生产环境专用
+					"id": "208b00870543476cb91dbe4ed1c2673e" // 生产环境专用
 				}
 			],
+
 			"vars": {
 				"JWT_EXPIRATION_DAYS": "90"
 			}
