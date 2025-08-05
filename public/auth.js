@@ -248,6 +248,23 @@ async function syncUserData() {
 
             showNotification('数据同步成功！', 'success');
         } else {
+            let errorInfo;
+            try {
+                errorInfo = await response.json();
+            } catch {
+                errorInfo = { error: await response.text() };
+            }
+
+            // 处理需要重新认证的情况
+            if (errorInfo.needReauth) {
+                console.log('🔄 Token outdated, need to re-authenticate');
+                showNotification('登录状态已过期，请重新登录', 'error');
+                setTimeout(() => {
+                    logout();
+                }, 2000);
+                return;
+            }
+
             throw new Error('同步失败');
         }
     } catch (error) {
@@ -313,7 +330,23 @@ async function loadUserData(forceLoad = false) {
                 console.log('📊 No server data found, keeping local data');
             }
         } else {
-            console.error('❌ Failed to load user data:', response.status, response.statusText);
+            let errorInfo;
+            try {
+                errorInfo = await response.json();
+            } catch {
+                errorInfo = { error: await response.text() };
+            }
+
+            console.error('❌ Failed to load user data:', response.status, response.statusText, errorInfo);
+
+            // 处理需要重新认证的情况
+            if (errorInfo.needReauth) {
+                console.log('🔄 Token outdated, need to re-authenticate');
+                showNotification('登录状态已过期，请重新登录', 'error');
+                setTimeout(() => {
+                    logout();
+                }, 2000);
+            }
         }
     } catch (error) {
         console.error('❌ Error loading user data:', error);
@@ -366,12 +399,28 @@ async function saveUserData() {
             localStorage.setItem('dataVersion', localData.version.toString());
             console.log('✅ Data saved to cloud successfully');
         } else {
-            const errorText = await response.text();
+            let errorInfo;
+            try {
+                errorInfo = await response.json();
+            } catch {
+                errorInfo = { error: await response.text() };
+            }
+
             console.error('❌ Save failed:', {
                 status: response.status,
                 statusText: response.statusText,
-                body: errorText
+                body: errorInfo
             });
+
+            // 处理需要重新认证的情况
+            if (errorInfo.needReauth) {
+                console.log('🔄 Token outdated, need to re-authenticate');
+                showNotification('登录状态已过期，请重新登录', 'error');
+                // 清除旧token并提示重新登录
+                setTimeout(() => {
+                    logout();
+                }, 2000);
+            }
         }
     } catch (error) {
         console.error('❌ Error saving user data:', error);
@@ -569,6 +618,23 @@ async function viewActiveSessions() {
             const data = await response.json();
             showSessionsModal(data.sessions);
         } else {
+            let errorInfo;
+            try {
+                errorInfo = await response.json();
+            } catch {
+                errorInfo = { error: await response.text() };
+            }
+
+            // 处理需要重新认证的情况
+            if (errorInfo.needReauth) {
+                console.log('🔄 Token outdated, need to re-authenticate');
+                showNotification('登录状态已过期，请重新登录', 'error');
+                setTimeout(() => {
+                    logout();
+                }, 2000);
+                return;
+            }
+
             throw new Error('获取session列表失败');
         }
     } catch (error) {
@@ -757,6 +823,23 @@ async function logoutSession(sessionId) {
             // 重新获取session列表
             viewActiveSessions();
         } else {
+            let errorInfo;
+            try {
+                errorInfo = await response.json();
+            } catch {
+                errorInfo = { error: await response.text() };
+            }
+
+            // 处理需要重新认证的情况
+            if (errorInfo.needReauth) {
+                console.log('🔄 Token outdated, need to re-authenticate');
+                showNotification('登录状态已过期，请重新登录', 'error');
+                setTimeout(() => {
+                    logout();
+                }, 2000);
+                return;
+            }
+
             throw new Error('注销设备失败');
         }
     } catch (error) {

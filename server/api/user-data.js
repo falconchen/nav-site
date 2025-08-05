@@ -20,14 +20,45 @@ const authMiddleware = async (c, next) => {
     try {
         const payload = await verify(token, c.env.JWT_SECRET);
 
-        // 检查token是否在KV中存在（如果KV可用）
+        // 检查token是否在KV中存在（支持多端登录）
         if (c.env.USER_SESSIONS) {
-            const storedToken = await c.env.USER_SESSIONS.get(`user_session_${payload.userId}`);
-            if (!storedToken || storedToken !== token) {
+            if (!payload.sessionId) {
+                console.log('❌ No sessionId in token payload - token may be from old system');
+                return c.json({
+                    error: 'Token format outdated',
+                    message: 'Please logout and login again to get a new token',
+                    needReauth: true
+                }, 401);
+            }
+
+            const sessionKey = `user_session_${payload.userId}_${payload.sessionId}`;
+            const storedSessionData = await c.env.USER_SESSIONS.get(sessionKey);
+
+            if (storedSessionData) {
+                try {
+                    const sessionInfo = JSON.parse(storedSessionData);
+
+                    if (sessionInfo.token !== token) {
+                        console.log('❌ Token mismatch for session');
+                        return c.json({ error: 'Token not found or invalid' }, 401);
+                    }
+
+                    // 更新最后使用时间
+                    sessionInfo.lastUsed = new Date().toISOString();
+                    await c.env.USER_SESSIONS.put(sessionKey, JSON.stringify(sessionInfo), {
+                        expirationTtl: payload.exp - Math.floor(Date.now() / 1000) // 保持原有过期时间
+                    });
+
+                } catch (parseError) {
+                    console.log('❌ Failed to parse session data:', parseError);
+                    return c.json({ error: 'Token not found or invalid' }, 401);
+                }
+            } else {
+                console.log('❌ Session not found in KV');
                 return c.json({ error: 'Token not found or invalid' }, 401);
             }
         } else {
-            console.log('KV namespace not available, skipping server-side token validation');
+            console.log('⚠️ KV namespace not available, skipping server-side token validation');
         }
 
         // 将用户信息添加到context中
