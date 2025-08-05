@@ -4,9 +4,12 @@
 
 // 多端同步检测机制变量
 let syncCheckInterval = null;
-let lastSyncCheck = Date.now();
-const SYNC_CHECK_INTERVAL = 30000; // 30秒检查一次
+let lastSyncCheck = 0;
+const SYNC_CHECK_INTERVAL = 60000; // 60秒检查一次
 const MIN_CHECK_INTERVAL = 10000; // 最小检查间隔10秒
+
+// 全局变量控制是否进行定时同步检测，默认为true
+let enableTimerSync = true;
 
 // 同步用户数据
 async function syncUserData() {
@@ -108,14 +111,7 @@ async function loadUserData(forceLoad = false) {
 
                 // 强制加载或云端数据更新时覆盖本地数据
                 if (forceLoad || cloudVersion > localVersion || localVersion === 0) {
-                    if (!forceLoad && cloudVersion > localVersion && localVersion > 0) {
-                        // 只有在非强制加载且本地有数据时才询问
-                        const sync = confirm('发现云端有更新的数据，是否同步到本地？');
-                        if (!sync) {
-                            console.log('❌ User declined to sync cloud data');
-                            return;
-                        }
-                    }
+
 
                     console.log('✅ Updating local data with server data');
                     updateLocalData(data.data);
@@ -125,6 +121,7 @@ async function loadUserData(forceLoad = false) {
                     } else {
                         showNotification('数据已从云端同步', 'success');
                     }
+
                 } else {
                     console.log('📊 Local data is up to date or newer');
                 }
@@ -311,10 +308,85 @@ async function loadUserDataFromCloud() {
         return;
     }
 
-    const confirmLoad = confirm('这将使用云端数据覆盖本地数据，确定要继续吗？');
-    if (!confirmLoad) {
-        return;
+    showCloudOverrideConfirmation();
+}
+
+// 显示云端覆盖确认框
+function showCloudOverrideConfirmation() {
+    // 移除已存在的确认框
+    const existingModal = document.querySelector('.cloud-override-confirmation');
+    if (existingModal) {
+        existingModal.remove();
     }
+
+    const confirmation = document.createElement('div');
+    confirmation.className = 'cloud-override-confirmation';
+    confirmation.style.cssText = `
+        position: fixed;
+        top: 80px;
+        right: 20px;
+        background: #f59e0b;
+        color: white;
+        padding: 1rem 1.5rem;
+        border-radius: 0.5rem;
+        box-shadow: var(--shadow-large);
+        z-index: 1001;
+        max-width: 350px;
+        transform: translateX(100%);
+        transition: transform 0.3s ease;
+        border-left: 4px solid #dc2626;
+    `;
+
+    confirmation.innerHTML = `
+        <div style="margin-bottom: 0.5rem;">
+            <strong>⚠️ 使用云端数据覆盖</strong>
+        </div>
+        <div style="font-size: 0.875rem; margin-bottom: 1rem; opacity: 0.9;">
+            这将使用云端数据完全覆盖本地数据，本地的修改将会丢失。确定要继续吗？
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+            <button onclick="confirmCloudOverride()" style="
+                background: white;
+                color: #f59e0b;
+                border: none;
+                padding: 0.5rem 1rem;
+                border-radius: 0.25rem;
+                cursor: pointer;
+                font-size: 0.875rem;
+                font-weight: 500;
+            ">
+                确认覆盖
+            </button>
+            <button onclick="dismissCloudOverrideConfirmation()" style="
+                background: transparent;
+                color: white;
+                border: 1px solid rgba(255,255,255,0.3);
+                padding: 0.5rem 1rem;
+                border-radius: 0.25rem;
+                cursor: pointer;
+                font-size: 0.875rem;
+            ">
+                取消
+            </button>
+        </div>
+    `;
+
+    document.body.appendChild(confirmation);
+
+    // 显示动画
+    setTimeout(() => {
+        confirmation.style.transform = 'translateX(0)';
+    }, 100);
+
+    // 30秒后自动消失
+    setTimeout(() => {
+        dismissCloudOverrideConfirmation();
+    }, 30000);
+}
+
+// 确认云端覆盖
+async function confirmCloudOverride() {
+    dismissCloudOverrideConfirmation();
 
     showNotification('正在从云端加载数据...', 'info');
 
@@ -324,9 +396,19 @@ async function loadUserDataFromCloud() {
         console.error('Error loading data from cloud:', error);
         showNotification('从云端加载数据失败', 'error');
     }
+}
 
-    // 关闭用户菜单
-    document.getElementById('userMenu').classList.remove('show');
+// 关闭云端覆盖确认框
+function dismissCloudOverrideConfirmation() {
+    const confirmation = document.querySelector('.cloud-override-confirmation');
+    if (confirmation) {
+        confirmation.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+            if (confirmation.parentNode) {
+                confirmation.parentNode.removeChild(confirmation);
+            }
+        }, 300);
+    }
 }
 
 // 启动同步检测
@@ -341,7 +423,7 @@ function startSyncDetection() {
     }
 
     // 设置定期检查
-    syncCheckInterval = setInterval(() => checkForCloudUpdates(false), SYNC_CHECK_INTERVAL);
+    syncCheckInterval = setInterval(() => checkForCloudUpdates(), SYNC_CHECK_INTERVAL);
 
     // 页面获得焦点时检查
     window.addEventListener('focus', handleWindowFocus);
@@ -368,8 +450,8 @@ function stopSyncDetection() {
 }
 
 // 检查云端更新
-async function checkForCloudUpdates(showNotificationOnUpdate = true) {
-    if (!authToken) return;
+async function checkForCloudUpdates() {
+    if (!authToken || !enableTimerSync) return;
 
     // 避免频繁检查
     const now = Date.now();
@@ -403,17 +485,7 @@ async function checkForCloudUpdates(showNotificationOnUpdate = true) {
 
             if (data.hasData && cloudVersion > localVersion) {
                 console.log('🆕 New cloud data detected!');
-
-                if (showNotificationOnUpdate) {
-                    showSyncUpdateNotification(cloudVersion, localVersion);
-                } else {
-                    // 静默同步（可选）
-                    const autoSync = localStorage.getItem('autoSyncEnabled') === 'true';
-                    if (autoSync) {
-                        await loadUserData(false);
-                        showNotification('数据已自动同步', 'info');
-                    }
-                }
+                showSyncUpdateNotification(cloudVersion, localVersion);
             } else {
                 console.log('📊 Local data is up to date');
             }
@@ -486,7 +558,7 @@ function showSyncUpdateNotification(cloudVersion, localVersion) {
             ">
                 立即同步
             </button>
-            <button onclick="dismissSyncNotification()" style="
+            <button onclick="dismissSyncNotificationAndDisableTimer()" style="
                 background: transparent;
                 color: white;
                 border: 1px solid rgba(255,255,255,0.3);
@@ -516,8 +588,9 @@ function showSyncUpdateNotification(cloudVersion, localVersion) {
 // 立即同步
 async function syncNow() {
     dismissSyncNotification();
-    await loadUserData(false);
-    showNotification('数据已同步', 'success');
+    await syncUserData();
+    // await loadUserData(true);
+    // showNotification('数据已同步', 'success');
 }
 
 // 关闭同步通知
@@ -533,43 +606,28 @@ function dismissSyncNotification() {
     }
 }
 
+// 关闭同步通知并禁用定时同步
+function dismissSyncNotificationAndDisableTimer() {
+    enableTimerSync = false;
+    console.log('🔕 Timer sync disabled by user');
+    dismissSyncNotification();
+}
+
 // 处理窗口获得焦点
 function handleWindowFocus() {
     console.log('👁️ Window focused, checking for updates...');
-    checkForCloudUpdates(true);
+    checkForCloudUpdates();
 }
 
 // 处理页面可见性变化
 function handleVisibilityChange() {
     if (!document.hidden) {
         console.log('👁️ Page became visible, checking for updates...');
-        setTimeout(() => checkForCloudUpdates(true), 1000); // 延迟1秒避免频繁触发
+        setTimeout(() => checkForCloudUpdates(), 1000); // 延迟1秒避免频繁触发
     }
 }
 
-// 切换自动同步设置
-function toggleAutoSync() {
-    const currentSetting = localStorage.getItem('autoSyncEnabled') === 'true';
-    const newSetting = !currentSetting;
 
-    localStorage.setItem('autoSyncEnabled', newSetting.toString());
-
-    showNotification(newSetting ? '已开启自动同步' : '已关闭自动同步', 'info');
-
-    // 更新显示文本
-    updateAutoSyncDisplay();
-    // 关闭用户菜单
-    document.getElementById('userMenu').classList.remove('show');
-}
-
-// 更新自动同步设置显示
-function updateAutoSyncDisplay() {
-    const autoSyncEnabled = localStorage.getItem('autoSyncEnabled') === 'true';
-    const autoSyncText = document.getElementById('autoSyncText');
-    if (autoSyncText) {
-        autoSyncText.textContent = autoSyncEnabled ? '关闭自动同步' : '开启自动同步';
-    }
-}
 
 // 监听数据变化，自动保存到云端
 document.addEventListener('dataChanged', function() {

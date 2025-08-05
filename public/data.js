@@ -598,6 +598,13 @@ function createImportExportUI() {
     return;
   }
 
+  // 创建云端覆盖按钮
+  const cloudOverrideBtn = document.createElement('a');
+  cloudOverrideBtn.href = '#';
+  cloudOverrideBtn.className = 'footer-link cloud-override-btn';
+  cloudOverrideBtn.innerHTML = '<i class="fas fa-cloud-download-alt"></i> 使用云端数据覆盖';
+  cloudOverrideBtn.style.display = 'none'; // 默认隐藏，只有登录后才显示
+
   // 创建导入导出按钮组
   const exportBtn = document.createElement('a');
   exportBtn.href = '#';
@@ -610,10 +617,18 @@ function createImportExportUI() {
   importBtn.style.cursor = 'pointer';
 
   // 添加到footer链接区域
+  footerLinks.appendChild(cloudOverrideBtn);
   footerLinks.appendChild(exportBtn);
   footerLinks.appendChild(importBtn);
 
   // 添加事件监听
+  cloudOverrideBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    if (typeof loadUserDataFromCloud === 'function') {
+      loadUserDataFromCloud();
+    }
+  });
+
   exportBtn.addEventListener('click', (e) => {
     e.preventDefault();
     exportData();
@@ -662,10 +677,19 @@ document.addEventListener('DOMContentLoaded', function() {
   createImportExportUI();
 });
 
+// 显示/隐藏云端覆盖按钮
+function toggleCloudOverrideButton(show) {
+  const cloudOverrideBtn = document.querySelector('.cloud-override-btn');
+  if (cloudOverrideBtn) {
+    cloudOverrideBtn.style.display = show ? 'inline-flex' : 'none';
+  }
+}
+
 // 导出保存函数以供其他脚本使用
 window.saveNavData = saveNavData;
 window.exportData = exportData;
 window.importData = importData;
+window.toggleCloudOverrideButton = toggleCloudOverrideButton;
 
 // 全局分类数据变量（已经在loadData中设置）
 // window.categoryData = categories;

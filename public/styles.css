@@ -1563,18 +1563,19 @@ html[data-sidebar="compact"] .cards-grid {
   }
 }
 
+
 /* 导入导出按钮样式 */
-.export-data-btn, .import-data-btn {
+.cloud-override-btn,.export-data-btn, .import-data-btn {
   display: inline-flex;
   align-items: center;
   gap: 5px;
 }
 
-.export-data-btn i, .import-data-btn i {
+.cloud-override-btn i,.export-data-btn i, .import-data-btn i {
   font-size: 0.9rem;
 }
 
-.export-data-btn:hover, .import-data-btn:hover {
+.cloud-override-btn:hover .export-data-btn:hover, .import-data-btn:hover {
   color: var(--secondary-color);
 }
 

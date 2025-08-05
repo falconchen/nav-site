@@ -56,9 +56,9 @@ async function checkAuthStatus() {
                     startSyncDetection();
                 }
 
-                // 自动从云端加载数据（首次登录时覆盖本地数据）
-                if (typeof loadUserData === 'function') {
-                    await loadUserData(false);
+                // 立即进行一次同步检测
+                if (typeof checkForCloudUpdates === 'function') {
+                    setTimeout(() => checkForCloudUpdates(), 1000);
                 }
             } else {
                 console.log('❌ Token validation failed');
@@ -114,6 +114,11 @@ function showUserInfo(user) {
     document.getElementById('loginBtn').style.display = 'none';
     document.getElementById('userInfo').style.display = 'flex';
 
+    // 显示云端覆盖按钮
+    if (typeof toggleCloudOverrideButton === 'function') {
+        toggleCloudOverrideButton(true);
+    }
+
     // 设置头像，如果没有则使用默认头像
     const avatarUrl = userData.avatar_url || userData.avatar || `https://github.com/identicons/${userData.login || 'default'}.png`;
     console.log('🖼️ Setting avatar URL:', avatarUrl);
@@ -124,10 +129,7 @@ function showUserInfo(user) {
     console.log('👤 Setting display name:', displayName);
     document.getElementById('userName').textContent = displayName;
 
-    // 更新自动同步设置显示
-    if (typeof updateAutoSyncDisplay === 'function') {
-        updateAutoSyncDisplay();
-    }
+
 }
 
 // 登录函数
@@ -178,10 +180,10 @@ function handleAuthMessage(event) {
             startSyncDetection();
         }
 
-        // 自动同步数据
+        // 立即进行一次同步检测
         setTimeout(() => {
-            if (typeof loadUserData === 'function') {
-                loadUserData();
+            if (typeof checkForCloudUpdates === 'function') {
+                checkForCloudUpdates();
             }
         }, 1000);
 
@@ -227,6 +229,11 @@ async function logout() {
 
     // 显示登录按钮
     showLoginButton();
+
+    // 隐藏云端覆盖按钮
+    if (typeof toggleCloudOverrideButton === 'function') {
+        toggleCloudOverrideButton(false);
+    }
 
     // 关闭用户菜单
     document.getElementById('userMenu').classList.remove('show');
