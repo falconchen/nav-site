@@ -250,12 +250,14 @@ async function loadDataFromRedis(c, userId) {
 }
 
 // 辅助函数：从Redis删除数据
+// 辅助函数：从Redis删除数据
 async function deleteDataFromRedis(c, userId) {
     try {
         const redisUrl = c.env.UPSTASH_REDIS_REST_URL;
         const redisToken = c.env.UPSTASH_REDIS_REST_TOKEN;
 
         if (!redisUrl || !redisToken) {
+            console.error('Redis credentials not found in environment');
             return false;
         }
 
@@ -263,12 +265,17 @@ async function deleteDataFromRedis(c, userId) {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${redisToken}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify([`userdata:${userId}`]),
+            }
         });
 
-        return response.ok;
+        if (!response.ok) {
+            console.error('Redis delete failed:', response.status, response.statusText);
+            return false;
+        }
+
+        const result = await response.json();
+        // result.result will be 1 if key was deleted, 0 if key didn't exist
+        return result.result > 0;
     } catch (error) {
         console.error('Error deleting data from Redis:', error);
         return false;

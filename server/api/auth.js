@@ -238,9 +238,13 @@ app.get('/auth/github/callback', async (c) => {
             expiresAt: new Date((Math.floor(Date.now() / 1000) + jwtExpirationSeconds) * 1000).toISOString()
         });
 
-        // 生成JWT token
+        // 生成session ID用于多端登录支持
+        const sessionId = crypto.randomUUID();
+
+        // 生成JWT token，包含session ID
         const jwtPayload = {
             userId: user.id,
+            sessionId: sessionId, // 新增session ID
             login: user.login,
             name: user.name,
             email: user.email,
@@ -250,6 +254,7 @@ app.get('/auth/github/callback', async (c) => {
 
         console.log('🔐 Generating JWT with payload:', {
             userId: jwtPayload.userId,
+            sessionId: jwtPayload.sessionId,
             login: jwtPayload.login,
             name: jwtPayload.name,
             email: jwtPayload.email,
@@ -261,12 +266,42 @@ app.get('/auth/github/callback', async (c) => {
         const token = await sign(jwtPayload, c.env.JWT_SECRET);
         console.log('🎫 Generated JWT token:', token.substring(0, 30) + '...');
 
-        // 将token存储到KV中（如果可用）
+        // 将token存储到KV中，支持多端登录（如果可用）
         if (c.env.USER_SESSIONS) {
-            console.log('🗃️ Storing token in KV with key:', `user_session_${user.id}`);
-            await c.env.USER_SESSIONS.put(`user_session_${user.id}`, token, {
+            const sessionKey = `user_session_${user.id}_${sessionId}`;
+            console.log('🗃️ Storing token in KV with key:', sessionKey);
+            await c.env.USER_SESSIONS.put(sessionKey, JSON.stringify({
+                token: token,
+                userAgent: c.req.header('User-Agent') || 'Unknown',
+                createdAt: new Date().toISOString(),
+                lastUsed: new Date().toISOString()
+            }), {
                 expirationTtl: jwtExpirationSeconds // 与JWT过期时间保持一致
             });
+
+            // 维护session列表
+            const sessionListKey = `user_sessions_list_${user.id}`;
+            const existingSessionList = await c.env.USER_SESSIONS.get(sessionListKey);
+            let sessionIds = [];
+
+            if (existingSessionList) {
+                try {
+                    sessionIds = JSON.parse(existingSessionList);
+                } catch (parseError) {
+                    console.error('Failed to parse existing session list:', parseError);
+                    sessionIds = [];
+                }
+            }
+
+            // 添加新的session ID（如果不存在）
+            if (!sessionIds.includes(sessionId)) {
+                sessionIds.push(sessionId);
+                await c.env.USER_SESSIONS.put(sessionListKey, JSON.stringify(sessionIds), {
+                    expirationTtl: jwtExpirationSeconds + 86400 // 比token稍长一点的过期时间
+                });
+                console.log('✅ Session list updated with new session');
+            }
+
             console.log('✅ Token stored in KV successfully with expiration:', jwtExpirationDays, 'days');
         } else {
             console.log('⚠️ KV namespace not available, token not stored server-side');
@@ -325,23 +360,48 @@ app.get('/auth/verify', async (c) => {
             exp: new Date(payload.exp * 1000).toISOString()
         });
 
-        // 检查token是否在KV中存在（如果KV可用）
+        // 检查token是否在KV中存在（支持多端登录）
         if (c.env.USER_SESSIONS) {
-            console.log('🗃️ Checking token in KV with key:', `user_session_${payload.userId}`);
-            const storedToken = await c.env.USER_SESSIONS.get(`user_session_${payload.userId}`);
-            console.log('🗃️ Stored token found:', storedToken ? 'Yes' : 'No');
-
-            if (storedToken) {
-                console.log('🔍 Token comparison:', {
-                    provided: token.substring(0, 30) + '...',
-                    stored: storedToken.substring(0, 30) + '...',
-                    match: storedToken === token
-                });
+            if (!payload.sessionId) {
+                console.log('❌ No sessionId in token payload - token may be from old system');
+                return c.json({ error: 'Invalid token format' }, 401);
             }
 
-            if (!storedToken || storedToken !== token) {
-                console.log('❌ Token not found in KV or mismatch');
-                return c.json({ error: 'Token not found or invalid' }, 401);
+            const sessionKey = `user_session_${payload.userId}_${payload.sessionId}`;
+            console.log('🗃️ Checking token in KV with key:', sessionKey);
+            const storedSessionData = await c.env.USER_SESSIONS.get(sessionKey);
+            console.log('🗃️ Stored session found:', storedSessionData ? 'Yes' : 'No');
+
+            if (storedSessionData) {
+                try {
+                    const sessionInfo = JSON.parse(storedSessionData);
+                    console.log('🔍 Token comparison:', {
+                        provided: token.substring(0, 30) + '...',
+                        stored: sessionInfo.token.substring(0, 30) + '...',
+                        match: sessionInfo.token === token,
+                        userAgent: sessionInfo.userAgent,
+                        createdAt: sessionInfo.createdAt,
+                        lastUsed: sessionInfo.lastUsed
+                    });
+
+                    if (sessionInfo.token !== token) {
+                        console.log('❌ Token mismatch for session');
+                        return c.json({ error: 'Token mismatch' }, 401);
+                    }
+
+                    // 更新最后使用时间
+                    sessionInfo.lastUsed = new Date().toISOString();
+                    await c.env.USER_SESSIONS.put(sessionKey, JSON.stringify(sessionInfo), {
+                        expirationTtl: payload.exp - Math.floor(Date.now() / 1000) // 保持原有过期时间
+                    });
+
+                } catch (parseError) {
+                    console.log('❌ Failed to parse session data:', parseError);
+                    return c.json({ error: 'Invalid session data' }, 401);
+                }
+            } else {
+                console.log('❌ Session not found in KV');
+                return c.json({ error: 'Session not found' }, 401);
             }
         } else {
             console.log('⚠️ KV namespace not available, skipping server-side token validation');
@@ -378,7 +438,7 @@ app.get('/auth/verify', async (c) => {
     }
 });
 
-// 登出端点
+// 登出端点（支持多端登录）
 app.post('/auth/logout', async (c) => {
     const authHeader = c.req.header('Authorization');
 
@@ -391,9 +451,137 @@ app.post('/auth/logout', async (c) => {
     try {
         const payload = await verify(token, c.env.JWT_SECRET);
 
-        // 从KV中删除token（如果KV可用）
-        if (c.env.USER_SESSIONS) {
-            await c.env.USER_SESSIONS.delete(`user_session_${payload.userId}`);
+        // 从KV中删除当前session的token（如果KV可用）
+        if (c.env.USER_SESSIONS && payload.sessionId) {
+            const sessionKey = `user_session_${payload.userId}_${payload.sessionId}`;
+            console.log('🗑️ Removing session from KV:', sessionKey);
+            await c.env.USER_SESSIONS.delete(sessionKey);
+
+            // 从session列表中移除
+            const sessionListKey = `user_sessions_list_${payload.userId}`;
+            const sessionListData = await c.env.USER_SESSIONS.get(sessionListKey);
+
+            if (sessionListData) {
+                try {
+                    const sessionIds = JSON.parse(sessionListData);
+                    const updatedSessionIds = sessionIds.filter(id => id !== payload.sessionId);
+                    await c.env.USER_SESSIONS.put(sessionListKey, JSON.stringify(updatedSessionIds));
+                    console.log('✅ Session removed from list successfully');
+                } catch (parseError) {
+                    console.error('Failed to update session list:', parseError);
+                }
+            }
+
+            console.log('✅ Session removed successfully');
+        } else if (c.env.USER_SESSIONS) {
+            console.log('⚠️ No sessionId in token payload - cannot remove specific session');
+        } else {
+            console.log('⚠️ KV namespace not available, cannot remove session');
+        }
+
+        return c.json({ success: true });
+    } catch (error) {
+        return c.json({ error: 'Invalid token' }, 401);
+    }
+});
+
+// 获取用户的所有活动session
+app.get('/auth/sessions', async (c) => {
+    const authHeader = c.req.header('Authorization');
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return c.json({ error: 'Missing authorization header' }, 401);
+    }
+
+    const token = authHeader.split(' ')[1];
+
+    try {
+        const payload = await verify(token, c.env.JWT_SECRET);
+
+        if (!c.env.USER_SESSIONS) {
+            return c.json({ error: 'Session management not available' }, 503);
+        }
+
+        // 获取用户的所有session（这需要列举KV中的键，Cloudflare KV不直接支持，所以我们使用另一种方法）
+        // 我们需要在用户登录时维护一个session列表
+        const sessionListKey = `user_sessions_list_${payload.userId}`;
+        const sessionListData = await c.env.USER_SESSIONS.get(sessionListKey);
+
+        let sessions = [];
+        if (sessionListData) {
+            try {
+                const sessionIds = JSON.parse(sessionListData);
+
+                // 获取每个session的详细信息
+                for (const sessionId of sessionIds) {
+                    const sessionKey = `user_session_${payload.userId}_${sessionId}`;
+                    const sessionData = await c.env.USER_SESSIONS.get(sessionKey);
+
+                    if (sessionData) {
+                        try {
+                            const sessionInfo = JSON.parse(sessionData);
+                            sessions.push({
+                                sessionId: sessionId,
+                                userAgent: sessionInfo.userAgent,
+                                createdAt: sessionInfo.createdAt,
+                                lastUsed: sessionInfo.lastUsed,
+                                isCurrent: sessionId === payload.sessionId
+                            });
+                        } catch (parseError) {
+                            console.error('Failed to parse session data:', parseError);
+                        }
+                    }
+                }
+            } catch (parseError) {
+                console.error('Failed to parse session list:', parseError);
+            }
+        }
+
+        return c.json({ sessions });
+    } catch (error) {
+        return c.json({ error: 'Invalid token' }, 401);
+    }
+});
+
+// 删除指定的session（踢出其他设备）
+app.delete('/auth/sessions/:sessionId', async (c) => {
+    const authHeader = c.req.header('Authorization');
+    const targetSessionId = c.req.param('sessionId');
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return c.json({ error: 'Missing authorization header' }, 401);
+    }
+
+    const token = authHeader.split(' ')[1];
+
+    try {
+        const payload = await verify(token, c.env.JWT_SECRET);
+
+        if (!c.env.USER_SESSIONS) {
+            return c.json({ error: 'Session management not available' }, 503);
+        }
+
+        // 不允许删除当前session
+        if (targetSessionId === payload.sessionId) {
+            return c.json({ error: 'Cannot logout current session' }, 400);
+        }
+
+        // 删除指定的session
+        const sessionKey = `user_session_${payload.userId}_${targetSessionId}`;
+        await c.env.USER_SESSIONS.delete(sessionKey);
+
+        // 从session列表中移除
+        const sessionListKey = `user_sessions_list_${payload.userId}`;
+        const sessionListData = await c.env.USER_SESSIONS.get(sessionListKey);
+
+        if (sessionListData) {
+            try {
+                const sessionIds = JSON.parse(sessionListData);
+                const updatedSessionIds = sessionIds.filter(id => id !== targetSessionId);
+                await c.env.USER_SESSIONS.put(sessionListKey, JSON.stringify(updatedSessionIds));
+            } catch (parseError) {
+                console.error('Failed to update session list:', parseError);
+            }
         }
 
         return c.json({ success: true });
