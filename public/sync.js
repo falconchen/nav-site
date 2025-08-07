@@ -11,14 +11,17 @@ const MIN_CHECK_INTERVAL = 10000; // 最小检查间隔10秒
 // 全局变量控制是否进行定时同步检测，默认为true
 let enableTimerSync = true;
 
-// 同步用户数据
+// 初始化保存状态标志
+window.isSavingToCloud = false;
+
+// 同步用户数据（直接覆盖到云端）
 async function syncUserData() {
     if (!authToken) {
         showNotification('请先登录', 'error');
         return;
     }
 
-    showNotification('正在同步数据...', 'info');
+    showNotification('正在上传数据到云端...', 'info');
 
     try {
         // 获取本地数据
@@ -29,12 +32,12 @@ async function syncUserData() {
                 theme: localStorage.getItem('theme'),
                 categoriesCompactMode: localStorage.getItem('categoriesCompactMode')
             },
-            version: parseInt(localStorage.getItem('dataVersion') || '0'),
+            version: Date.now(), // 使用时间戳作为版本号
             lastUpdated: new Date().toISOString()
         };
 
-        // 调用合并API
-        const response = await fetch('/api/user-data/merge', {
+        // 直接保存到云端（覆盖）
+        const response = await fetch('/api/user-data/save', {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${authToken}`,
@@ -46,12 +49,10 @@ async function syncUserData() {
         if (response.ok) {
             const data = await response.json();
 
-            // 更新本地数据
-            if (data.data) {
-                updateLocalData(data.data);
-            }
+            // 更新本地版本号
+            localStorage.setItem('dataVersion', localData.version.toString());
 
-            showNotification('数据同步成功！', 'success');
+            showNotification('数据已上传到云端！', 'success');
         } else {
             let errorInfo;
             try {
@@ -70,18 +71,18 @@ async function syncUserData() {
                 return;
             }
 
-            throw new Error('同步失败');
+            throw new Error('上传失败');
         }
     } catch (error) {
         console.error('Error syncing data:', error);
-        showNotification('数据同步失败', 'error');
+        showNotification('数据上传失败', 'error');
     }
 
     // 关闭用户菜单
     document.getElementById('userMenu').classList.remove('show');
 }
 
-// 加载用户数据
+// 加载用户数据（直接覆盖本地）
 async function loadUserData(forceLoad = false) {
     if (!authToken) return;
 
@@ -100,30 +101,13 @@ async function loadUserData(forceLoad = false) {
             console.log('📥 Server data received:', data);
 
             if (data.data && data.lastUpdated) {
-                const localVersion = parseInt(localStorage.getItem('dataVersion') || '0');
-                const cloudVersion = data.data.version || 0;
+                console.log('✅ Updating local data with server data');
+                updateLocalData(data.data);
 
-                console.log('📊 Version comparison:', {
-                    local: localVersion,
-                    cloud: cloudVersion,
-                    forceLoad: forceLoad
-                });
-
-                // 强制加载或云端数据更新时覆盖本地数据
-                if (forceLoad || cloudVersion > localVersion || localVersion === 0) {
-
-
-                    console.log('✅ Updating local data with server data');
-                    updateLocalData(data.data);
-
-                    if (forceLoad) {
-                        showNotification('数据已从云端加载', 'success');
-                    } else {
-                        showNotification('数据已从云端同步', 'success');
-                    }
-
+                if (forceLoad) {
+                    showNotification('数据已从云端覆盖本地', 'success');
                 } else {
-                    console.log('📊 Local data is up to date or newer');
+                    showNotification('数据已从云端加载', 'success');
                 }
             } else if (!data.data || !data.lastUpdated) {
                 console.log('📊 No server data found, keeping local data');
@@ -152,6 +136,19 @@ async function loadUserData(forceLoad = false) {
     }
 }
 
+// 打印网站数量
+function getWebsiteCounts(websites) {
+	let total = 0;
+	const counts = Object.entries(websites).map(([category, sites]) => {
+	  const count = Array.isArray(sites) ? sites.length : 0;
+	  total += count;
+	  return `${category}:${count}`;
+	});
+	counts.push(`total:${total}`);
+	return counts.join(',');
+  }
+
+
 // 保存用户数据到云端
 async function saveUserData() {
     if (!authToken) {
@@ -162,6 +159,10 @@ async function saveUserData() {
     console.log('💾 Starting saveUserData...');
     console.log('🔑 Using authToken:', authToken.substring(0, 20) + '...');
 
+    // 设置正在保存的标志，防止版本检查干扰
+    window.isSavingToCloud = true;
+    console.log('🏁 Setting isSavingToCloud = true, preventing version checks during save');
+
     try {
         const localData = {
             categories: categories || [],
@@ -170,13 +171,13 @@ async function saveUserData() {
                 theme: localStorage.getItem('theme'),
                 categoriesCompactMode: localStorage.getItem('categoriesCompactMode')
             },
-            version: parseInt(localStorage.getItem('dataVersion') || '0') + 1,
+            version: Date.now(), // 使用时间戳作为版本号
             lastUpdated: new Date().toISOString()
         };
 
         console.log('📊 Local data to save:', {
             categoriesCount: localData.categories.length,
-            websitesCount: localData.websites.length,
+            websitesCount: getWebsiteCounts(localData.websites),
             version: localData.version
         });
 
@@ -196,7 +197,7 @@ async function saveUserData() {
             const responseData = await response.json();
             console.log('✅ Save response:', responseData);
             localStorage.setItem('dataVersion', localData.version.toString());
-            console.log('✅ Data saved to cloud successfully');
+            console.log('✅ Data saved to cloud successfully, updated local version to:', localData.version);
         } else {
             let errorInfo;
             try {
@@ -227,6 +228,10 @@ async function saveUserData() {
             message: error.message,
             stack: error.stack
         });
+    } finally {
+        // 清除正在保存的标志
+        window.isSavingToCloud = false;
+        console.log('🏁 Setting isSavingToCloud = false, version checks now allowed');
     }
 }
 
@@ -234,12 +239,15 @@ async function saveUserData() {
 function updateLocalData(cloudData) {
     console.log('🔄 Updating local data with cloud data:', cloudData);
 
+    // 设置标志，防止在更新过程中触发自动保存
+    window.isUpdatingFromCloud = true;
+
     // 更新分类数据
     if (cloudData.categories) {
         console.log('📂 Updating categories:', cloudData.categories.length, 'items');
         categories = cloudData.categories;
         window.categories = categories; // 确保全局变量同步
-        saveCategoriesToStorage();
+        // 直接保存到localStorage，不触发dataChanged事件
         localStorage.setItem('navSiteCategories', JSON.stringify(categories));
     }
 
@@ -248,7 +256,7 @@ function updateLocalData(cloudData) {
         console.log('🌐 Updating websites:', Object.keys(cloudData.websites).length, 'categories');
         websites = cloudData.websites;
         window.websites = websites; // 确保全局变量同步
-        saveWebsitesToStorage();
+        // 直接保存到localStorage，不触发dataChanged事件
         localStorage.setItem('navSiteWebsites', JSON.stringify(websites));
     }
 
@@ -299,6 +307,9 @@ function updateLocalData(cloudData) {
     }
 
     console.log('🔄 Page re-render completed');
+
+    // 清除标志，允许后续的正常保存
+    window.isUpdatingFromCloud = false;
 }
 
 // 从云端强制加载数据
@@ -308,104 +319,176 @@ async function loadUserDataFromCloud() {
         return;
     }
 
-    showCloudOverrideConfirmation();
+    showVersionSelectionModal();
 }
 
-// 显示云端覆盖确认框
-function showCloudOverrideConfirmation() {
-    // 移除已存在的确认框
-    const existingModal = document.querySelector('.cloud-override-confirmation');
-    if (existingModal) {
-        existingModal.remove();
-    }
-
-    const confirmation = document.createElement('div');
-    confirmation.className = 'cloud-override-confirmation';
-    confirmation.style.cssText = `
-        position: fixed;
-        top: 80px;
-        right: 20px;
-        background: #f59e0b;
-        color: white;
-        padding: 1rem 1.5rem;
-        border-radius: 0.5rem;
-        box-shadow: var(--shadow-large);
-        z-index: 1001;
-        max-width: 350px;
-        transform: translateX(100%);
-        transition: transform 0.3s ease;
-        border-left: 4px solid #dc2626;
-    `;
-
-    confirmation.innerHTML = `
-        <div style="margin-bottom: 0.5rem;">
-            <strong>⚠️ 使用云端数据覆盖</strong>
-        </div>
-        <div style="font-size: 0.875rem; margin-bottom: 1rem; opacity: 0.9;">
-            这将使用云端数据完全覆盖本地数据，本地的修改将会丢失。确定要继续吗？
-        </div>
-        <div style="display: flex; gap: 0.5rem;">
-            <button onclick="confirmCloudOverride()" style="
-                background: white;
-                color: #f59e0b;
-                border: none;
-                padding: 0.5rem 1rem;
-                border-radius: 0.25rem;
-                cursor: pointer;
-                font-size: 0.875rem;
-                font-weight: 500;
-            ">
-                确认覆盖
-            </button>
-            <button onclick="dismissCloudOverrideConfirmation()" style="
-                background: transparent;
-                color: white;
-                border: 1px solid rgba(255,255,255,0.3);
-                padding: 0.5rem 1rem;
-                border-radius: 0.25rem;
-                cursor: pointer;
-                font-size: 0.875rem;
-            ">
-                取消
-            </button>
-        </div>
-    `;
-
-    document.body.appendChild(confirmation);
-
-    // 显示动画
-    setTimeout(() => {
-        confirmation.style.transform = 'translateX(0)';
-    }, 100);
-
-    // 30秒后自动消失
-    setTimeout(() => {
-        dismissCloudOverrideConfirmation();
-    }, 30000);
-}
-
-// 确认云端覆盖
-async function confirmCloudOverride() {
-    dismissCloudOverrideConfirmation();
-
-    showNotification('正在从云端加载数据...', 'info');
-
+// 显示版本选择模态框
+async function showVersionSelectionModal() {
     try {
-        await loadUserData(true); // 强制加载
+        // 获取版本列表
+        const response = await fetch('/api/user-data/versions', {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${authToken}`
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('获取版本列表失败');
+        }
+
+        const data = await response.json();
+        const versions = data.versions || [];
+
+        if (versions.length === 0) {
+            showNotification('没有找到历史版本', 'info');
+            return;
+        }
+
+        // 移除已存在的模态框
+        const existingModal = document.querySelector('.version-selection-modal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+
+        const modal = document.createElement('div');
+        modal.className = 'version-selection-modal';
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1001;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        `;
+
+        const modalContent = document.createElement('div');
+        modalContent.style.cssText = `
+            background: white;
+            border-radius: 0.5rem;
+            max-width: 500px;
+            width: 90%;
+            max-height: 70vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-large);
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+        `;
+
+        let versionsHtml = '';
+        versions.forEach((version, index) => {
+            const date = new Date(version.lastUpdated);
+            const formattedDate = date.toLocaleString('zh-CN');
+            versionsHtml += `
+                <div class="version-item" style="
+                    padding: 1rem;
+                    border-bottom: 1px solid #e5e7eb;
+                    cursor: pointer;
+                    transition: background-color 0.2s;
+                " onclick="restoreFromVersion('${version.version}')" onmouseover="this.style.backgroundColor='#f3f4f6'" onmouseout="this.style.backgroundColor='transparent'">
+                    <div style="font-weight: 500; margin-bottom: 0.25rem;">
+                        版本 ${index + 1}
+                    </div>
+                    <div style="font-size: 0.875rem; color: #6b7280; margin-bottom: 0.25rem;">
+                        ${formattedDate}
+                    </div>
+                    <div style="font-size: 0.875rem; color: #374151;">
+                        ${version.description}
+                    </div>
+                </div>
+            `;
+        });
+
+        modalContent.innerHTML = `
+            <div style="padding: 1.5rem; border-bottom: 1px solid #e5e7eb;">
+                <h3 style="margin: 0; font-size: 1.25rem; font-weight: 600; color: #111827;">
+                    选择要恢复的版本
+                </h3>
+                <p style="margin: 0.5rem 0 0 0; font-size: 0.875rem; color: #6b7280;">
+                    选择一个历史版本来覆盖当前数据
+                </p>
+            </div>
+            <div style="max-height: 300px; overflow-y: auto;">
+                ${versionsHtml}
+            </div>
+            <div style="padding: 1rem 1.5rem; border-top: 1px solid #e5e7eb; display: flex; justify-content: flex-end; gap: 0.5rem;">
+                <button onclick="dismissVersionSelectionModal()" style="
+                    background: #f3f4f6;
+                    color: #374151;
+                    border: none;
+                    padding: 0.5rem 1rem;
+                    border-radius: 0.25rem;
+                    cursor: pointer;
+                    font-size: 0.875rem;
+                ">
+                    取消
+                </button>
+            </div>
+        `;
+
+        modal.appendChild(modalContent);
+        document.body.appendChild(modal);
+
+        // 显示动画
+        setTimeout(() => {
+            modal.style.opacity = '1';
+            modalContent.style.transform = 'scale(1)';
+        }, 100);
+
     } catch (error) {
-        console.error('Error loading data from cloud:', error);
-        showNotification('从云端加载数据失败', 'error');
+        console.error('Error showing version selection:', error);
+        showNotification('获取版本列表失败', 'error');
     }
 }
 
-// 关闭云端覆盖确认框
-function dismissCloudOverrideConfirmation() {
-    const confirmation = document.querySelector('.cloud-override-confirmation');
-    if (confirmation) {
-        confirmation.style.transform = 'translateX(100%)';
+// 从指定版本恢复数据
+async function restoreFromVersion(version) {
+    try {
+        showNotification('正在恢复数据...', 'info');
+
+        const response = await fetch('/api/user-data/restore', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${authToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ version })
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+
+            // 更新本地数据
+            if (data.data) {
+                updateLocalData(data.data);
+            }
+
+            dismissVersionSelectionModal();
+            showNotification('数据恢复成功！', 'success');
+        } else {
+            throw new Error('恢复失败');
+        }
+    } catch (error) {
+        console.error('Error restoring version:', error);
+        showNotification('数据恢复失败', 'error');
+    }
+}
+
+// 关闭版本选择模态框
+function dismissVersionSelectionModal() {
+    const modal = document.querySelector('.version-selection-modal');
+    if (modal) {
+        modal.style.opacity = '0';
+        modal.querySelector('div').style.transform = 'scale(0.9)';
         setTimeout(() => {
-            if (confirmation.parentNode) {
-                confirmation.parentNode.removeChild(confirmation);
+            if (modal.parentNode) {
+                modal.parentNode.removeChild(modal);
             }
         }, 300);
     }
@@ -453,6 +536,12 @@ function stopSyncDetection() {
 async function checkForCloudUpdates() {
     if (!authToken || !enableTimerSync) return;
 
+    // 如果正在保存到云端，跳过版本检查避免冲突
+    if (window.isSavingToCloud) {
+        console.log('🔍 Skipping sync check - currently saving to cloud (isSavingToCloud = true)');
+        return;
+    }
+
     // 避免频繁检查
     const now = Date.now();
     if (now - lastSyncCheck < MIN_CHECK_INTERVAL) {
@@ -480,7 +569,8 @@ async function checkForCloudUpdates() {
                 local: localVersion,
                 cloud: cloudVersion,
                 hasCloudData: data.hasData,
-                lastUpdated: data.lastUpdated
+                lastUpdated: data.lastUpdated,
+                isSavingToCloud: window.isSavingToCloud
             });
 
             if (data.hasData && cloudVersion > localVersion) {
@@ -556,7 +646,7 @@ function showSyncUpdateNotification(cloudVersion, localVersion) {
                 font-size: 0.875rem;
                 font-weight: 500;
             ">
-                立即同步
+                立即更新
             </button>
             <button onclick="dismissSyncNotificationAndDisableTimer()" style="
                 background: transparent;
@@ -585,12 +675,10 @@ function showSyncUpdateNotification(cloudVersion, localVersion) {
     }, 30000);
 }
 
-// 立即同步
+// 立即更新（从云端加载数据覆盖本地）
 async function syncNow() {
     dismissSyncNotification();
-    await syncUserData();
-    // await loadUserData(true);
-    // showNotification('数据已同步', 'success');
+    await loadUserData(true); // 直接从云端加载覆盖本地
 }
 
 // 关闭同步通知
@@ -632,9 +720,13 @@ function handleVisibilityChange() {
 // 监听数据变化，自动保存到云端
 document.addEventListener('dataChanged', function() {
     if (authToken) {
+        console.log('📝 Data changed event triggered, scheduling save in 2 seconds...');
+        console.log('🔍 Current isSavingToCloud status:', window.isSavingToCloud);
         // 延迟保存，避免频繁请求
         clearTimeout(window.saveTimeout);
         window.saveTimeout = setTimeout(saveUserData, 2000);
+    } else {
+        console.log('📝 Data changed event triggered, but no auth token available');
     }
 });
 
@@ -649,7 +741,7 @@ window.addEventListener('beforeunload', function() {
                 theme: localStorage.getItem('theme'),
                 categoriesCompactMode: localStorage.getItem('categoriesCompactMode')
             },
-            version: parseInt(localStorage.getItem('dataVersion') || '0') + 1,
+            version: Date.now(), // 使用时间戳作为版本号
             lastUpdated: new Date().toISOString()
         };
 

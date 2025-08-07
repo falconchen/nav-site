@@ -462,11 +462,13 @@ function saveNavData() {
     localStorage.setItem('navSiteCategories', JSON.stringify(categories));
     localStorage.setItem('navSiteWebsites', JSON.stringify(websites));
 
-    // 触发数据变化事件，用于云端同步
-    const dataChangedEvent = new CustomEvent('dataChanged', {
-      detail: { categories, websites }
-    });
-    document.dispatchEvent(dataChangedEvent);
+    // 只在非云端更新时触发数据变化事件
+    if (!window.isUpdatingFromCloud) {
+      const dataChangedEvent = new CustomEvent('dataChanged', {
+        detail: { categories, websites }
+      });
+      document.dispatchEvent(dataChangedEvent);
+    }
   } catch (error) {
     console.error('保存数据出错:', error);
   }
@@ -598,11 +600,11 @@ function createImportExportUI() {
     return;
   }
 
-  // 创建云端覆盖按钮
+  // 创建历史版本选择按钮
   const cloudOverrideBtn = document.createElement('a');
   cloudOverrideBtn.href = '#';
   cloudOverrideBtn.className = 'footer-link cloud-override-btn';
-  cloudOverrideBtn.innerHTML = '<i class="fas fa-cloud-download-alt"></i> 使用云端数据覆盖';
+  cloudOverrideBtn.innerHTML = '<i class="fas fa-history"></i> 选择历史版本';
   cloudOverrideBtn.style.display = 'none'; // 默认隐藏，只有登录后才显示
 
   // 创建导入导出按钮组

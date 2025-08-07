@@ -88,14 +88,18 @@ app.post('/user-data/save', authMiddleware, async (c) => {
             version: userData.version || 1
         };
 
-        // 保存到Redis
+        // 保存当前数据到Redis主键
         const success = await saveDataToRedis(c, user.userId, dataToSave);
+
+        // 保存版本历史到Redis
+        const versionSaved = await saveVersionToRedis(c, user.userId, dataToSave);
 
         if (success) {
             return c.json({
                 success: true,
                 message: 'Data saved successfully',
-                lastUpdated: dataToSave.lastUpdated
+                lastUpdated: dataToSave.lastUpdated,
+                version: dataToSave.version
             });
         } else {
             return c.json({ error: 'Failed to save data' }, 500);
@@ -159,46 +163,69 @@ app.get('/user-data/status', authMiddleware, async (c) => {
     }
 });
 
-// 合并本地和云端数据
-app.post('/user-data/merge', authMiddleware, async (c) => {
+// 获取历史版本列表
+app.get('/user-data/versions', authMiddleware, async (c) => {
     try {
         const user = c.get('user');
-        const localData = await c.req.json();
 
-        // 从Redis获取云端数据
-        const cloudData = await loadDataFromRedis(c, user.userId);
+        // 从Redis获取版本历史
+        const versions = await getVersionsFromRedis(c, user.userId);
 
-        let mergedData;
+        return c.json({
+            success: true,
+            versions: versions
+        });
+    } catch (error) {
+        console.error('Error getting data versions:', error);
+        return c.json({ error: 'Internal server error' }, 500);
+    }
+});
 
-        if (!cloudData) {
-            // 如果云端没有数据，直接使用本地数据
-            mergedData = localData;
-        } else {
-            // 合并逻辑：以最新数据为准，同时合并不冲突的项目
-            mergedData = mergeUserData(localData, cloudData);
+// 从历史版本恢复数据
+app.post('/user-data/restore', authMiddleware, async (c) => {
+    try {
+        const user = c.get('user');
+        const { version } = await c.req.json();
+
+        if (!version) {
+            return c.json({ error: 'Version parameter is required' }, 400);
         }
 
-        // 保存合并后的数据
-        const dataToSave = {
-            ...mergedData,
+        // 从Redis获取指定版本的数据
+        const versionData = await getVersionDataFromRedis(c, user.userId, version);
+
+        if (!versionData) {
+            return c.json({ error: 'Version not found' }, 404);
+        }
+
+        // 创建新版本（恢复操作也算作一个新版本）
+        const restoredData = {
+            ...versionData,
             userId: user.userId,
             lastUpdated: new Date().toISOString(),
-            version: (Math.max(localData.version || 0, cloudData?.version || 0)) + 1
+            version: Date.now(), // 使用时间戳作为新版本号
+            restoredFrom: version
         };
 
-        const success = await saveDataToRedis(c, user.userId, dataToSave);
+        // 保存恢复的数据为当前数据
+        const success = await saveDataToRedis(c, user.userId, restoredData);
+
+        // 同时保存为新的版本历史
+        if (success) {
+            await saveVersionToRedis(c, user.userId, restoredData);
+        }
 
         if (success) {
             return c.json({
                 success: true,
-                data: dataToSave,
-                message: 'Data merged and saved successfully'
+                data: restoredData,
+                message: 'Data restored successfully'
             });
         } else {
-            return c.json({ error: 'Failed to save merged data' }, 500);
+            return c.json({ error: 'Failed to restore data' }, 500);
         }
     } catch (error) {
-        console.error('Error merging user data:', error);
+        console.error('Error restoring data version:', error);
         return c.json({ error: 'Internal server error' }, 500);
     }
 });
@@ -313,70 +340,150 @@ async function deleteDataFromRedis(c, userId) {
     }
 }
 
-// 辅助函数：合并用户数据
-function mergeUserData(localData, cloudData) {
-    // 简单的合并策略：以时间戳较新的为准
-    const localTimestamp = new Date(localData.lastUpdated || 0).getTime();
-    const cloudTimestamp = new Date(cloudData.lastUpdated || 0).getTime();
+// 辅助函数：保存版本历史到Redis
+async function saveVersionToRedis(c, userId, data) {
+    try {
+        const redisUrl = c.env.UPSTASH_REDIS_REST_URL;
+        const redisToken = c.env.UPSTASH_REDIS_REST_TOKEN;
 
-    if (localTimestamp > cloudTimestamp) {
-        return localData;
-    } else if (cloudTimestamp > localTimestamp) {
-        return cloudData;
-    } else {
-        // 时间戳相同，合并数组数据
-        const mergedCategories = mergeCategoriesArray(
-            localData.categories || [],
-            cloudData.categories || []
-        );
+        if (!redisUrl || !redisToken) {
+            console.log('Redis credentials not configured');
+            return false;
+        }
 
-        const mergedWebsites = mergeWebsitesArray(
-            localData.websites || [],
-            cloudData.websites || []
-        );
+        const versionKey = `userdata_versions:${userId}`;
+        const version = data.version || Date.now();
 
-        return {
-            categories: mergedCategories,
-            websites: mergedWebsites,
-            settings: { ...cloudData.settings, ...localData.settings }
+        // 保存单个版本数据
+        const versionDataKey = `userdata_version:${userId}:${version}`;
+        const versionDataResponse = await fetch(`${redisUrl}/set/${versionDataKey}`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${redisToken}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        });
+
+        if (!versionDataResponse.ok) {
+            console.error('Failed to save version data');
+            return false;
+        }
+
+        // 设置版本数据过期时间（30天）
+        await fetch(`${redisUrl}/expire/${versionDataKey}`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${redisToken}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(30 * 24 * 60 * 60), // 30天
+        });
+
+        // 更新版本列表
+        const versionInfo = {
+            version: version,
+            lastUpdated: data.lastUpdated,
+            description: data.restoredFrom ? `从版本 ${data.restoredFrom} 恢复` : '数据更新'
         };
+
+        // 获取现有版本列表
+        const existingVersionsResponse = await fetch(`${redisUrl}/get/${versionKey}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${redisToken}`,
+            },
+        });
+
+        let versions = [];
+        if (existingVersionsResponse.ok) {
+            const existingData = await existingVersionsResponse.json();
+            if (existingData.result) {
+                versions = JSON.parse(existingData.result);
+            }
+        }
+
+        // 添加新版本到列表开头
+        versions.unshift(versionInfo);
+
+        // 只保留最近5个版本
+        versions = versions.slice(0, 5);
+
+        // 保存更新后的版本列表
+        const versionsResponse = await fetch(`${redisUrl}/set/${versionKey}`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${redisToken}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(versions),
+        });
+
+        return versionsResponse.ok;
+    } catch (error) {
+        console.error('Error saving version to Redis:', error);
+        return false;
     }
 }
 
-// 合并分类数组
-function mergeCategoriesArray(localCategories, cloudCategories) {
-    const merged = [...cloudCategories];
+// 辅助函数：获取版本列表
+async function getVersionsFromRedis(c, userId) {
+    try {
+        const redisUrl = c.env.UPSTASH_REDIS_REST_URL;
+        const redisToken = c.env.UPSTASH_REDIS_REST_TOKEN;
 
-    for (const localCat of localCategories) {
-        const existingIndex = merged.findIndex(c => c.id === localCat.id);
-        if (existingIndex >= 0) {
-            // 如果存在相同ID，使用本地数据（假设本地更新）
-            merged[existingIndex] = localCat;
-        } else {
-            // 如果不存在，添加到合并结果
-            merged.push(localCat);
+        if (!redisUrl || !redisToken) {
+            return [];
         }
-    }
 
-    return merged;
+        const versionKey = `userdata_versions:${userId}`;
+        const response = await fetch(`${redisUrl}/get/${versionKey}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${redisToken}`,
+            },
+        });
+
+        if (!response.ok) {
+            return [];
+        }
+
+        const data = await response.json();
+        return data.result ? JSON.parse(data.result) : [];
+    } catch (error) {
+        console.error('Error getting versions from Redis:', error);
+        return [];
+    }
 }
 
-// 合并网站数组
-function mergeWebsitesArray(localWebsites, cloudWebsites) {
-    const merged = [...cloudWebsites];
+// 辅助函数：获取指定版本的数据
+async function getVersionDataFromRedis(c, userId, version) {
+    try {
+        const redisUrl = c.env.UPSTASH_REDIS_REST_URL;
+        const redisToken = c.env.UPSTASH_REDIS_REST_TOKEN;
 
-    for (const localSite of localWebsites) {
-        const existingIndex = merged.findIndex(w => w.id === localSite.id);
-        if (existingIndex >= 0) {
-            // 如果存在相同ID，使用本地数据
-            merged[existingIndex] = localSite;
-        } else {
-            // 如果不存在，添加到合并结果
-            merged.push(localSite);
+        if (!redisUrl || !redisToken) {
+            return null;
         }
-    }
 
-    return merged;
+        const versionDataKey = `userdata_version:${userId}:${version}`;
+        const response = await fetch(`${redisUrl}/get/${versionDataKey}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${redisToken}`,
+            },
+        });
+
+        if (!response.ok) {
+            return null;
+        }
+
+        const data = await response.json();
+        return data.result ? JSON.parse(data.result) : null;
+    } catch (error) {
+        console.error('Error getting version data from Redis:', error);
+        return null;
+    }
 }
 
 export default app;
