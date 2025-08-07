@@ -32,6 +32,40 @@ app.get('/uuid', (c) => {
 	return c.text(crypto.randomUUID());
 });
 
+// 测试接口：打印用户UA和IP
+app.get('/test/user-info', (c) => {
+	// 获取用户的 IP 地址
+	const ip = c.req.header('CF-Connecting-IP') ||
+	           c.req.header('X-Forwarded-For') ||
+	           c.req.header('X-Real-IP') ||
+	           '未知IP';
+
+	// 获取用户的 User-Agent
+	const userAgent = c.req.header('User-Agent') || '未知User-Agent';
+
+	// 获取国家信息（Cloudflare 提供）
+	const country = c.req.header('CF-IPCountry') || '未知国家';
+
+	// 打印到控制台
+	console.log('=== 用户信息测试 ===');
+	console.log('IP地址:', ip);
+	console.log('User-Agent:', userAgent);
+	console.log('国家:', country);
+	console.log('==================');
+
+	// 返回JSON格式的信息
+	return c.json({
+		success: true,
+		userInfo: {
+			ip: ip,
+			userAgent: userAgent,
+			country: country,
+			timestamp: new Date().toISOString()
+		},
+		message: '用户信息已打印到控制台'
+	});
+});
+
 // API 路由
 app.route('/api', analyzeApi);
 app.route('/api', proxyImageApi);
