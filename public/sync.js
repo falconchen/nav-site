@@ -385,6 +385,43 @@ async function showVersionSelectionModal() {
         versions.forEach((version, index) => {
             const date = new Date(version.lastUpdated);
             const formattedDate = date.toLocaleString('zh-CN');
+
+            // 格式化设备信息
+            let deviceInfoHtml = '';
+            if (version.deviceInfo || version.userIP || version.userCountry) {
+                const device = version.deviceInfo?.device || 'Unknown Device';
+                const browser = version.deviceInfo?.browser || 'Unknown Browser';
+                const os = version.deviceInfo?.os || 'Unknown OS';
+                const userIP = version.userIP || '未知IP';
+                const userCountry = version.userCountry || '未知国家';
+
+                deviceInfoHtml = `
+                    <div style="font-size: 0.75rem; color: #9ca3af; margin-top: 0.25rem;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                            <span style="display: inline-flex; align-items: center; gap: 0.25rem;">
+                                <i class="fas fa-${device === 'Mobile Device' ? 'mobile-alt' : device === 'Tablet' ? 'tablet-alt' : 'desktop'}" style="font-size: 0.75rem;"></i>
+                                ${device}
+                            </span>
+                            <span style="color: #d1d5db;">|</span>
+                            <span>${browser}</span>
+                            <span style="color: #d1d5db;">|</span>
+                            <span>${os}</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <span style="display: inline-flex; align-items: center; gap: 0.25rem;">
+                                <i class="fas fa-map-marker-alt" style="font-size: 0.75rem;"></i>
+                                ${userIP}
+                            </span>
+                            <span style="color: #d1d5db;">|</span>
+                            <span style="display: inline-flex; align-items: center; gap: 0.25rem;">
+                                <i class="fas fa-flag" style="font-size: 0.75rem;"></i>
+                                ${userCountry}
+                            </span>
+                        </div>
+                    </div>
+                `;
+            }
+
             versionsHtml += `
                 <div class="version-item" style="
                     padding: 1rem;
@@ -393,7 +430,7 @@ async function showVersionSelectionModal() {
                     transition: background-color 0.2s;
                 " onclick="restoreFromVersion('${version.version}')" onmouseover="this.style.backgroundColor='#f3f4f6'" onmouseout="this.style.backgroundColor='transparent'">
                     <div style="font-weight: 500; margin-bottom: 0.25rem;">
-                        版本 ${index + 1}
+                        版本 ${version.version}
                     </div>
                     <div style="font-size: 0.875rem; color: #6b7280; margin-bottom: 0.25rem;">
                         ${formattedDate}
@@ -401,6 +438,7 @@ async function showVersionSelectionModal() {
                     <div style="font-size: 0.875rem; color: #374151;">
                         ${version.description}
                     </div>
+                    ${deviceInfoHtml}
                 </div>
             `;
         });

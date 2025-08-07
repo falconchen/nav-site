@@ -8,6 +8,48 @@ import { verify } from 'hono/jwt';
 const app = new Hono();
 
 // 中间件：验证用户身份
+// 解析用户代理字符串
+function parseUserAgent(userAgent) {
+    const parser = {
+        device: 'Unknown Device',
+        browser: 'Unknown Browser',
+        os: 'Unknown OS'
+    };
+
+    // 简单的用户代理解析
+    if (userAgent.includes('Mobile') || userAgent.includes('Android') || userAgent.includes('iPhone')) {
+        parser.device = 'Mobile Device';
+    } else if (userAgent.includes('Tablet') || userAgent.includes('iPad')) {
+        parser.device = 'Tablet';
+    } else {
+        parser.device = 'Desktop';
+    }
+
+    if (userAgent.includes('Chrome')) {
+        parser.browser = 'Chrome';
+    } else if (userAgent.includes('Firefox')) {
+        parser.browser = 'Firefox';
+    } else if (userAgent.includes('Safari') && !userAgent.includes('Chrome')) {
+        parser.browser = 'Safari';
+    } else if (userAgent.includes('Edge')) {
+        parser.browser = 'Edge';
+    }
+
+    if (userAgent.includes('Windows')) {
+        parser.os = 'Windows';
+    } else if (userAgent.includes('Mac')) {
+        parser.os = 'macOS';
+    } else if (userAgent.includes('Linux')) {
+        parser.os = 'Linux';
+    } else if (userAgent.includes('Android')) {
+        parser.os = 'Android';
+    } else if (userAgent.includes('iOS') || userAgent.includes('iPhone') || userAgent.includes('iPad')) {
+        parser.os = 'iOS';
+    }
+
+    return parser;
+}
+
 const authMiddleware = async (c, next) => {
     const authHeader = c.req.header('Authorization');
 
@@ -80,12 +122,29 @@ app.post('/user-data/save', authMiddleware, async (c) => {
             return c.json({ error: 'Invalid data format' }, 400);
         }
 
+        // 获取用户的 User-Agent 并解析设备信息
+        const userAgent = c.req.header('User-Agent') || 'Unknown User-Agent';
+        const deviceInfo = parseUserAgent(userAgent);
+
+        // 获取用户的 IP 地址和国家信息
+        const userIP = c.req.header('CF-Connecting-IP') ||
+                      c.req.header('X-Forwarded-For') ||
+                      c.req.header('X-Real-IP') ||
+                      '未知IP';
+
+
+
+        const userCountry = c.req.header('CF-IPCountry') || '未知国家';
+
         // 添加元数据
         const dataToSave = {
             ...userData,
             userId: user.userId,
             lastUpdated: new Date().toISOString(),
-            version: userData.version || 1
+            version: userData.version || 1,
+            deviceInfo: deviceInfo, // 在服务端添加设备信息
+            userIP: userIP, // 添加用户IP
+            userCountry: userCountry // 添加用户国家
         };
 
         // 保存当前数据到Redis主键
@@ -384,7 +443,10 @@ async function saveVersionToRedis(c, userId, data) {
         const versionInfo = {
             version: version,
             lastUpdated: data.lastUpdated,
-            description: data.restoredFrom ? `从版本 ${data.restoredFrom} 恢复` : '数据更新'
+            description: data.restoredFrom ? `从版本 ${data.restoredFrom} 恢复` : '数据更新',
+            deviceInfo: data.deviceInfo || null, // 添加设备信息
+            userIP: data.userIP || null, // 添加用户IP
+            userCountry: data.userCountry || null // 添加用户国家
         };
 
         // 获取现有版本列表
