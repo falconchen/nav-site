@@ -2340,3 +2340,66 @@ html[data-sidebar="compact"] .website-card:hover {
     margin-bottom: 0.6rem !important;
   }
 }
+
+/* 小屏卡片：图标居中 + 文本在下，4列栅格 */
+@media (max-width: 480px) {
+  .cards-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 0.8rem !important;
+  }
+
+  .website-card {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    min-height: auto !important;
+    align-items: center !important;
+    text-align: center !important;
+  }
+
+  .website-card:hover {
+    transform: none !important;
+    box-shadow: none !important;
+    border-color: transparent !important;
+  }
+
+  .card-header {
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.5rem !important;
+    margin: 0 !important;
+  }
+
+  .card-icon {
+    width: 60px !important;
+    height: 60px !important;
+    min-width: 60px !important;
+    border-radius: 22% !important;
+    background: var(--surface-color) !important;
+    color: var(--text-primary) !important;
+    box-shadow: var(--shadow-light) !important;
+    font-size: 1.6rem !important;
+  }
+
+  .card-icon.with-img {
+    border-radius: 22% !important;
+  }
+
+  .card-title {
+    font-size: 0.9rem !important;
+    text-align: center !important;
+    display: -webkit-box !important;
+    -webkit-line-clamp: 2 !important;
+    line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    max-width: 7.5rem !important;
+    margin-top: 0.25rem !important;
+  }
+
+  .card-url,
+  .card-description {
+    display: none !important;
+  }
+}
