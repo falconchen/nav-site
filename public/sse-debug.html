@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SSE 同步调试工具</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .debug-panel {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-connected { background: #10b981; }
+        .status-connecting { background: #f59e0b; }
+        .status-disconnected { background: #ef4444; }
+
+        .log-container {
+            background: #1f2937;
+            color: #e5e7eb;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        button:hover {
+            background: #2563eb;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .stat-item {
+            background: #f8fafc;
+            padding: 12px;
+            border-radius: 6px;
+            border-left: 4px solid #3b82f6;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #64748b;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1e293b;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔄 SSE 同步调试工具</h1>
+
+    <div class="debug-panel">
+        <h3>连接状态</h3>
+        <div id="connection-status">
+            <span class="status-indicator status-disconnected"></span>
+            <span>未连接</span>
+        </div>
+
+        <div class="stats-grid" id="stats-container">
+            <!-- 统计信息将在这里显示 -->
+        </div>
+
+        <div style="margin-top: 15px;">
+            <button onclick="startSSETest()">开始SSE测试</button>
+            <button onclick="stopSSETest()">停止SSE测试</button>
+            <button onclick="showSyncStatus()">显示同步状态</button>
+            <button onclick="clearLogs()">清空日志</button>
+            <button onclick="triggerManualSync()">手动触发同步</button>
+        </div>
+    </div>
+
+    <div class="debug-panel">
+        <h3>实时日志</h3>
+        <div id="log-output" class="log-container">
+            等待日志输出...
+        </div>
+    </div>
+
+    <div class="debug-panel">
+        <h3>SSE 消息历史</h3>
+        <div id="message-history" class="log-container">
+            等待SSE消息...
+        </div>
+    </div>
+
+    <script>
+        // 引入必要的脚本
+        let authToken = localStorage.getItem('authToken');
+        let testEventSource = null;
+        let messageCount = 0;
+        let connectionStartTime = null;
+
+        // 日志输出
+        const logContainer = document.getElementById('log-output');
+        const messageHistory = document.getElementById('message-history');
+        const statsContainer = document.getElementById('stats-container');
+        const connectionStatus = document.getElementById('connection-status');
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${message}\n`;
+            logContainer.textContent += logEntry;
+            logContainer.scrollTop = logContainer.scrollHeight;
+
+            console.log(message);
+        }
+
+        function logMessage(message, data) {
+            const timestamp = new Date().toLocaleTimeString();
+            const msgEntry = `[${timestamp}] ${message}: ${JSON.stringify(data, null, 2)}\n`;
+            messageHistory.textContent += msgEntry;
+            messageHistory.scrollTop = messageHistory.scrollHeight;
+
+            messageCount++;
+            updateStats();
+        }
+
+        function updateConnectionStatus(status, text) {
+            const indicator = connectionStatus.querySelector('.status-indicator');
+            const statusText = connectionStatus.querySelector('span:last-child');
+
+            indicator.className = `status-indicator status-${status}`;
+            statusText.textContent = text;
+        }
+
+        function updateStats() {
+            const uptime = connectionStartTime ? Math.floor((Date.now() - connectionStartTime) / 1000) : 0;
+            const readyState = testEventSource ? testEventSource.readyState : EventSource.CLOSED;
+
+            const stateNames = {
+                [EventSource.CONNECTING]: '连接中',
+                [EventSource.OPEN]: '已连接',
+                [EventSource.CLOSED]: '已关闭'
+            };
+
+            statsContainer.innerHTML = `
+                <div class="stat-item">
+                    <div class="stat-label">连接状态</div>
+                    <div class="stat-value">${stateNames[readyState] || '未知'}</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">连接时长</div>
+                    <div class="stat-value">${uptime} 秒</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">接收消息数</div>
+                    <div class="stat-value">${messageCount}</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">SSE 支持</div>
+                    <div class="stat-value">${typeof EventSource !== 'undefined' ? '是' : '否'}</div>
+                </div>
+            `;
+        }
+
+        function startSSETest() {
+            if (!authToken) {
+                log('❌ 没有找到认证token，请先登录', 'error');
+                alert('请先在主页面登录，然后刷新此页面');
+                return;
+            }
+
+            if (testEventSource) {
+                log('⚠️ SSE连接已存在，先停止现有连接');
+                stopSSETest();
+            }
+
+            log('🚀 开始SSE测试连接...');
+            connectionStartTime = Date.now();
+
+            const url = `/api/events?token=${encodeURIComponent(authToken)}`;
+            testEventSource = new EventSource(url);
+
+            testEventSource.onopen = function(event) {
+                log('✅ SSE连接已建立');
+                updateConnectionStatus('connected', '已连接');
+                updateStats();
+            };
+
+            testEventSource.onmessage = function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    log(`📨 收到SSE消息: ${data.type}`);
+                    logMessage('SSE消息', data);
+                    updateStats();
+                } catch (error) {
+                    log(`❌ 解析SSE消息失败: ${error.message}`);
+                    logMessage('解析错误', { raw: event.data, error: error.message });
+                }
+            };
+
+            testEventSource.onerror = function(event) {
+                log('❌ SSE连接错误');
+                updateConnectionStatus('disconnected', '连接错误');
+                logMessage('SSE错误', {
+                    readyState: testEventSource.readyState,
+                    event: event
+                });
+                updateStats();
+            };
+
+            // 定期更新统计信息
+            setInterval(updateStats, 1000);
+        }
+
+        function stopSSETest() {
+            if (testEventSource) {
+                log('⏹️ 停止SSE连接...');
+                testEventSource.close();
+                testEventSource = null;
+                updateConnectionStatus('disconnected', '已断开');
+                connectionStartTime = null;
+                updateStats();
+            } else {
+                log('⚠️ 没有活跃的SSE连接');
+            }
+        }
+
+        function clearLogs() {
+            logContainer.textContent = '日志已清空...\n';
+            messageHistory.textContent = '消息历史已清空...\n';
+            messageCount = 0;
+            updateStats();
+        }
+
+        function triggerManualSync() {
+            log('🔄 触发手动同步测试...');
+
+            if (!authToken) {
+                log('❌ 没有认证token');
+                return;
+            }
+
+            // 模拟数据变化
+            const testData = {
+                categories: [],
+                websites: [],
+                settings: {},
+                version: Date.now(),
+                lastUpdated: new Date().toISOString()
+            };
+
+            fetch('/api/user-data/save', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${authToken}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(testData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    log('✅ 手动同步成功，应该会触发SSE广播');
+                } else {
+                    log(`❌ 手动同步失败: ${data.error}`);
+                }
+            })
+            .catch(error => {
+                log(`❌ 手动同步请求失败: ${error.message}`);
+            });
+        }
+
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            log('📋 SSE调试工具已加载');
+            log(`🔑 认证状态: ${authToken ? '已登录' : '未登录'}`);
+            log(`🌐 EventSource支持: ${typeof EventSource !== 'undefined' ? '是' : '否'}`);
+
+            updateStats();
+
+            if (!authToken) {
+                log('⚠️ 警告: 未找到认证token，请先在主页面登录');
+            }
+        });
+
+        // 模拟showSyncStatus函数（如果在主页面，可以调用真实的）
+        function showSyncStatus() {
+            log('🔍 同步状态检查...');
+
+            if (typeof getSyncStatus === 'function') {
+                const status = getSyncStatus();
+                log(`📊 同步状态: ${JSON.stringify(status, null, 2)}`);
+            } else {
+                log('⚠️ getSyncStatus函数不可用（需要在主页面调用）');
+                log('🔍 当前测试状态:');
+                log(`  - EventSource支持: ${typeof EventSource !== 'undefined'}`);
+                log(`  - 测试连接状态: ${testEventSource ? '已建立' : '未建立'}`);
+                log(`  - 认证token: ${authToken ? '存在' : '不存在'}`);
+            }
+        }
+    </script>
+</body>
+</html>

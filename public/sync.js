@@ -11,6 +11,13 @@ const MIN_CHECK_INTERVAL = 10000; // 最小检查间隔10秒
 // 全局变量控制是否进行定时同步检测，默认为true
 let enableTimerSync = true;
 
+// SSE同步相关变量
+let sseSync = null;
+let hybridSyncManager = null;
+const SSE_RECONNECT_DELAY = 1000; // SSE重连延迟基数（毫秒）
+const SSE_MAX_RECONNECT_ATTEMPTS = 5; // SSE最大重连次数
+const SSE_FALLBACK_POLLING_INTERVAL = 300000; // SSE失败后的轮询间隔（5分钟）
+
 // 初始化保存状态标志
 window.isSavingToCloud = false;
 
@@ -532,38 +539,39 @@ function dismissVersionSelectionModal() {
     }
 }
 
-// 启动同步检测
+// 启动同步检测（使用混合SSE+轮询策略）
 function startSyncDetection() {
     if (!authToken) return;
 
-    console.log('🔄 Starting sync detection...');
+    console.log('🔄 Starting hybrid sync detection...');
 
-    // 清除现有定时器
-    if (syncCheckInterval) {
-        clearInterval(syncCheckInterval);
-    }
+    // 停止现有的同步
+    stopSyncDetection();
 
-    // 设置定期检查
-    syncCheckInterval = setInterval(() => checkForCloudUpdates(), SYNC_CHECK_INTERVAL);
+    // 创建并启动混合同步管理器
+    hybridSyncManager = new HybridSyncManager();
+    hybridSyncManager.start();
 
-    // 页面获得焦点时检查
-    window.addEventListener('focus', handleWindowFocus);
-
-    // 页面可见性变化时检查
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    console.log('✅ Sync detection started successfully');
+    console.log('✅ Hybrid sync detection started successfully');
 }
 
 // 停止同步检测
 function stopSyncDetection() {
     console.log('⏹️ Stopping sync detection...');
 
+    // 停止混合同步管理器
+    if (hybridSyncManager) {
+        hybridSyncManager.stop();
+        hybridSyncManager = null;
+    }
+
+    // 兼容性：清理旧的轮询定时器（如果存在）
     if (syncCheckInterval) {
         clearInterval(syncCheckInterval);
         syncCheckInterval = null;
     }
 
+    // 兼容性：移除旧的事件监听器（如果存在）
     window.removeEventListener('focus', handleWindowFocus);
     document.removeEventListener('visibilitychange', handleVisibilityChange);
 
@@ -789,3 +797,428 @@ window.addEventListener('beforeunload', function() {
         }));
     }
 });
+
+/**
+ * SSE同步类
+ * 处理Server-Sent Events连接和消息
+ */
+class SSESync {
+    constructor() {
+        this.eventSource = null;
+        this.reconnectAttempts = 0;
+        this.maxReconnectAttempts = SSE_MAX_RECONNECT_ATTEMPTS;
+        this.reconnectDelay = SSE_RECONNECT_DELAY;
+        this.isConnected = false;
+        this.isConnecting = false;
+        this.connectionId = null;
+        this.lastHeartbeat = 0;
+    }
+
+    // 开始SSE连接
+    start() {
+        if (!authToken) {
+            console.log('🔐 No auth token for SSE connection');
+            return false;
+        }
+
+        if (this.isConnecting || this.isConnected) {
+            console.log('📡 SSE already connecting or connected');
+            return true;
+        }
+
+        console.log('🚀 Starting SSE connection...');
+        this.connect();
+        return true;
+    }
+
+    // 建立SSE连接
+    connect() {
+        if (this.isConnecting) return;
+
+        this.isConnecting = true;
+
+        try {
+            const url = `/api/events?token=${encodeURIComponent(authToken)}`;
+            this.eventSource = new EventSource(url);
+
+            this.eventSource.onopen = () => {
+                console.log('✅ SSE connected successfully');
+                this.isConnected = true;
+                this.isConnecting = false;
+                this.reconnectAttempts = 0;
+                this.lastHeartbeat = Date.now();
+            };
+
+            this.eventSource.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    this.handleMessage(data);
+                } catch (error) {
+                    console.error('❌ SSE message parse error:', error);
+                }
+            };
+
+            this.eventSource.onerror = (error) => {
+                console.error('❌ SSE connection error:', error);
+                this.isConnected = false;
+                this.isConnecting = false;
+
+                if (this.eventSource) {
+                    this.eventSource.close();
+                    this.eventSource = null;
+                }
+
+                this.attemptReconnect();
+            };
+
+        } catch (error) {
+            console.error('❌ Failed to create SSE connection:', error);
+            this.isConnecting = false;
+            return false;
+        }
+    }
+
+    // 处理SSE消息
+    handleMessage(message) {
+        console.log('📨 SSE message received:', message.type);
+
+        switch (message.type) {
+            case 'connected':
+                this.connectionId = message.data.connectionId;
+                console.log(`🔗 SSE session established with ID: ${this.connectionId}`);
+                showNotification('实时同步已连接', 'success');
+                break;
+
+            case 'data_updated':
+                console.log('📢 Data update notification received via SSE');
+                this.handleDataUpdate(message.data);
+                break;
+
+            case 'heartbeat':
+                this.lastHeartbeat = Date.now();
+                console.log('💓 SSE heartbeat received');
+                break;
+
+            default:
+                console.log('📨 Unknown SSE message type:', message.type);
+        }
+    }
+
+    // 处理数据更新通知
+    async handleDataUpdate(updateInfo) {
+        console.log('🔄 Processing SSE data update notification...');
+
+        // 避免在保存过程中处理更新
+        if (window.isSavingToCloud) {
+            console.log('⏭️ Skipping update handling - currently saving to cloud');
+            return;
+        }
+
+        try {
+            showNotification('检测到云端数据更新，正在同步...', 'info');
+
+            // 重新加载用户数据
+            await loadUserData();
+
+            showNotification('数据同步完成', 'success');
+        } catch (error) {
+            console.error('❌ Failed to handle SSE data update:', error);
+            showNotification('数据同步失败', 'error');
+        }
+    }
+
+    // 尝试重新连接
+    attemptReconnect() {
+        if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+            console.log('❌ SSE max reconnect attempts reached, giving up');
+            showNotification('实时同步连接失败，已切换到定期检查模式', 'warning');
+
+            // 通知混合同步管理器SSE失败
+            if (hybridSyncManager) {
+                hybridSyncManager.onSSEFailed();
+            }
+            return;
+        }
+
+        this.reconnectAttempts++;
+        const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
+
+        console.log(`🔄 Attempting SSE reconnect in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+
+        setTimeout(() => {
+            this.connect();
+        }, delay);
+    }
+
+    // 停止SSE连接
+    stop() {
+        console.log('⏹️ Stopping SSE connection...');
+
+        this.isConnected = false;
+        this.isConnecting = false;
+        this.reconnectAttempts = 0;
+
+        if (this.eventSource) {
+            this.eventSource.close();
+            this.eventSource = null;
+        }
+
+        console.log('✅ SSE connection stopped');
+    }
+
+    // 检查连接状态
+    isActive() {
+        return this.isConnected && this.eventSource && this.eventSource.readyState === EventSource.OPEN;
+    }
+
+    // 检查心跳超时
+    isHeartbeatTimeout() {
+        if (!this.isConnected || this.lastHeartbeat === 0) return false;
+        return (Date.now() - this.lastHeartbeat) > 60000; // 60秒超时
+    }
+}
+
+/**
+ * 混合同步管理器
+ * 管理SSE和轮询之间的切换
+ */
+class HybridSyncManager {
+    constructor() {
+        this.sseSync = null;
+        this.isUsingSSE = false;
+        this.isUsingPolling = false;
+        this.pollingInterval = null;
+        this.sseSupported = this.checkSSESupport();
+        this.preferSSE = true;
+    }
+
+    // 检查SSE支持
+    checkSSESupport() {
+        return typeof EventSource !== 'undefined';
+    }
+
+    // 启动混合同步
+    start() {
+        if (!authToken) {
+            console.log('🔐 No auth token for sync');
+            return;
+        }
+
+        console.log('🔄 Starting hybrid sync manager...');
+
+        if (this.sseSupported && this.preferSSE) {
+            console.log('📡 Attempting to use SSE for real-time sync');
+            this.startSSE();
+        } else {
+            console.log('⏰ Using polling sync (SSE not supported or not preferred)');
+            this.startPolling();
+        }
+
+        // 页面获得焦点时检查
+        window.addEventListener('focus', this.handleWindowFocus.bind(this));
+
+        // 页面可见性变化时检查
+        document.addEventListener('visibilitychange', this.handleVisibilityChange.bind(this));
+    }
+
+    // 启动SSE同步
+    startSSE() {
+        if (this.isUsingSSE) return;
+
+        this.sseSync = new SSESync();
+        const success = this.sseSync.start();
+
+        if (success) {
+            this.isUsingSSE = true;
+
+            // 设置备用轮询检查（较长间隔）
+            this.startBackupPolling();
+
+            console.log('✅ SSE sync started with backup polling');
+        } else {
+            console.log('❌ Failed to start SSE, falling back to polling');
+            this.onSSEFailed();
+        }
+    }
+
+    // 启动轮询同步
+    startPolling() {
+        if (this.isUsingPolling) return;
+
+        console.log('⏰ Starting polling sync...');
+
+        // 清除现有定时器
+        if (this.pollingInterval) {
+            clearInterval(this.pollingInterval);
+        }
+
+        // 设置定期检查
+        const interval = this.isUsingSSE ? SSE_FALLBACK_POLLING_INTERVAL : SYNC_CHECK_INTERVAL;
+        this.pollingInterval = setInterval(() => {
+            this.checkForUpdates();
+        }, interval);
+
+        this.isUsingPolling = true;
+        console.log(`✅ Polling sync started (interval: ${interval / 1000}s)`);
+    }
+
+    // 启动备用轮询（SSE主要模式下的备用检查）
+    startBackupPolling() {
+        console.log('🔄 Starting backup polling for SSE mode...');
+        this.startPolling();
+    }
+
+    // SSE失败时的处理
+    onSSEFailed() {
+        console.log('⚠️ SSE failed, switching to polling mode');
+
+        this.isUsingSSE = false;
+
+        if (this.sseSync) {
+            this.sseSync.stop();
+            this.sseSync = null;
+        }
+
+        // 停止现有轮询并重新开始
+        this.stopPolling();
+        this.startPolling();
+
+        showNotification('实时同步不可用，已切换到定期检查模式', 'warning');
+    }
+
+    // 停止轮询
+    stopPolling() {
+        if (this.pollingInterval) {
+            clearInterval(this.pollingInterval);
+            this.pollingInterval = null;
+        }
+        this.isUsingPolling = false;
+        console.log('⏹️ Polling sync stopped');
+    }
+
+    // 检查更新
+    async checkForUpdates() {
+        // 如果SSE正常工作，跳过轮询检查
+        if (this.isUsingSSE && this.sseSync && this.sseSync.isActive() && !this.sseSync.isHeartbeatTimeout()) {
+            console.log('📡 SSE active, skipping polling check');
+            return;
+        }
+
+        // 如果SSE超时，重启SSE
+        if (this.isUsingSSE && this.sseSync && this.sseSync.isHeartbeatTimeout()) {
+            console.log('💔 SSE heartbeat timeout, restarting...');
+            this.sseSync.stop();
+            setTimeout(() => this.sseSync.start(), 1000);
+            return;
+        }
+
+        // 执行轮询检查
+        await checkForCloudUpdates();
+    }
+
+    // 处理窗口获得焦点
+    handleWindowFocus() {
+        console.log('👁️ Window focused, checking for updates...');
+        this.checkForUpdates();
+    }
+
+    // 处理页面可见性变化
+    handleVisibilityChange() {
+        if (!document.hidden) {
+            console.log('👁️ Page became visible, checking for updates...');
+            setTimeout(() => this.checkForUpdates(), 1000);
+        }
+    }
+
+    // 停止混合同步
+    stop() {
+        console.log('⏹️ Stopping hybrid sync manager...');
+
+        if (this.sseSync) {
+            this.sseSync.stop();
+            this.sseSync = null;
+        }
+
+        this.stopPolling();
+
+        this.isUsingSSE = false;
+
+        window.removeEventListener('focus', this.handleWindowFocus.bind(this));
+        document.removeEventListener('visibilitychange', this.handleVisibilityChange.bind(this));
+
+        console.log('✅ Hybrid sync manager stopped');
+    }
+
+    // 获取当前状态
+    getStatus() {
+        return {
+            sseSupported: this.sseSupported,
+            isUsingSSE: this.isUsingSSE,
+            isUsingPolling: this.isUsingPolling,
+            sseConnected: this.sseSync ? this.sseSync.isActive() : false,
+            connectionId: this.sseSync ? this.sseSync.connectionId : null
+        };
+    }
+}
+
+// 添加同步状态显示函数
+function getSyncStatus() {
+    if (!hybridSyncManager) {
+        return {
+            mode: 'inactive',
+            message: '同步未启动',
+            details: {}
+        };
+    }
+
+    const status = hybridSyncManager.getStatus();
+
+    if (status.isUsingSSE && status.sseConnected) {
+        return {
+            mode: 'sse',
+            message: '实时同步已连接',
+            details: {
+                connectionId: status.connectionId,
+                backupPolling: status.isUsingPolling
+            }
+        };
+    } else if (status.isUsingSSE && !status.sseConnected) {
+        return {
+            mode: 'sse_connecting',
+            message: '正在连接实时同步...',
+            details: {
+                fallbackPolling: status.isUsingPolling
+            }
+        };
+    } else if (status.isUsingPolling) {
+        return {
+            mode: 'polling',
+            message: status.sseSupported ? '实时同步不可用，使用定期检查' : '设备不支持实时同步，使用定期检查',
+            details: {
+                sseSupported: status.sseSupported,
+                interval: status.isUsingSSE ? SSE_FALLBACK_POLLING_INTERVAL : SYNC_CHECK_INTERVAL
+            }
+        };
+    } else {
+        return {
+            mode: 'unknown',
+            message: '同步状态未知',
+            details: status
+        };
+    }
+}
+
+// 显示同步状态通知
+function showSyncStatus() {
+    const status = getSyncStatus();
+
+    let notificationType = 'info';
+    if (status.mode === 'sse') {
+        notificationType = 'success';
+    } else if (status.mode === 'polling') {
+        notificationType = 'warning';
+    }
+
+    showNotification(status.message, notificationType);
+    console.log('🔍 Current sync status:', status);
+}
