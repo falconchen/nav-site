@@ -797,7 +797,7 @@ html[data-sidebar="compact"] .cards-grid {
   }
 
   .section-title {
-      font-size: 1.0rem;
+      font-size: 1.1rem;
       margin-bottom: 0.6rem;
   }
 
@@ -2143,6 +2143,7 @@ html[data-sidebar="compact"] .website-card:hover {
   scroll-margin-top: 6rem;
 }
 
+/* 保留一处全局 .section-title 定义，其他冗余已清理 */
 .section-title {
   font-size: 1.75rem;
   font-weight: 600;
@@ -2207,16 +2208,7 @@ html[data-sidebar="compact"] .website-card:hover {
   scroll-margin-top: 6rem;
 }
 
-.section-title {
-  font-size: 1.75rem;
-  font-weight: 600;
-  margin-bottom: 1.5rem;
-  color: var(--text-primary);
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding-top: 0.5rem;
-}
+/* 已移除重复的 .section-title 全局定义 */
 
 .section-title i {
   color: var(--primary-color);
@@ -2333,13 +2325,7 @@ html[data-sidebar="compact"] .website-card:hover {
   background: none;
 }
 
-/* 末尾追加：确保手机端标题尺寸不被后续规则覆盖 */
-@media (max-width: 480px) {
-  .section-title {
-    font-size: 1.0rem !important;
-    margin-bottom: 0.6rem !important;
-  }
-}
+/* 移除末尾强制覆盖，改由前面的断点定义控制（@media (max-width: 480px) 中的 .section-title 生效） */
 
 /* 小屏卡片：图标居中 + 文本在下，4列栅格 */
 @media (max-width: 480px) {
@@ -2401,5 +2387,45 @@ html[data-sidebar="compact"] .website-card:hover {
   .card-url,
   .card-description {
     display: none !important;
+  }
+}
+
+/* 移动端（<=768px）下的压缩模式修正：
+   - 取消侧边栏 80px 固定宽度，避免单列布局被挤压
+   - 主容器改为单列
+   - 恢复分类项文字可见性，避免出现“只有图标”的空白视觉
+   - 合理调整标题区与切换按钮的排列方式
+*/
+@media (max-width: 768px) {
+  html[data-sidebar="compact"] .main-container {
+    grid-template-columns: 1fr;
+  }
+
+  html[data-sidebar="compact"] .categories-sidebar {
+    width: 100%;
+    padding: 1rem;
+  }
+
+  html[data-sidebar="compact"] .categories-title-container {
+    justify-content: space-between;
+    margin-bottom: 1rem;
+  }
+
+  html[data-sidebar="compact"] #categories-toggle-btn {
+    margin: 0;
+  }
+
+  html[data-sidebar="compact"] .category-item {
+    justify-content: flex-start;
+    padding: 0.75rem 1rem;
+  }
+
+  /* 恢复分类项文字（移动端需要可读性） */
+  html[data-sidebar="compact"] .category-item span {
+    opacity: 1;
+    width: auto;
+    transform: none;
+    position: static;
+    visibility: visible;
   }
 }

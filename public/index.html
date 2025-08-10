@@ -47,7 +47,11 @@
             </div>
 
             <div class="header-right">
-                <div class="user-info" id="userInfo" style="display: none;">
+
+                <button class="theme-toggle" onclick="toggleTheme()">
+                    <i class="fas fa-moon" id="theme-icon"></i>
+                </button>
+				<div class="user-info" id="userInfo" style="display: none;">
                     <img id="userAvatar" class="user-avatar" src="" alt="User Avatar">
                     <span id="userName"></span>
                     <button class="user-menu-btn" onclick="toggleUserMenu()">
@@ -73,9 +77,6 @@
                 <button class="login-btn" id="loginBtn" onclick="login()">
                     <i class="fab fa-github"></i>
                     登录
-                </button>
-                <button class="theme-toggle" onclick="toggleTheme()">
-                    <i class="fas fa-moon" id="theme-icon"></i>
                 </button>
             </div>
         </div>
