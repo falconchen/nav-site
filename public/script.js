@@ -45,6 +45,7 @@ document.addEventListener('DOMContentLoaded', function() {
             let next = '';
             if (current === '') next = 'cadetblue';
             else if (current === 'cadetblue') next = 'blue-1772f6';
+            else if (current === 'blue-1772f6') next = 'pink-ff1365';
             else next = '';
             setAccent(next);
             applySwatchColor();

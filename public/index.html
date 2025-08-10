@@ -41,10 +41,12 @@
     <header class="header">
         <div class="header-container">
 		<div class="header-left">
-            <a href="/" class="logo">
-                <i class="fas fa-compass "></i>
+            <div class="logo">
+                <button id="accentSwatch" class="accent-swatch" title="切换配色" aria-label="切换配色">
+                    <i class="fas fa-compass"></i>
+                </button>
                 <span>皮皮2047</span>
-            </a>
+            </div>
 			<div class="version">v.<span id="version">dev</span></div>
 		</div>
             <div class="search-container">
@@ -53,10 +55,6 @@
             </div>
 
             <div class="header-right">
-                <!-- 强调色小圆点（所有屏幕统一使用） -->
-                <button id="accentSwatch" class="accent-swatch" title="切换配色" aria-label="切换配色">
-                    <i class="fas fa-compass"></i>
-                </button>
 
                 <button class="theme-toggle" onclick="toggleTheme()">
                     <i class="fas fa-moon" id="theme-icon"></i>

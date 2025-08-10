@@ -46,6 +46,13 @@
   --primary-hover: #0f5cd9;
 }
 
+/* 亮粉 #ff1365 */
+[data-accent="pink-ff1365"] {
+  --primary-color: #ff1365;
+  --primary-color-rgb: 255, 19, 101;
+  --primary-hover: #e0115a;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -827,9 +834,9 @@ html[data-sidebar="compact"] .cards-grid {
       font-size: 1.25rem;
   }
 
-  .logo i {
+  /* .logo i {
       font-size: 1.5rem;
-  }
+  } */
 
   /* 内容区域与卡片 - 极小屏进一步精简（<=480px） */
   .main-container {
@@ -2066,13 +2073,13 @@ html[data-sidebar="compact"] .cards-grid {
 /* 压缩模式下的分类部分标题调整 - 类选择器 */
 .content-area.compact-mode .section-title {
   margin-bottom: 1rem;
-  font-size: 1.5rem;
+
 }
 
 /* 压缩模式下的分类部分标题调整 - 属性选择器 */
 html[data-sidebar="compact"] .section-title {
   margin-bottom: 1rem;
-  font-size: 1.5rem;
+
 }
 
 /* 压缩模式下的分类部分间距调整 - 类选择器 */
