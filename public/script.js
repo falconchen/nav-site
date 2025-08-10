@@ -14,6 +14,44 @@ function toggleTheme() {
     }
 }
 
+// 强调色切换
+function setAccent(accent) {
+    const html = document.documentElement;
+    if (!accent) {
+        html.removeAttribute('data-accent');
+        localStorage.removeItem('accent');
+        return;
+    }
+    html.setAttribute('data-accent', accent);
+    localStorage.setItem('accent', accent);
+}
+
+// 初始化强调色选择器
+document.addEventListener('DOMContentLoaded', function() {
+    const accentSwatch = document.getElementById('accentSwatch');
+    // 小圆点在小屏循环切换：默认 -> cadetblue -> blue-1772f6 -> 默认
+    if (accentSwatch) {
+        const applySwatchColor = () => {
+            // 让按钮背景随当前主色
+            accentSwatch.style.backgroundColor = getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim();
+        };
+        applySwatchColor();
+        // 在主题/accent变化时重新同步颜色
+        const observer = new MutationObserver(applySwatchColor);
+        observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-accent','data-theme'] });
+
+        accentSwatch.addEventListener('click', function() {
+            const current = localStorage.getItem('accent') || '';
+            let next = '';
+            if (current === '') next = 'cadetblue';
+            else if (current === 'cadetblue') next = 'blue-1772f6';
+            else next = '';
+            setAccent(next);
+            applySwatchColor();
+        });
+    }
+});
+
 // 分类切换功能
 function showCategory(categoryId) {
     if (isEditingCategories) return; // 编辑模式下不允许切换分类

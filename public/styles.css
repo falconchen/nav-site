@@ -34,6 +34,18 @@
   --shadow-large: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
 }
 
+/* 主题强调色（accent）覆盖：默认之外的可选配色 */
+[data-accent="cadetblue"] {
+  --primary-color: cadetblue;            /* #5f9ea0 */
+  --primary-color-rgb: 95, 158, 160;
+  --primary-hover: #4a8f91;
+}
+[data-accent="blue-1772f6"] {
+  --primary-color: #1772f6;              /* rgb(23,114,246) */
+  --primary-color-rgb: 23, 114, 246;
+  --primary-hover: #0f5cd9;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -171,6 +183,29 @@ body {
   display: flex;
   align-items: center;
   gap: 1rem;
+}
+
+/* 配色下拉与小圆点样式 */
+.accent-swatch {
+  display: inline-flex;
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 50%;
+  border: none;
+  background: var(--primary-color);
+  box-shadow: var(--shadow-light);
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  transition: transform .15s ease, box-shadow .2s ease;
+}
+.accent-swatch:hover { transform: scale(1.05); box-shadow: var(--shadow-medium); }
+.accent-swatch:active { transform: scale(0.98); }
+.accent-swatch i { color: #fff; font-size: 1.15rem; line-height: 1;
+	color: var(--primary-color);
+	font-size: 2.2rem;
+	line-height: 1;
+	background: var(--surface-color);
 }
 
 /* 登录按钮 */
