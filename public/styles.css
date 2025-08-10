@@ -123,7 +123,7 @@ body {
   width: 100%;
   padding: 0.75rem 1rem 0.75rem 3rem;
   border: 2px solid var(--border-color);
-  border-radius: 2rem;
+  border-radius: .6rem;
   background-color: var(--background-color);
   color: var(--text-primary);
   font-size: 1rem;
@@ -818,7 +818,7 @@ html[data-sidebar="compact"] .cards-grid {
   }
 
   .section-title {
-      font-size: 1.1rem;
+
       margin-bottom: 0.6rem;
   }
 
@@ -1772,11 +1772,7 @@ html[data-sidebar="compact"] .cards-grid {
     font-size: 0.8rem;
   }
 
-  .footer-links {
-    flex-direction: column;
-    gap: 0.8rem;
-    align-items: center;
-  }
+
 }
 
 /* 上传图片预览样式 */
@@ -2342,6 +2338,7 @@ html[data-sidebar="compact"] .website-card:hover {
     min-height: auto !important;
     align-items: center !important;
     text-align: center !important;
+    overflow: visible !important; /* 允许图钉超出不被裁切 */
   }
 
   .website-card:hover {
@@ -2387,6 +2384,15 @@ html[data-sidebar="compact"] .website-card:hover {
   .card-url,
   .card-description {
     display: none !important;
+  }
+	/* 小屏：页脚链接改为两列显示 */
+  .footer-links {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.8rem 1.2rem;
+    justify-items: center;
+    align-items: center;
+    width: 80%;
   }
 }
 
@@ -2466,5 +2472,100 @@ html[data-sidebar="compact"] .website-card:hover {
     color: var(--text-primary);
     font-size: 0.95rem;
     outline: none;
+  }
+}
+
+/* 小屏：搜索栏右侧的移动端分类菜单按钮与下拉 */
+@media (max-width: 768px) {
+  #mobile-category-menu-wrapper {
+    position: absolute;
+    right: 0.25rem;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .mobile-category-menu-btn {
+    background: none;
+    /* border: 2px solid var(--border-color);
+    border-radius: 0.6rem; */
+		border: none;
+    width: 2.6rem;
+    height: 2.6rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    font-size: 1.2rem;
+  }
+
+  .mobile-category-menu-btn:active,
+  .mobile-category-menu-btn:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+  }
+
+  .mobile-category-dropdown {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 0.4rem);
+    min-width: 12rem;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 0.6rem;
+    box-shadow: var(--shadow-medium);
+    padding: 0.4rem;
+    display: none;
+    max-height: 60vh;
+    overflow: auto;
+    z-index: 999;
+  }
+
+  .mobile-category-dropdown.active { display: block; }
+
+  .mobile-category-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.6rem;
+    border-radius: 0.5rem;
+    color: var(--text-primary);
+  }
+
+  .mobile-category-item i { color: var(--primary-color); }
+
+  .mobile-category-item:hover { background: rgba(var(--primary-color-rgb), 0.08); }
+}
+
+/* 小屏卡片置顶图标优化：将图钉移动到图标容器上，放大并校正位置（手机<=480px） */
+@media (max-width: 480px) {
+  /* 隐藏卡片级别的置顶图标，避免与小卡布局冲突 */
+  .website-card.pinned::before {
+    display: none !important;
+  }
+  /* 承载图钉的位置锚点 */
+  .website-card .card-icon {
+    position: relative;
+  }
+  /* 在图标容器右上角显示更明显的图钉 */
+  .website-card.pinned .card-icon::after {
+    content: '\f08d';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    color: var(--primary-color);
+    font-size: 1.05rem;
+    transform: rotate(45deg);
+    line-height: 1;
+    pointer-events: none;
+    z-index: 1;
+  }
+  /* 置顶分类下仍不显示图钉 */
+  #pinned .website-card.pinned .card-icon::after {
+    display: none !important;
   }
 }

@@ -604,7 +604,7 @@ function createImportExportUI() {
   const cloudOverrideBtn = document.createElement('a');
   cloudOverrideBtn.href = '#';
   cloudOverrideBtn.className = 'footer-link cloud-override-btn';
-  cloudOverrideBtn.innerHTML = '<i class="fas fa-history"></i> 选择历史版本';
+  cloudOverrideBtn.innerHTML = '<i class="fas fa-history"></i> 历史版本';
   cloudOverrideBtn.style.display = 'none'; // 默认隐藏，只有登录后才显示
 
   // 创建导入导出按钮组

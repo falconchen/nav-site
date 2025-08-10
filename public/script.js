@@ -28,7 +28,7 @@ function showCategory(categoryId) {
             const mobileSelectWrapper = document.getElementById('mobile-category-select-wrapper');
             const headerH = header ? header.offsetHeight : 0;
             const selectH = mobileSelectWrapper ? mobileSelectWrapper.offsetHeight : 0;
-            const extraGap = -50; // 轻微留白（减小顶部空隙）
+            const extraGap = 10; // 轻微留白（减小顶部空隙）
             const offset = headerH + selectH + extraGap;
 
             const rect = targetSection.getBoundingClientRect();
@@ -1333,9 +1333,11 @@ function renderRecentCategory() {
 
     // 判断当前是否处于压缩模式
     const isCompactMode = document.documentElement.getAttribute('data-sidebar') === 'compact';
+    // 判断是否为小屏（<=480px），小屏无论模式均显示4个
+    const isSmallScreen = window.matchMedia && window.matchMedia('(max-width: 480px)').matches;
 
-    // 根据模式设置显示的网站数量
-    const visibleCount = isCompactMode ? 4 : 3;
+    // 根据屏幕与模式设置显示的网站数量
+    const visibleCount = isSmallScreen ? 4 : (isCompactMode ? 4 : 3);
 
     // 创建前几个卡片（根据模式显示3个或4个）
     const visibleWebsites = recentWebsites.slice(0, visibleCount);
@@ -2117,12 +2119,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // 渲染移动端分类下拉（放在内容区域顶部）
-    renderMobileCategorySelect();
+    // 渲染移动端分类菜单（按钮在搜索栏右侧）
+    renderMobileCategoryMenuInHeader();
 
-    // 当数据变更时（新增/删除/导入等），同步更新移动端下拉
+    // 当数据变更时（新增/删除/导入等），同步更新移动端分类菜单
     document.addEventListener('dataChanged', () => {
-        renderMobileCategorySelect();
+        renderMobileCategoryMenuInHeader(true);
     });
 
     // 添加滚动监听，更新当前分类状态
@@ -2327,6 +2329,95 @@ function renderMobileCategorySelect() {
         window.addEventListener('resize', () => {
             renderMobileCategorySelect();
         });
+    }
+}
+
+// 在头部搜索栏右侧渲染移动端分类菜单
+function renderMobileCategoryMenuInHeader(force = false) {
+    const headerSearch = document.querySelector('.search-container');
+    if (!headerSearch) return;
+
+    const isSmallScreen = window.matchMedia('(max-width: 768px)').matches;
+
+    // 清理旧的顶部下拉（避免重复显示两种方案）
+    const oldTopSelect = document.getElementById('mobile-category-select-wrapper');
+    if (oldTopSelect) oldTopSelect.remove();
+
+    // 非小屏则移除按钮
+    let menuWrapper = document.getElementById('mobile-category-menu-wrapper');
+    if (!isSmallScreen) {
+        if (menuWrapper) menuWrapper.remove();
+        return;
+    }
+
+    if (!menuWrapper) {
+        menuWrapper = document.createElement('div');
+        menuWrapper.id = 'mobile-category-menu-wrapper';
+        menuWrapper.innerHTML = `
+            <button id="mobileCategoryMenuBtn" class="mobile-category-menu-btn" aria-label="分类">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div id="mobileCategoryDropdown" class="mobile-category-dropdown" aria-hidden="true"></div>
+        `;
+        // 插入到搜索容器内，靠右浮动
+        headerSearch.appendChild(menuWrapper);
+    }
+
+    const dropdown = document.getElementById('mobileCategoryDropdown');
+    const btn = document.getElementById('mobileCategoryMenuBtn');
+    if (!dropdown || !btn) return;
+
+    // 填充分类项
+    const buildItem = (id, name, icon) => {
+        const div = document.createElement('div');
+        div.className = 'mobile-category-item';
+        div.dataset.id = id;
+        div.innerHTML = `${icon ? `<i class="${icon}"></i>` : ''}<span>${name}</span>`;
+        div.onclick = () => {
+            dropdown.classList.remove('active');
+            dropdown.setAttribute('aria-hidden', 'true');
+            showCategory(id);
+        };
+        return div;
+    };
+
+    dropdown.innerHTML = '';
+
+    // 可选：置顶/最近添加（若存在对应section）
+    if (document.getElementById('pinned')) {
+        dropdown.appendChild(buildItem('pinned', '置顶', 'fas fa-thumbtack'));
+    }
+    if (document.getElementById('recent')) {
+        dropdown.appendChild(buildItem('recent', '最近添加', 'fas fa-clock'));
+    }
+
+    if (Array.isArray(window.categories)) {
+        const sorted = [...window.categories].sort((a, b) => a.order - b.order);
+        sorted.forEach(cat => {
+            if (cat.id === 'pinned' || cat.id === 'recent') return;
+            dropdown.appendChild(buildItem(cat.id, cat.name, cat.icon));
+        });
+    }
+
+    // 切换下拉
+    btn.onclick = (e) => {
+        e.stopPropagation();
+        const active = dropdown.classList.toggle('active');
+        dropdown.setAttribute('aria-hidden', String(!active));
+    };
+
+    // 点击外部关闭
+    document.addEventListener('click', () => {
+        if (dropdown.classList.contains('active')) {
+            dropdown.classList.remove('active');
+            dropdown.setAttribute('aria-hidden', 'true');
+        }
+    });
+
+    // 监听窗口尺寸变化，进入/退出小屏重新渲染
+    if (!renderMobileCategoryMenuInHeader._resizeBound) {
+        renderMobileCategoryMenuInHeader._resizeBound = true;
+        window.addEventListener('resize', () => renderMobileCategoryMenuInHeader(true));
     }
 }
 // 更新分类下拉菜单
