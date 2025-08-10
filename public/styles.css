@@ -437,7 +437,28 @@ html[data-sidebar="compact"] .category-item span {
 html[data-sidebar="compact"] .cards-grid {
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
 }
+/* 保留一处全局 .section-title 定义，其他冗余已清理 */
+.section-title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-top: 0.5rem;
+}
 
+.section-title i {
+  color: var(--primary-color);
+}
+
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1rem;
+  grid-auto-rows: 1fr;
+}
 /* 媒体查询 */
 @media (min-width: 1200px) {
   .main-container.compact-mode .cards-grid,
@@ -2143,28 +2164,7 @@ html[data-sidebar="compact"] .website-card:hover {
   scroll-margin-top: 6rem;
 }
 
-/* 保留一处全局 .section-title 定义，其他冗余已清理 */
-.section-title {
-  font-size: 1.75rem;
-  font-weight: 600;
-  margin-bottom: 1.5rem;
-  color: var(--text-primary);
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding-top: 0.5rem;
-}
 
-.section-title i {
-  color: var(--primary-color);
-}
-
-.cards-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 1rem;
-  grid-auto-rows: 1fr;
-}
 
 /* 压缩模式下的卡片网格 - 使用类选择器 */
 .main-container.compact-mode .cards-grid {
@@ -2397,6 +2397,11 @@ html[data-sidebar="compact"] .website-card:hover {
    - 合理调整标题区与切换按钮的排列方式
 */
 @media (max-width: 768px) {
+  /* 小屏：隐藏左侧分类侧边栏，改用顶部下拉 */
+  .categories-sidebar {
+    display: none !important;
+  }
+
   html[data-sidebar="compact"] .main-container {
     grid-template-columns: 1fr;
   }
@@ -2427,5 +2432,39 @@ html[data-sidebar="compact"] .website-card:hover {
     transform: none;
     position: static;
     visibility: visible;
+  }
+
+  /* 移动端内容顶部的分类选择器样式 */
+  #mobile-category-select-wrapper {
+    position: sticky;
+    top: 4rem; /* 与 .header-container 高度一致，避免被遮挡 */
+    z-index: 50;
+    margin: 0 -0.25rem 0.25rem -0.25rem; /* 减小与内容的垂直间距 */
+    background: var(--background-color);
+    padding: 0.25rem 0.25rem 0.4rem 0.25rem; /* 略减内边距 */
+  }
+
+  .mobile-category-select {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 0.6rem;
+    padding: 0.5rem 0.6rem;
+    box-shadow: var(--shadow-light);
+  }
+
+  .mobile-category-select i {
+    color: var(--text-secondary);
+  }
+
+  #mobileCategorySelect {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    outline: none;
   }
 }

@@ -21,11 +21,30 @@ function showCategory(categoryId) {
     // 获取目标分类区域
     const targetSection = document.getElementById(categoryId);
     if (targetSection) {
-        // 平滑滚动到目标位置
-        targetSection.scrollIntoView({
-            behavior: 'smooth',
-            block: 'start'
-        });
+        // 小屏需要考虑固定头部与移动下拉选择器的高度偏移
+        const isSmallScreen = window.matchMedia('(max-width: 768px)').matches;
+        if (isSmallScreen) {
+            const header = document.querySelector('.header');
+            const mobileSelectWrapper = document.getElementById('mobile-category-select-wrapper');
+            const headerH = header ? header.offsetHeight : 0;
+            const selectH = mobileSelectWrapper ? mobileSelectWrapper.offsetHeight : 0;
+            const extraGap = -50; // 轻微留白（减小顶部空隙）
+            const offset = headerH + selectH + extraGap;
+
+            const rect = targetSection.getBoundingClientRect();
+            const targetY = rect.top + window.pageYOffset - offset;
+
+            window.scrollTo({
+                top: Math.max(0, targetY),
+                behavior: 'smooth'
+            });
+        } else {
+            // 桌面端使用常规滚动到顶部
+            targetSection.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }
     }
 
     // 更新侧边栏选中状态
@@ -2098,6 +2117,14 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // 渲染移动端分类下拉（放在内容区域顶部）
+    renderMobileCategorySelect();
+
+    // 当数据变更时（新增/删除/导入等），同步更新移动端下拉
+    document.addEventListener('dataChanged', () => {
+        renderMobileCategorySelect();
+    });
+
     // 添加滚动监听，更新当前分类状态
     setupScrollSpy();
 
@@ -2183,6 +2210,125 @@ function setupScrollSpy() {
     updateActiveCategory();
 }
 
+// 在内容顶部渲染移动端分类下拉
+function renderMobileCategorySelect() {
+    const contentArea = document.querySelector('.content-area');
+    if (!contentArea) return;
+
+    // 仅在小屏设备下渲染（与样式断点保持一致）
+    const isSmallScreen = window.matchMedia('(max-width: 768px)').matches;
+
+    // 查找或创建容器
+    let wrapper = document.getElementById('mobile-category-select-wrapper');
+    if (!isSmallScreen) {
+        if (wrapper) wrapper.remove();
+        return;
+    }
+
+    if (!wrapper) {
+        wrapper = document.createElement('div');
+        wrapper.id = 'mobile-category-select-wrapper';
+        wrapper.innerHTML = `
+            <div class="mobile-category-select">
+                <i class="fas fa-list"></i>
+                <select id="mobileCategorySelect" aria-label="选择分类"></select>
+            </div>
+        `;
+        contentArea.prepend(wrapper);
+    }
+
+    const selectEl = wrapper.querySelector('#mobileCategorySelect');
+    if (!selectEl) return;
+
+    // 记录当前值
+    const prevValue = selectEl.value;
+
+    // 填充选项（包含置顶、最近添加和普通分类，但忽略未分类固定规则按顺序）
+    selectEl.innerHTML = '';
+
+    const buildOption = (id, name) => {
+        const opt = document.createElement('option');
+        opt.value = id;
+        opt.textContent = name;
+        return opt;
+    };
+
+    // 置顶与最近添加（如果对应section存在）
+    if (document.getElementById('pinned')) {
+        selectEl.appendChild(buildOption('pinned', '置顶'));
+    }
+    if (document.getElementById('recent')) {
+        selectEl.appendChild(buildOption('recent', '最近添加'));
+    }
+
+    // 其他分类（遵循当前 window.categories 顺序）
+    if (Array.isArray(window.categories)) {
+        const sorted = [...window.categories].sort((a, b) => a.order - b.order);
+        sorted.forEach(cat => {
+            // 不重复添加 pinned/recent（已上面处理）
+            if (cat.id === 'pinned' || cat.id === 'recent') return;
+            selectEl.appendChild(buildOption(cat.id, cat.name));
+        });
+    }
+
+    // 设置选中值为当前滚动命中的分类
+    const activeSection = (function() {
+        const sections = document.querySelectorAll('.category-section');
+        const posY = window.scrollY + 100;
+        let currentId = null;
+        sections.forEach(section => {
+            const rect = section.getBoundingClientRect();
+            const top = rect.top + window.scrollY;
+            if (posY >= top && (currentId === null || top >= (document.getElementById(currentId)?.getBoundingClientRect().top + window.scrollY || 0))) {
+                currentId = section.id;
+            }
+        });
+        return currentId;
+    })();
+
+    if (activeSection && [...selectEl.options].some(o => o.value === activeSection)) {
+        selectEl.value = activeSection;
+    } else if (prevValue && [...selectEl.options].some(o => o.value === prevValue)) {
+        selectEl.value = prevValue;
+    }
+
+    // 绑定变更事件 -> 滚动到对应分类
+    selectEl.onchange = (e) => {
+        const id = e.target.value;
+        if (id) {
+            showCategory(id);
+        }
+    };
+
+    // 同步滚动时选中项
+    const syncSelected = () => {
+        const sections = document.querySelectorAll('.category-section');
+        const posY = window.scrollY + 100;
+        let currentId = null;
+        sections.forEach(section => {
+            const rect = section.getBoundingClientRect();
+            const top = rect.top + window.scrollY;
+            const bottom = top + rect.height;
+            if (posY >= top && posY < bottom) {
+                currentId = section.id;
+            }
+        });
+        if (currentId && [...selectEl.options].some(o => o.value === currentId)) {
+            selectEl.value = currentId;
+        }
+    };
+
+    window.removeEventListener('scroll', syncSelected);
+    window.addEventListener('scroll', syncSelected, { passive: true });
+
+    // 监听窗口尺寸变化，进入/退出小屏重新渲染
+    if (!renderMobileCategorySelect._resizeBound) {
+        renderMobileCategorySelect._resizeBound = true;
+        window.addEventListener('resize', () => {
+            renderMobileCategorySelect();
+        });
+    }
+}
 // 更新分类下拉菜单
 function updateCategoryDropdown() {
     const categorySelect = document.getElementById('websiteCategory');
