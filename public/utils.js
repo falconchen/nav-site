@@ -72,14 +72,14 @@ function parseUserAgent(userAgent) {
 
     if (userAgent.includes('Windows')) {
         parser.os = 'Windows';
-    } else if (userAgent.includes('Mac')) {
+    } else if (userAgent.includes('iOS') || userAgent.includes('iPhone') || userAgent.includes('iPad')) {
+        parser.os = 'iOS';
+    }else if (userAgent.includes('Mac')) {
         parser.os = 'macOS';
     } else if (userAgent.includes('Linux')) {
         parser.os = 'Linux';
     } else if (userAgent.includes('Android')) {
         parser.os = 'Android';
-    } else if (userAgent.includes('iOS') || userAgent.includes('iPhone') || userAgent.includes('iPad')) {
-        parser.os = 'iOS';
     }
 
     return parser;
