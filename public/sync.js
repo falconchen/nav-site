@@ -260,20 +260,10 @@ function updateLocalData(cloudData) {
         localStorage.setItem('navSiteWebsites', JSON.stringify(websites));
     }
 
-    // 更新设置
+    // 更新设置（不覆盖本地偏好：theme 与 categoriesCompactMode 保持 localStorage）
     if (cloudData.settings) {
-        console.log('⚙️ Updating settings:', cloudData.settings);
-
-        if (cloudData.settings.theme) {
-            localStorage.setItem('theme', cloudData.settings.theme);
-            document.documentElement.setAttribute('data-theme', cloudData.settings.theme);
-        }
-
-        if (cloudData.settings.categoriesCompactMode !== undefined) {
-            localStorage.setItem('categoriesCompactMode', cloudData.settings.categoriesCompactMode);
-            const sidebarMode = cloudData.settings.categoriesCompactMode === 'true' ? 'compact' : 'normal';
-            document.documentElement.setAttribute('data-sidebar', sidebarMode);
-        }
+        console.log('⚙️ Received cloud settings (ignored for local prefs):', cloudData.settings);
+        // 保留占位逻辑，未来可扩展其它非本地偏好类设置
     }
 
     // 更新版本号
