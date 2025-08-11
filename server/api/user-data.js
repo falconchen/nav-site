@@ -230,9 +230,15 @@ app.get('/user-data/versions', authMiddleware, async (c) => {
         // 从Redis获取版本历史
         const versions = await getVersionsFromRedis(c, user.userId);
 
+        // 返回前对IP做部分掩码
+        const maskedVersions = Array.isArray(versions) ? versions.map(v => ({
+            ...v,
+            userIP: v && v.userIP ? maskIP(v.userIP) : v && v.userIP,
+        })) : [];
+
         return c.json({
             success: true,
-            versions: versions
+            versions: maskedVersions
         });
     } catch (error) {
         console.error('Error getting data versions:', error);
@@ -515,6 +521,29 @@ async function getVersionsFromRedis(c, userId) {
     } catch (error) {
         console.error('Error getting versions from Redis:', error);
         return [];
+    }
+}
+
+// 工具：IP掩码（IPv4 与 IPv6）
+function maskIP(ip) {
+    try {
+        if (!ip || typeof ip !== 'string') return ip;
+        // 处理多IP（如 X-Forwarded-For），取第一个
+        const first = ip.split(',')[0].trim();
+        if (first.includes(':')) {
+            // IPv6：以冒号分段，保留前2段与最后1段，中间用*替代
+            const parts = first.split(':');
+            if (parts.length <= 3) return first; // 已经很短
+            return [parts[0], parts[1], '****', '****', '****', '****', '', parts[parts.length - 1]].filter(Boolean).join(':');
+        } else if (first.includes('.')) {
+            // IPv4：a.b.c.d -> a.*.*.d
+            const seg = first.split('.');
+            if (seg.length !== 4) return first;
+            return `${seg[0]}.*.*.${seg[3]}`;
+        }
+        return first;
+    } catch {
+        return ip;
     }
 }
 
