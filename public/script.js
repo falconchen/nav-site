@@ -129,6 +129,7 @@ function toggleCategoriesMode() {
         toggleIcon.className = 'fa-solid fa-down-left-and-up-right-to-center';
     }
 
+
     // 重新渲染"最近添加"部分以更新显示的网站数量
     renderRecentCategory();
 }
@@ -1477,9 +1478,9 @@ function renderRecentCategory() {
         });
     }
 
-    if (window.saveNavData) {
-        window.saveNavData();
-    }
+    // if (window.saveNavData) {
+    //     window.saveNavData();
+    // }
 }
 
 // 创建新网站卡片
