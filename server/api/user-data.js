@@ -435,14 +435,14 @@ async function saveVersionToRedis(c, userId, data) {
             return false;
         }
 
-        // 设置版本数据过期时间（30天）
+        // 设置版本数据过期时间（7天）
         await fetch(`${redisUrl}/expire/${versionDataKey}`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${redisToken}`,
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(30 * 24 * 60 * 60), // 30天
+            body: JSON.stringify(7 * 24 * 60 * 60), // 7天
         });
 
         // 更新版本列表
