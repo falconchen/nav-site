@@ -5,7 +5,7 @@
 // 多端同步检测机制变量
 let syncCheckInterval = null;
 let lastSyncCheck = 0;
-const SYNC_CHECK_INTERVAL = 60000; // 60秒检查一次
+const SYNC_CHECK_INTERVAL = 300000; // 5分钟检查一次
 const MIN_CHECK_INTERVAL = 10000; // 最小检查间隔10秒
 
 // 全局变量控制是否进行定时同步检测，默认为true

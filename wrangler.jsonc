@@ -35,7 +35,8 @@
 
 	"vars": {
 		"environment": "development",
-		"JWT_EXPIRATION_DAYS": "3"
+		"JWT_EXPIRATION_DAYS": "3",
+		"MAX_USER_VERSIONS": "5"
 	},
 
 	"env": {
@@ -58,7 +59,8 @@
 
 			"vars": {
 				"environment": "production",
-				"JWT_EXPIRATION_DAYS": "90"
+				"JWT_EXPIRATION_DAYS": "90",
+				"MAX_USER_VERSIONS": "5"
 			}
 		}
 	}

@@ -559,16 +559,6 @@ async function saveVersionToRedis(c, userId, data) {
             return false;
         }
 
-        // 设置版本数据过期时间（7天）
-        await fetch(`${redisUrl}/expire/${versionDataKey}`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${redisToken}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(7 * 24 * 60 * 60), // 7天
-        });
-
         // 更新版本列表
         const versionInfo = {
             version: version,
@@ -598,8 +588,26 @@ async function saveVersionToRedis(c, userId, data) {
         // 添加新版本到列表开头
         versions.unshift(versionInfo);
 
-        // 只保留最近5个版本
-        versions = versions.slice(0, 5);
+        // 从环境变量读取最大版本数，默认为 5
+        const maxVersions = parseInt(c.env.MAX_USER_VERSIONS || '5', 10);
+
+        // 删除超出限制的旧版本数据
+        if (versions.length > maxVersions) {
+            const versionsToDelete = versions.slice(maxVersions);
+            for (const oldVersion of versionsToDelete) {
+                const oldVersionKey = `userdata_version:${userId}:${oldVersion.version}`;
+                await fetch(`${redisUrl}/del/${oldVersionKey}`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${redisToken}`,
+                    }
+                });
+                console.log(`🗑️ Deleted old version: ${oldVersion.version}`);
+            }
+        }
+
+        // 只保留最近 N 个版本
+        versions = versions.slice(0, maxVersions);
 
         // 保存更新后的版本列表
         const versionsResponse = await fetch(`${redisUrl}/set/${versionKey}`, {
