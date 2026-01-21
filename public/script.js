@@ -1595,6 +1595,62 @@ function updateWebsiteCard(card, name, url, description, iconUrl, isPinned) {
 // 右键菜单功能
 let contextMenu = null;
 
+// 复制网站网址到剪贴板
+function copyWebsiteUrl(card) {
+    // 获取网站URL
+    const url = card.querySelector('.card-url').textContent;
+
+    // 使用现代剪贴板API
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url)
+            .then(() => {
+                if (typeof showNotification === 'function') {
+                    showNotification('网址已复制到剪贴板', 'success');
+                }
+            })
+            .catch(err => {
+                console.error('复制失败:', err);
+                // 降级到传统方法
+                fallbackCopyText(url);
+            });
+    } else {
+        // 浏览器不支持Clipboard API，使用传统方法
+        fallbackCopyText(url);
+    }
+}
+
+// 传统复制方法（兼容旧浏览器）
+function fallbackCopyText(text) {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    textArea.style.top = '-999999px';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+
+    try {
+        const successful = document.execCommand('copy');
+        if (successful) {
+            if (typeof showNotification === 'function') {
+                showNotification('网址已复制到剪贴板', 'success');
+            }
+        } else {
+            if (typeof showNotification === 'function') {
+                showNotification('复制失败，请手动复制', 'error');
+            }
+        }
+    } catch (err) {
+        console.error('复制失败:', err);
+        if (typeof showNotification === 'function') {
+            showNotification('复制失败，请手动复制', 'error');
+        }
+    }
+
+    document.body.removeChild(textArea);
+}
+
 function createContextMenu() {
     if (contextMenu) return contextMenu;
 
@@ -1602,6 +1658,10 @@ function createContextMenu() {
     contextMenu.className = 'context-menu';
     contextMenu.style.position = 'fixed'; // 固定使用fixed定位
     contextMenu.innerHTML = `
+        <div class="context-menu-item" id="copy-url-btn">
+            <i class="fas fa-copy"></i>
+            <span>复制网址</span>
+        </div>
         <div class="context-menu-item" id="edit-website-btn">
             <i class="fas fa-edit"></i>
             <span>编辑网站</span>
@@ -1619,9 +1679,17 @@ function createContextMenu() {
     document.body.appendChild(contextMenu);
 
     // 使用addEventListener绑定事件
+    const copyUrlBtn = contextMenu.querySelector('#copy-url-btn');
     const editBtn = contextMenu.querySelector('#edit-website-btn');
     const togglePinBtn = contextMenu.querySelector('#toggle-pin-btn');
     const deleteBtn = contextMenu.querySelector('#delete-website-btn');
+
+    copyUrlBtn.addEventListener('click', function() {
+        if (contextMenuTarget) {
+            copyWebsiteUrl(contextMenuTarget);
+            hideContextMenu();
+        }
+    });
 
     editBtn.addEventListener('click', function() {
         if (contextMenuTarget) {
