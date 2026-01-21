@@ -43,6 +43,118 @@ function showNotification(message, type = 'info') {
     }, 3000);
 }
 
+// 显示保存进度条
+function showSaveProgress() {
+    // 移除已存在的进度条
+    const existingProgress = document.getElementById('save-progress-bar');
+    if (existingProgress) {
+        existingProgress.remove();
+    }
+
+    const progressContainer = document.createElement('div');
+    progressContainer.id = 'save-progress-bar';
+    progressContainer.style.cssText = `
+        position: fixed;
+        top: 70px;
+        right: 20px;
+        background: white;
+        border-radius: 0.5rem;
+        box-shadow: var(--shadow-large);
+        padding: 1rem 1.5rem;
+        z-index: 1002;
+        min-width: 300px;
+        transform: translateX(100%);
+        transition: transform 0.3s ease;
+    `;
+
+    progressContainer.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
+            <div class="spinner" style="
+                width: 20px;
+                height: 20px;
+                border: 2px solid #e5e7eb;
+                border-top-color: var(--primary-color);
+                border-radius: 50%;
+                animation: spin 0.8s linear infinite;
+            "></div>
+            <span style="font-weight: 500; color: #111827;">正在保存数据</span>
+        </div>
+        <div style="background: #e5e7eb; height: 6px; border-radius: 3px; overflow: hidden; position: relative;">
+            <div id="progress-bar-fill" style="
+                background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+                height: 100%;
+                width: 0%;
+                border-radius: 3px;
+                transition: width 0.3s ease;
+            "></div>
+        </div>
+        <div id="progress-status" style="
+            font-size: 0.75rem;
+            color: #6b7280;
+            margin-top: 0.5rem;
+            text-align: center;
+        ">准备中...</div>
+    `;
+
+    document.body.appendChild(progressContainer);
+
+    // 添加动画样式
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    `;
+    document.head.appendChild(style);
+
+    // 显示动画
+    setTimeout(() => {
+        progressContainer.style.transform = 'translateX(0)';
+    }, 100);
+
+    return {
+        update: (percent, status) => {
+            const fill = document.getElementById('progress-bar-fill');
+            const statusText = document.getElementById('progress-status');
+            if (fill) fill.style.width = `${percent}%`;
+            if (statusText) statusText.textContent = status;
+        },
+        complete: (success, message) => {
+            const fill = document.getElementById('progress-bar-fill');
+            const statusText = document.getElementById('progress-status');
+            const spinner = progressContainer.querySelector('.spinner');
+
+            if (fill) fill.style.width = '100%';
+            if (spinner) spinner.style.display = 'none';
+
+            if (success) {
+                if (fill) fill.style.background = 'var(--secondary-color)';
+                if (statusText) statusText.textContent = message || '保存成功！';
+            } else {
+                if (fill) fill.style.background = '#ef4444';
+                if (statusText) statusText.textContent = message || '保存失败';
+            }
+
+            setTimeout(() => {
+                progressContainer.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    if (progressContainer.parentNode) {
+                        progressContainer.parentNode.removeChild(progressContainer);
+                    }
+                }, 300);
+            }, 1500);
+        },
+        remove: () => {
+            progressContainer.style.transform = 'translateX(100%)';
+            setTimeout(() => {
+                if (progressContainer.parentNode) {
+                    progressContainer.parentNode.removeChild(progressContainer);
+                }
+            }, 300);
+        }
+    };
+}
+
 // 解析用户代理字符串
 function parseUserAgent(userAgent) {
     const parser = {

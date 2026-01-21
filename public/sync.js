@@ -21,9 +21,11 @@ async function syncUserData() {
         return;
     }
 
-    showNotification('正在上传数据到云端...', 'info');
+    const progress = showSaveProgress();
 
     try {
+        progress.update(10, '正在收集数据...');
+
         // 获取本地数据
         const localData = {
             categories: categories || [],
@@ -36,8 +38,12 @@ async function syncUserData() {
             lastUpdated: new Date().toISOString()
         };
 
+        progress.update(30, '正在压缩数据...');
+
         // 压缩数据
         const compressedData = await compressData(localData);
+
+        progress.update(50, '正在上传到云端...');
 
         // 直接保存到云端（覆盖）
         const response = await fetch('/api/user-data/save', {
@@ -49,13 +55,16 @@ async function syncUserData() {
             body: JSON.stringify({ compressed: compressedData })
         });
 
+        progress.update(80, '正在处理响应...');
+
         if (response.ok) {
             const data = await response.json();
 
             // 更新本地版本号
             localStorage.setItem('dataVersion', localData.version.toString());
 
-            showNotification('数据已上传到云端！', 'success');
+            progress.update(100, '上传完成！');
+            progress.complete(true, '数据已上传到云端！');
         } else {
             let errorInfo;
             try {
@@ -67,7 +76,7 @@ async function syncUserData() {
             // 处理需要重新认证的情况
             if (errorInfo.needReauth) {
                 console.log('🔄 Token outdated, need to re-authenticate');
-                showNotification('登录状态已过期，请重新登录', 'error');
+                progress.complete(false, '登录状态已过期');
                 setTimeout(() => {
                     logout();
                 }, 2000);
@@ -78,7 +87,7 @@ async function syncUserData() {
         }
     } catch (error) {
         console.error('Error syncing data:', error);
-        showNotification('数据上传失败', 'error');
+        progress.complete(false, '数据上传失败');
     }
 
     // 关闭用户菜单
@@ -91,6 +100,9 @@ async function loadUserData(forceLoad = false) {
 
     console.log('📥 Loading user data from server, forceLoad:', forceLoad);
 
+    const progress = showSaveProgress();
+    progress.update(10, '正在从云端下载...');
+
     try {
         const response = await fetch('/api/user-data/load', {
             method: 'GET',
@@ -99,25 +111,34 @@ async function loadUserData(forceLoad = false) {
             }
         });
 
+        progress.update(40, '正在接收数据...');
+
         if (response.ok) {
             const responseData = await response.json();
             console.log('📥 Server data received (compressed)');
 
             if (responseData.data && responseData.lastUpdated) {
+                progress.update(60, '正在解压缩数据...');
+
                 // 解压缩数据
                 const data = await decompressData(responseData.data);
                 console.log('📥 Server data decompressed:', data);
 
+                progress.update(80, '正在更新本地数据...');
+
                 console.log('✅ Updating local data with server data');
                 updateLocalData(data);
 
+                progress.update(100, '下载完成！');
+
                 if (forceLoad) {
-                    showNotification('数据已从云端覆盖本地', 'success');
+                    progress.complete(true, '数据已从云端覆盖本地');
                 } else {
-                    showNotification('数据已从云端加载', 'success');
+                    progress.complete(true, '数据已从云端加载');
                 }
             } else if (!responseData.data || !responseData.lastUpdated) {
                 console.log('📊 No server data found, keeping local data');
+                progress.complete(true, '云端暂无数据');
             }
         } else {
             let errorInfo;
@@ -132,14 +153,17 @@ async function loadUserData(forceLoad = false) {
             // 处理需要重新认证的情况
             if (errorInfo.needReauth) {
                 console.log('🔄 Token outdated, need to re-authenticate');
-                showNotification('登录状态已过期，请重新登录', 'error');
+                progress.complete(false, '登录状态已过期');
                 setTimeout(() => {
                     logout();
                 }, 2000);
+            } else {
+                progress.complete(false, '下载失败');
             }
         }
     } catch (error) {
         console.error('❌ Error loading user data:', error);
+        progress.complete(false, '下载失败');
     }
 }
 
@@ -170,7 +194,11 @@ async function saveUserData() {
     window.isSavingToCloud = true;
     console.log('🏁 Setting isSavingToCloud = true, preventing version checks during save');
 
+    const progress = showSaveProgress();
+
     try {
+        progress.update(10, '正在收集数据...');
+
         const localData = {
             categories: categories || [],
             websites: websites || [],
@@ -188,8 +216,12 @@ async function saveUserData() {
             version: localData.version
         });
 
+        progress.update(30, '正在压缩数据...');
+
         // 压缩数据
         const compressedData = await compressData(localData);
+
+        progress.update(50, '正在上传...');
 
         const response = await fetch('/api/user-data/save', {
             method: 'POST',
@@ -203,11 +235,16 @@ async function saveUserData() {
         console.log('🌐 Response status:', response.status, response.statusText);
         console.log('🌐 Response headers:', Object.fromEntries(response.headers.entries()));
 
+        progress.update(80, '正在处理...');
+
         if (response.ok) {
             const responseData = await response.json();
             console.log('✅ Save response:', responseData);
             localStorage.setItem('dataVersion', localData.version.toString());
             console.log('✅ Data saved to cloud successfully, updated local version to:', localData.version);
+
+            progress.update(100, '保存完成');
+            progress.complete(true, '数据已自动保存');
         } else {
             let errorInfo;
             try {
@@ -225,11 +262,14 @@ async function saveUserData() {
             // 处理需要重新认证的情况
             if (errorInfo.needReauth) {
                 console.log('🔄 Token outdated, need to re-authenticate');
+                progress.complete(false, '登录状态已过期');
                 showNotification('登录状态已过期，请重新登录', 'error');
                 // 清除旧token并提示重新登录
                 setTimeout(() => {
                     logout();
                 }, 2000);
+            } else {
+                progress.complete(false, '保存失败');
             }
         }
     } catch (error) {
@@ -238,6 +278,7 @@ async function saveUserData() {
             message: error.message,
             stack: error.stack
         });
+        progress.complete(false, '保存失败');
     } finally {
         // 清除正在保存的标志
         window.isSavingToCloud = false;
@@ -487,8 +528,10 @@ async function showVersionSelectionModal() {
 
 // 从指定版本恢复数据
 async function restoreFromVersion(version) {
+    const progress = showSaveProgress();
+
     try {
-        showNotification('正在恢复数据...', 'info');
+        progress.update(10, '正在请求版本数据...');
 
         const response = await fetch('/api/user-data/restore', {
             method: 'POST',
@@ -499,24 +542,33 @@ async function restoreFromVersion(version) {
             body: JSON.stringify({ version })
         });
 
+        progress.update(40, '正在接收数据...');
+
         if (response.ok) {
             const responseData = await response.json();
 
             // 更新本地数据
             if (responseData.data) {
+                progress.update(60, '正在解压缩数据...');
+
                 // 解压缩数据
                 const data = await decompressData(responseData.data);
+
+                progress.update(80, '正在恢复数据...');
+
                 updateLocalData(data);
             }
 
+            progress.update(100, '恢复完成！');
+
             dismissVersionSelectionModal();
-            showNotification('数据恢复成功！', 'success');
+            progress.complete(true, '数据恢复成功！');
         } else {
             throw new Error('恢复失败');
         }
     } catch (error) {
         console.error('Error restoring version:', error);
-        showNotification('数据恢复失败', 'error');
+        progress.complete(false, '数据恢复失败');
     }
 }
 
