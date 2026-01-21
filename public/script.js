@@ -266,6 +266,11 @@ function createCardHTML(website) {
                 </div>
             </div>
             <div class="card-description">${website.description}</div>
+            <div class="card-footer">
+                <button class="card-menu-btn" aria-label="菜单">
+                    <i class="fas fa-grip-lines"></i>
+                </button>
+            </div>
         </div>
     `;
 }
@@ -1509,6 +1514,11 @@ function createWebsiteCard(name, url, description, category, iconUrl, isPinned) 
                 </div>
             </div>
             <div class="card-description">${description.trimStart()}</div>
+            <div class="card-footer">
+                <button class="card-menu-btn" aria-label="菜单">
+                    <i class="fas fa-grip-lines"></i>
+                </button>
+            </div>
         </div>
     `;
 
@@ -2011,6 +2021,13 @@ function addCardEventListeners(card) {
 
     // 左键点击（访问网站）
     card.addEventListener('click', handleCardClick);
+
+    // 菜单按钮点击（移动设备）
+    const menuBtn = card.querySelector('.card-menu-btn');
+    if (menuBtn) {
+        menuBtn.removeEventListener('click', handleMenuBtnClick);
+        menuBtn.addEventListener('click', handleMenuBtnClick);
+    }
 }
 
 // 处理卡片右键菜单事件
@@ -2018,9 +2035,26 @@ function handleContextMenu(e) {
     showContextMenu(e, this);
 }
 
+// 处理菜单按钮点击事件（移动设备）
+function handleMenuBtnClick(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const card = this.closest('.website-card');
+    // 将点击坐标转换为合适的菜单位置
+    const rect = this.getBoundingClientRect();
+    const syntheticEvent = new PointerEvent('contextmenu', {
+        bubbles: true,
+        cancelable: true,
+        clientX: rect.right - 10,
+        clientY: rect.bottom + 5
+    });
+    showContextMenu(syntheticEvent, card);
+}
+
 // 处理卡片点击事件
 function handleCardClick(e) {
-    if (e.target.closest('.context-menu')) return;
+    // 如果点击了菜单按钮或context菜单，不执行卡片点击
+    if (e.target.closest('.context-menu') || e.target.closest('.card-menu-btn')) return;
 
     // 如果按住Ctrl键点击，则编辑网站
     if (e.ctrlKey) {

@@ -2611,3 +2611,52 @@ html[data-sidebar="compact"] .website-card:hover {
     display: none !important;
   }
 }
+
+/* 卡片底部区域 - 默认隐藏 */
+.card-footer {
+  display: none;
+  padding-top: 0.75rem;
+  margin-top: auto;
+}
+
+/* 卡片菜单按钮 */
+.card-menu-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 1.3rem;
+  padding: 0;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  width: 2.2rem;
+  height: 2.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 移动端和平板：显示菜单按钮 */
+@media (max-width: 768px) {
+  .card-footer {
+    display: flex !important;
+    justify-content: center;
+    padding-top: 0.5rem;
+  }
+
+  .card-title {
+    font-size: 0.6rem;
+  }
+
+  .card-menu-btn {
+    opacity: 0.7;
+  }
+
+  .card-menu-btn:active {
+    background-color: var(--background-color);
+    color: var(--primary-color);
+    transform: scale(0.95);
+    opacity: 1;
+  }
+}
