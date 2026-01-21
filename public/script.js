@@ -2040,15 +2040,23 @@ function handleMenuBtnClick(e) {
     e.preventDefault();
     e.stopPropagation();
     const card = this.closest('.website-card');
-    // 将点击坐标转换为合适的菜单位置
-    const rect = this.getBoundingClientRect();
-    const syntheticEvent = new PointerEvent('contextmenu', {
-        bubbles: true,
-        cancelable: true,
-        clientX: rect.right - 10,
-        clientY: rect.bottom + 5
-    });
-    showContextMenu(syntheticEvent, card);
+
+    // 检查菜单是否已显示
+    if (contextMenu && contextMenu.classList.contains('active') && contextMenuTarget === card) {
+        // 菜单已显示，则隐藏
+        hideContextMenu();
+    } else {
+        // 菜单未显示，则显示
+        // 将点击坐标转换为合适的菜单位置
+        const rect = this.getBoundingClientRect();
+        const syntheticEvent = new PointerEvent('contextmenu', {
+            bubbles: true,
+            cancelable: true,
+            clientX: rect.right - 10,
+            clientY: rect.bottom + 5
+        });
+        showContextMenu(syntheticEvent, card);
+    }
 }
 
 // 处理卡片点击事件
