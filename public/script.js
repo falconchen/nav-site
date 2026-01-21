@@ -268,7 +268,7 @@ function createCardHTML(website) {
             <div class="card-description">${website.description}</div>
             <div class="card-footer">
                 <button class="card-menu-btn" aria-label="菜单">
-                    <i class="fas fa-grip-lines"></i>
+                    <i class="fas fa-minus"></i>
                 </button>
             </div>
         </div>
@@ -1516,7 +1516,7 @@ function createWebsiteCard(name, url, description, category, iconUrl, isPinned) 
             <div class="card-description">${description.trimStart()}</div>
             <div class="card-footer">
                 <button class="card-menu-btn" aria-label="菜单">
-                    <i class="fas fa-grip-lines"></i>
+                    <i class="fas fa-minus"></i>
                 </button>
             </div>
         </div>
