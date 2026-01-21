@@ -36,6 +36,9 @@ async function syncUserData() {
             lastUpdated: new Date().toISOString()
         };
 
+        // 压缩数据
+        const compressedData = await compressData(localData);
+
         // 直接保存到云端（覆盖）
         const response = await fetch('/api/user-data/save', {
             method: 'POST',
@@ -43,7 +46,7 @@ async function syncUserData() {
                 'Authorization': `Bearer ${authToken}`,
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(localData)
+            body: JSON.stringify({ compressed: compressedData })
         });
 
         if (response.ok) {
@@ -97,19 +100,23 @@ async function loadUserData(forceLoad = false) {
         });
 
         if (response.ok) {
-            const data = await response.json();
-            console.log('📥 Server data received:', data);
+            const responseData = await response.json();
+            console.log('📥 Server data received (compressed)');
 
-            if (data.data && data.lastUpdated) {
+            if (responseData.data && responseData.lastUpdated) {
+                // 解压缩数据
+                const data = await decompressData(responseData.data);
+                console.log('📥 Server data decompressed:', data);
+
                 console.log('✅ Updating local data with server data');
-                updateLocalData(data.data);
+                updateLocalData(data);
 
                 if (forceLoad) {
                     showNotification('数据已从云端覆盖本地', 'success');
                 } else {
                     showNotification('数据已从云端加载', 'success');
                 }
-            } else if (!data.data || !data.lastUpdated) {
+            } else if (!responseData.data || !responseData.lastUpdated) {
                 console.log('📊 No server data found, keeping local data');
             }
         } else {
@@ -181,13 +188,16 @@ async function saveUserData() {
             version: localData.version
         });
 
+        // 压缩数据
+        const compressedData = await compressData(localData);
+
         const response = await fetch('/api/user-data/save', {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${authToken}`,
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify(localData)
+            body: JSON.stringify({ compressed: compressedData })
         });
 
         console.log('🌐 Response status:', response.status, response.statusText);
@@ -490,11 +500,13 @@ async function restoreFromVersion(version) {
         });
 
         if (response.ok) {
-            const data = await response.json();
+            const responseData = await response.json();
 
             // 更新本地数据
-            if (data.data) {
-                updateLocalData(data.data);
+            if (responseData.data) {
+                // 解压缩数据
+                const data = await decompressData(responseData.data);
+                updateLocalData(data);
             }
 
             dismissVersionSelectionModal();

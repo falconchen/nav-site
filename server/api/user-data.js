@@ -7,6 +7,89 @@ import { verify } from 'hono/jwt';
 
 const app = new Hono();
 
+// 压缩数据工具函数
+async function compressData(data) {
+    try {
+        const jsonString = JSON.stringify(data);
+        const encoder = new TextEncoder();
+        const uint8Array = encoder.encode(jsonString);
+
+        const compressionStream = new CompressionStream('gzip');
+        const writer = compressionStream.writable.getWriter();
+        writer.write(uint8Array);
+        writer.close();
+
+        const reader = compressionStream.readable.getReader();
+        const chunks = [];
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            chunks.push(value);
+        }
+
+        const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
+        const compressed = new Uint8Array(totalLength);
+        let offset = 0;
+        for (const chunk of chunks) {
+            compressed.set(chunk, offset);
+            offset += chunk.length;
+        }
+
+        // 转换为 base64
+        let binary = '';
+        for (let i = 0; i < compressed.length; i++) {
+            binary += String.fromCharCode(compressed[i]);
+        }
+
+        return btoa(binary);
+    } catch (error) {
+        console.error('Compression error:', error);
+        throw error;
+    }
+}
+
+// 解压缩数据工具函数
+async function decompressData(base64String) {
+    try {
+        const binary = atob(base64String);
+        const compressed = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+            compressed[i] = binary.charCodeAt(i);
+        }
+
+        const decompressionStream = new DecompressionStream('gzip');
+        const writer = decompressionStream.writable.getWriter();
+        writer.write(compressed);
+        writer.close();
+
+        const reader = decompressionStream.readable.getReader();
+        const chunks = [];
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            chunks.push(value);
+        }
+
+        const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
+        const decompressed = new Uint8Array(totalLength);
+        let offset = 0;
+        for (const chunk of chunks) {
+            decompressed.set(chunk, offset);
+            offset += chunk.length;
+        }
+
+        const decoder = new TextDecoder();
+        const jsonString = decoder.decode(decompressed);
+
+        return JSON.parse(jsonString);
+    } catch (error) {
+        console.error('Decompression error:', error);
+        throw error;
+    }
+}
+
 // 中间件：验证用户身份
 // 解析用户代理字符串
 function parseUserAgent(userAgent) {
@@ -115,11 +198,21 @@ const authMiddleware = async (c, next) => {
 app.post('/user-data/save', authMiddleware, async (c) => {
     try {
         const user = c.get('user');
-        const userData = await c.req.json();
+        const requestData = await c.req.json();
 
         // 验证数据格式
-        if (!userData || typeof userData !== 'object') {
+        if (!requestData || typeof requestData !== 'object') {
             return c.json({ error: 'Invalid data format' }, 400);
+        }
+
+        // 解压缩数据
+        let userData;
+        if (requestData.compressed) {
+            console.log('📦 Decompressing received data...');
+            userData = await decompressData(requestData.compressed);
+        } else {
+            // 向后兼容：如果没有压缩标记，直接使用原数据
+            userData = requestData;
         }
 
         // 获取用户的 User-Agent 并解析设备信息
@@ -174,13 +267,15 @@ app.get('/user-data/load', authMiddleware, async (c) => {
     try {
         const user = c.get('user');
 
-        // 从Redis加载数据
+        // 从Redis加载数据（已解压缩）
         const userData = await loadDataFromRedis(c, user.userId);
 
         if (userData) {
+            // 压缩数据后返回给前端
+            const compressed = await compressData(userData);
             return c.json({
                 success: true,
-                data: userData,
+                data: compressed,
                 lastUpdated: userData.lastUpdated
             });
         } else {
@@ -281,9 +376,11 @@ app.post('/user-data/restore', authMiddleware, async (c) => {
         }
 
         if (success) {
+            // 压缩数据后返回给前端
+            const compressed = await compressData(restoredData);
             return c.json({
                 success: true,
-                data: restoredData,
+                data: compressed,
                 message: 'Data restored successfully'
             });
         } else {
@@ -327,14 +424,26 @@ async function saveDataToRedis(c, userId, data) {
             return false;
         }
 
+        // 压缩数据后再保存到 Redis
+        const compressed = await compressData(data);
+        const dataToStore = {
+            compressed: compressed,
+            version: data.version,
+            lastUpdated: data.lastUpdated
+        };
+
         const response = await fetch(`${redisUrl}/set/userdata:${userId}`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${redisToken}`,
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(data),
+            body: JSON.stringify(dataToStore),
         });
+
+        if (response.ok) {
+            console.log('📦 Data compressed and saved to Redis');
+        }
 
         return response.ok;
     } catch (error) {
@@ -365,7 +474,21 @@ async function loadDataFromRedis(c, userId) {
         }
 
         const data = await response.json();
-        return data.result ? JSON.parse(data.result) : null;
+        if (!data.result) {
+            return null;
+        }
+
+        const storedData = JSON.parse(data.result);
+
+        // 如果数据是压缩的，解压缩
+        if (storedData.compressed) {
+            console.log('📦 Decompressing data from Redis...');
+            const decompressed = await decompressData(storedData.compressed);
+            return decompressed;
+        }
+
+        // 向后兼容：如果没有压缩标记，直接返回
+        return storedData;
     } catch (error) {
         console.error('Error loading data from Redis:', error);
         return null;
@@ -419,15 +542,16 @@ async function saveVersionToRedis(c, userId, data) {
         const versionKey = `userdata_versions:${userId}`;
         const version = data.version || Date.now();
 
-        // 保存单个版本数据
+        // 保存单个版本数据（压缩）
         const versionDataKey = `userdata_version:${userId}:${version}`;
+        const compressedVersionData = await compressData(data);
         const versionDataResponse = await fetch(`${redisUrl}/set/${versionDataKey}`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${redisToken}`,
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(data),
+            body: JSON.stringify({ compressed: compressedVersionData }),
         });
 
         if (!versionDataResponse.ok) {
@@ -553,7 +677,7 @@ async function getVersionDataFromRedis(c, userId, version) {
         const redisUrl = c.env.UPSTASH_REDIS_REST_URL;
         const redisToken = c.env.UPSTASH_REDIS_REST_TOKEN;
 
-        if (!redisUrl || !redisToken) {
+        if (!redisUrl || !redisUrl) {
             return null;
         }
 
@@ -570,7 +694,20 @@ async function getVersionDataFromRedis(c, userId, version) {
         }
 
         const data = await response.json();
-        return data.result ? JSON.parse(data.result) : null;
+        if (!data.result) {
+            return null;
+        }
+
+        const storedData = JSON.parse(data.result);
+
+        // 如果数据是压缩的，解压缩
+        if (storedData.compressed) {
+            console.log('📦 Decompressing version data from Redis...');
+            return await decompressData(storedData.compressed);
+        }
+
+        // 向后兼容
+        return storedData;
     } catch (error) {
         console.error('Error getting version data from Redis:', error);
         return null;
