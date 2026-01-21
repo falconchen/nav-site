@@ -51,6 +51,11 @@ async function checkAuthStatus() {
                 console.log('✅ User authenticated, user data:', data.user);
                 showUserInfo(data.user);
 
+                // 重置首次同步检查标志
+                if (typeof window !== 'undefined') {
+                    window.isFirstSyncCheck = true;
+                }
+
                 // 启动同步检测
                 if (typeof startSyncDetection === 'function') {
                     startSyncDetection();
@@ -169,6 +174,11 @@ function handleAuthMessage(event) {
 
         // 显示用户信息
         showUserInfo(currentUser);
+
+        // 重置首次同步检查标志
+        if (typeof window !== 'undefined') {
+            window.isFirstSyncCheck = true;
+        }
 
         // 显示成功消息
         if (typeof showNotification === 'function') {

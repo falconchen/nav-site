@@ -14,6 +14,9 @@ let enableTimerSync = true;
 // 初始化保存状态标志
 window.isSavingToCloud = false;
 
+// 标记是否是首次同步检查（页面初始化或刚登录）
+let isFirstSyncCheck = true;
+
 // 同步用户数据（直接覆盖到云端）
 async function syncUserData() {
     if (!authToken) {
@@ -662,14 +665,28 @@ async function checkForCloudUpdates() {
                 cloud: cloudVersion,
                 hasCloudData: data.hasData,
                 lastUpdated: data.lastUpdated,
-                isSavingToCloud: window.isSavingToCloud
+                isSavingToCloud: window.isSavingToCloud,
+                isFirstSyncCheck: isFirstSyncCheck
             });
 
             if (data.hasData && cloudVersion > localVersion) {
                 console.log('🆕 New cloud data detected!');
-                showSyncUpdateNotification(cloudVersion, localVersion);
+
+                // 如果是首次检查（刚登录或首次打开页面），直接自动同步
+                if (isFirstSyncCheck) {
+                    console.log('⚡ First sync check detected, auto-syncing without notification');
+                    isFirstSyncCheck = false; // 标记已进行过首次检查
+                    await syncNow();
+                } else {
+                    // 之后的检查才显示弹窗让用户选择
+                    showSyncUpdateNotification(cloudVersion, localVersion);
+                }
             } else {
                 console.log('📊 Local data is up to date');
+                // 即使没有更新，首次检查也要标记为已完成
+                if (isFirstSyncCheck) {
+                    isFirstSyncCheck = false;
+                }
             }
         } else {
             let errorInfo;
