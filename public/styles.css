@@ -2447,7 +2447,7 @@ html[data-sidebar="compact"] .website-card:hover {
     width: 80%;
   }
 	.footer-link{
-		min-width: 86px;
+		min-width: 110px;
 		text-align: left;
 	}
 }
