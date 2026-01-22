@@ -59,7 +59,7 @@
 
 			"vars": {
 				"environment": "production",
-				"JWT_EXPIRATION_DAYS": "30",
+				"JWT_EXPIRATION_DAYS": "365",
 				"MAX_USER_VERSIONS": "5"
 			}
 		}
