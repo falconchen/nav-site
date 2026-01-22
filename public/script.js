@@ -54,9 +54,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 同步版本号到 footer
     const versionSpan = document.getElementById('version');
-    const footerVersion = document.getElementById('footerVersion');
-    if (versionSpan && footerVersion) {
-        footerVersion.textContent = 'v.' + versionSpan.textContent;
+    const footerVersionText = document.getElementById('footerVersionText');
+    if (versionSpan && footerVersionText) {
+        footerVersionText.textContent = 'v.' + versionSpan.textContent;
     }
 });
 

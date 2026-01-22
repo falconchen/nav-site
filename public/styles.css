@@ -645,9 +645,12 @@ html[data-sidebar="compact"] .cards-grid {
 }
 
 .footer-version {
-  color: var(--text-muted);
-  font-size: 0.875rem;
-  margin-left: auto;
+  cursor: default;
+  pointer-events: none;
+}
+
+.footer-version:hover {
+  color: var(--text-secondary);
 }
 
 .add-website-btn {
