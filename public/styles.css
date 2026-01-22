@@ -2446,6 +2446,10 @@ html[data-sidebar="compact"] .website-card:hover {
     align-items: center;
     width: 80%;
   }
+	.footer-link{
+		min-width: 86px;
+		text-align: left;
+	}
 }
 
 /* 移动端（<=768px）下的压缩模式修正：
