@@ -2413,7 +2413,7 @@ html[data-sidebar="compact"] .website-card:hover {
   }
 
   .card-title {
-    font-size: 0.9rem !important;
+    font-size: 0.6rem !important;
     text-align: center !important;
     display: -webkit-box !important;
     -webkit-line-clamp: 2 !important;
@@ -2645,9 +2645,6 @@ html[data-sidebar="compact"] .website-card:hover {
     padding-top: 0.5rem;
   }
 
-  .card-title {
-    font-size: 0.6rem;
-  }
 
   .card-menu-btn {
     opacity: 0.7;

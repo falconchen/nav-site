@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\n✨ \\(mobile\\) Add mobile menu button for iOS Safari compatibility\n\n- Add card-footer section with menu button \\(fa-grip-lines icon\\)\n- Display menu button only on mobile/tablet devices \\(≤768px\\)\n- Trigger context menu on button click for touch devices\n- Reduce card-title font size to 0.6rem on small screens\n- Desktop users continue using right-click context menu\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
+    ]
+  }
+}
