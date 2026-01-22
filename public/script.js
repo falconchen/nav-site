@@ -51,6 +51,13 @@ document.addEventListener('DOMContentLoaded', function() {
             applySwatchColor();
         });
     }
+
+    // 同步版本号到 footer
+    const versionSpan = document.getElementById('version');
+    const footerVersion = document.getElementById('footerVersion');
+    if (versionSpan && footerVersion) {
+        footerVersion.textContent = 'v.' + versionSpan.textContent;
+    }
 });
 
 // 分类切换功能

@@ -644,6 +644,12 @@ html[data-sidebar="compact"] .cards-grid {
   color: var(--primary-color);
 }
 
+.footer-version {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  margin-left: auto;
+}
+
 .add-website-btn {
   background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
   color: white;
