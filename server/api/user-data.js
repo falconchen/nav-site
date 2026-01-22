@@ -168,12 +168,6 @@ const authMiddleware = async (c, next) => {
                         return c.json({ error: 'Token not found or invalid' }, 401);
                     }
 
-                    // 更新最后使用时间
-                    sessionInfo.lastUsed = new Date().toISOString();
-                    await c.env.USER_SESSIONS.put(sessionKey, JSON.stringify(sessionInfo), {
-                        expirationTtl: payload.exp - Math.floor(Date.now() / 1000) // 保持原有过期时间
-                    });
-
                 } catch (parseError) {
                     console.log('❌ Failed to parse session data:', parseError);
                     return c.json({ error: 'Token not found or invalid' }, 401);
