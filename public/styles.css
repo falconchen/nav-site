@@ -2446,6 +2446,11 @@ html[data-sidebar="compact"] .website-card:hover {
     align-items: center;
     width: 80%;
   }
+
+  .footer-version {
+    grid-column: 1 / -1; /* 占据整行 */
+    justify-self: start; /* 左对齐 */
+  }
 }
 
 /* 移动端（<=768px）下的压缩模式修正：
