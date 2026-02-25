@@ -306,3 +306,81 @@ async function decompressData(base64String) {
         throw error;
     }
 }
+
+// IndexedDB 存储工具，用于突破 localStorage 的容量限制
+const dbStorage = {
+    dbName: 'NavSiteDB',
+    storeName: 'settings',
+    db: null,
+
+    // 初始化数据库
+    async init() {
+        if (this.db) return this.db;
+
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open(this.dbName, 1);
+
+            request.onupgradeneeded = (event) => {
+                const db = event.target.result;
+                if (!db.objectStoreNames.contains(this.storeName)) {
+                    db.createObjectStore(this.storeName);
+                }
+            };
+
+            request.onsuccess = (event) => {
+                this.db = event.target.result;
+                resolve(this.db);
+            };
+
+            request.onerror = (event) => {
+                console.error('IndexedDB open error:', event.target.error);
+                reject(event.target.error);
+            };
+        });
+    },
+
+    // 获取数据
+    async getItem(key) {
+        try {
+            await this.init();
+            return new Promise((resolve, reject) => {
+                const transaction = this.db.transaction([this.storeName], 'readonly');
+                const store = transaction.objectStore(this.storeName);
+                const request = store.get(key);
+
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        } catch (error) {
+            console.error(`Error getting item ${key} from IndexedDB:`, error);
+            // 降级使用 localStorage
+            return localStorage.getItem(key);
+        }
+    },
+
+    // 存储数据
+    async setItem(key, value) {
+        try {
+            await this.init();
+            return new Promise((resolve, reject) => {
+                const transaction = this.db.transaction([this.storeName], 'readwrite');
+                const store = transaction.objectStore(this.storeName);
+                const request = store.put(value, key);
+
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        } catch (error) {
+            console.error(`Error setting item ${key} in IndexedDB:`, error);
+            // 降级使用 localStorage，但捕获可能的容量超限错误
+            try {
+                localStorage.setItem(key, value);
+            } catch (e) {
+                console.error('localStorage also failed:', e);
+                throw e;
+            }
+        }
+    }
+};
+
+window.dbStorage = dbStorage;

@@ -130,7 +130,7 @@ async function loadUserData(forceLoad = false) {
                 progress.update(80, '正在更新本地数据...');
 
                 console.log('✅ Updating local data with server data');
-                updateLocalData(data);
+                await updateLocalData(data);
 
                 progress.update(100, '下载完成！');
 
@@ -172,15 +172,15 @@ async function loadUserData(forceLoad = false) {
 
 // 打印网站数量
 function getWebsiteCounts(websites) {
-	let total = 0;
-	const counts = Object.entries(websites).map(([category, sites]) => {
-	  const count = Array.isArray(sites) ? sites.length : 0;
-	  total += count;
-	  return `${category}:${count}`;
-	});
-	counts.push(`total:${total}`);
-	return counts.join(',');
-  }
+    let total = 0;
+    const counts = Object.entries(websites).map(([category, sites]) => {
+        const count = Array.isArray(sites) ? sites.length : 0;
+        total += count;
+        return `${category}:${count}`;
+    });
+    counts.push(`total:${total}`);
+    return counts.join(',');
+}
 
 
 // 保存用户数据到云端
@@ -290,7 +290,7 @@ async function saveUserData() {
 }
 
 // 更新本地数据
-function updateLocalData(cloudData) {
+async function updateLocalData(cloudData) {
     console.log('🔄 Updating local data with cloud data:', cloudData);
 
     // 设置标志，防止在更新过程中触发自动保存
@@ -301,8 +301,8 @@ function updateLocalData(cloudData) {
         console.log('📂 Updating categories:', cloudData.categories.length, 'items');
         categories = cloudData.categories;
         window.categories = categories; // 确保全局变量同步
-        // 直接保存到localStorage，不触发dataChanged事件
-        localStorage.setItem('navSiteCategories', JSON.stringify(categories));
+        // 优先保存到 IndexedDB
+        await dbStorage.setItem('navSiteCategories', categories);
     }
 
     // 更新网站数据
@@ -310,8 +310,8 @@ function updateLocalData(cloudData) {
         console.log('🌐 Updating websites:', Object.keys(cloudData.websites).length, 'categories');
         websites = cloudData.websites;
         window.websites = websites; // 确保全局变量同步
-        // 直接保存到localStorage，不触发dataChanged事件
-        localStorage.setItem('navSiteWebsites', JSON.stringify(websites));
+        // 优先保存到 IndexedDB
+        await dbStorage.setItem('navSiteWebsites', websites);
     }
 
     // 更新设置（不覆盖本地偏好：theme 与 categoriesCompactMode 保持 localStorage）
@@ -559,7 +559,7 @@ async function restoreFromVersion(version) {
 
                 progress.update(80, '正在恢复数据...');
 
-                updateLocalData(data);
+                await updateLocalData(data);
             }
 
             progress.update(100, '恢复完成！');
@@ -827,7 +827,7 @@ function handleVisibilityChange() {
 
 
 // 监听数据变化，自动保存到云端
-document.addEventListener('dataChanged', function() {
+document.addEventListener('dataChanged', function () {
     if (authToken) {
         console.log('📝 Data changed event triggered, scheduling save in 2 seconds...');
         console.log('🔍 Current isSavingToCloud status:', window.isSavingToCloud);
@@ -840,7 +840,7 @@ document.addEventListener('dataChanged', function() {
 });
 
 // 页面关闭前保存数据
-window.addEventListener('beforeunload', function() {
+window.addEventListener('beforeunload', function () {
     if (authToken) {
         // 使用sendBeacon进行可靠的数据发送
         const localData = {

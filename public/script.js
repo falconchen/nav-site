@@ -27,7 +27,7 @@ function setAccent(accent) {
 }
 
 // 初始化强调色选择器
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     const accentSwatch = document.getElementById('accentSwatch');
     // 小圆点在小屏循环切换：默认 -> cadetblue -> blue-1772f6 -> 默认
     if (accentSwatch) {
@@ -38,9 +38,9 @@ document.addEventListener('DOMContentLoaded', function() {
         applySwatchColor();
         // 在主题/accent变化时重新同步颜色
         const observer = new MutationObserver(applySwatchColor);
-        observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-accent','data-theme'] });
+        observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-accent', 'data-theme'] });
 
-        accentSwatch.addEventListener('click', function() {
+        accentSwatch.addEventListener('click', function () {
             const current = localStorage.getItem('accent') || '';
             let next = '';
             if (current === '') next = 'cadetblue';
@@ -1243,20 +1243,20 @@ function submitWebsiteForm() {
             const categorySection = document.getElementById(category);
             if (categorySection) {
 
-                    const categoryCards = categorySection.querySelectorAll('.cards-grid .website-card');
-                    categoryCards.forEach(card => {
-                        const cardTitle = card.querySelector('.card-title').textContent;
-                        const cardUrl = card.querySelector('.card-url').textContent;
+                const categoryCards = categorySection.querySelectorAll('.cards-grid .website-card');
+                categoryCards.forEach(card => {
+                    const cardTitle = card.querySelector('.card-title').textContent;
+                    const cardUrl = card.querySelector('.card-url').textContent;
 
-                        if (cardTitle === name && cardUrl === url) {
-                            card.classList.add('simple-highlight');
-                            setTimeout(() => {
-                                card.classList.remove('simple-highlight');
-                            }, 1000);
-                        }
+                    if (cardTitle === name && cardUrl === url) {
+                        card.classList.add('simple-highlight');
+                        setTimeout(() => {
+                            card.classList.remove('simple-highlight');
+                        }, 1000);
+                    }
 
-                    });
-                }
+                });
+            }
         }
     }, 100);
 }
@@ -1445,7 +1445,7 @@ function renderRecentCategory() {
         `;
 
         // 添加展开/收起按钮点击事件
-        expandButton.querySelector('.btn-expand').addEventListener('click', function() {
+        expandButton.querySelector('.btn-expand').addEventListener('click', function () {
             const icon = this.querySelector('i');
             const text = this.querySelector('span');
             const isExpanded = hiddenContainer.style.display !== 'none';
@@ -1701,28 +1701,28 @@ function createContextMenu() {
     const togglePinBtn = contextMenu.querySelector('#toggle-pin-btn');
     const deleteBtn = contextMenu.querySelector('#delete-website-btn');
 
-    copyUrlBtn.addEventListener('click', function() {
+    copyUrlBtn.addEventListener('click', function () {
         if (contextMenuTarget) {
             copyWebsiteUrl(contextMenuTarget);
             hideContextMenu();
         }
     });
 
-    editBtn.addEventListener('click', function() {
+    editBtn.addEventListener('click', function () {
         if (contextMenuTarget) {
             editWebsite(contextMenuTarget);
             hideContextMenu();
         }
     });
 
-    togglePinBtn.addEventListener('click', function() {
+    togglePinBtn.addEventListener('click', function () {
         if (contextMenuTarget) {
             togglePinStatus(contextMenuTarget);
             hideContextMenu();
         }
     });
 
-    deleteBtn.addEventListener('click', function() {
+    deleteBtn.addEventListener('click', function () {
         if (contextMenuTarget) {
             deleteWebsite(contextMenuTarget);
             hideContextMenu();
@@ -2091,7 +2091,7 @@ function setupFileUpload() {
 
     const modal = document.getElementById('websiteModal');
     if (modal) {
-        modal.addEventListener('click', function(e) {
+        modal.addEventListener('click', function (e) {
             if (e.target.closest('.delete-image-btn')) {
                 deleteUploadedImage();
                 return;
@@ -2137,7 +2137,7 @@ function handleFileUpload(file) {
     if (file.type.startsWith('image/')) {
         // 读取文件并转换为base64
         const reader = new FileReader();
-        reader.onload = function(e) {
+        reader.onload = function (e) {
             const base64Image = e.target.result;
 
             // 保存base64图片数据
@@ -2214,17 +2214,21 @@ function resetIconUpload() {
 }
 
 // 页面初始化
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function () {
+    // 等待数据加载完成
+    if (window.dataLoaded) {
+        await window.dataLoaded;
+    }
     // 读取localStorage主题
     const savedTheme = localStorage.getItem('theme');
     const html = document.documentElement;
     const themeIcon = document.getElementById('theme-icon');
     if (savedTheme === 'dark') {
         html.setAttribute('data-theme', 'dark');
-        if(themeIcon) themeIcon.className = 'fas fa-sun';
+        if (themeIcon) themeIcon.className = 'fas fa-sun';
     } else if (savedTheme === 'light') {
         html.setAttribute('data-theme', 'light');
-        if(themeIcon) themeIcon.className = 'fas fa-moon';
+        if (themeIcon) themeIcon.className = 'fas fa-moon';
     }
 
     // 初始化分类列表模式
@@ -2299,7 +2303,7 @@ function setupScrollSpy() {
     // 防抖函数，避免频繁触发
     function debounce(func, wait) {
         let timeout;
-        return function() {
+        return function () {
             const context = this;
             const args = arguments;
             clearTimeout(timeout);
@@ -2326,7 +2330,7 @@ function setupScrollSpy() {
     }
 
     // 更新当前分类的高亮状态
-    const updateActiveCategory = debounce(function() {
+    const updateActiveCategory = debounce(function () {
         const scrollPosition = window.scrollY + 100; // 添加偏移量以提前激活
         const sectionPositions = getCategorySections();
 
@@ -2339,7 +2343,7 @@ function setupScrollSpy() {
             // 如果处于当前区域或者是最后一个区域
             if (
                 (scrollPosition >= section.offsetTop &&
-                (!nextSection || scrollPosition < nextSection.offsetTop)) ||
+                    (!nextSection || scrollPosition < nextSection.offsetTop)) ||
                 (i === sectionPositions.length - 1 && scrollPosition >= section.offsetTop)
             ) {
                 currentCategoryId = section.id;
@@ -2431,7 +2435,7 @@ function renderMobileCategorySelect() {
     }
 
     // 设置选中值为当前滚动命中的分类
-    const activeSection = (function() {
+    const activeSection = (function () {
         const sections = document.querySelectorAll('.category-section');
         const posY = window.scrollY + 100;
         let currentId = null;
@@ -2614,7 +2618,7 @@ function updateCategoryDropdown() {
 
 // 更新搜索功能
 const searchBox = document.querySelector('.search-box');
-searchBox.addEventListener('input', function(e) {
+searchBox.addEventListener('input', function (e) {
     const searchTerm = e.target.value.toLowerCase().trim();
     const cards = document.querySelectorAll('.website-card');
     const categorySections = document.querySelectorAll('.category-section');
@@ -2785,7 +2789,7 @@ function setupAIDetection() {
     const aiDetectBtn = document.getElementById('aiDetectBtn');
 
     // 监听URL输入变化，启用/禁用AI识别按钮
-    urlInput.addEventListener('input', function() {
+    urlInput.addEventListener('input', function () {
         const url = this.value.trim();
         const isValidUrl = url.length > 0 && (url.startsWith('http://') || url.startsWith('https://'));
         aiDetectBtn.disabled = !isValidUrl;
@@ -2799,7 +2803,7 @@ function setupAIDetection() {
     }
 
     // AI识别按钮点击事件
-    aiDetectBtn.addEventListener('click', async function() {
+    aiDetectBtn.addEventListener('click', async function () {
         const url = urlInput.value.trim();
         if (!url) return;
 
@@ -2816,15 +2820,15 @@ function setupAIDetection() {
                 if (categorySelect.options[i].value &&
                     categorySelect.options[i].value !== 'pinned' &&
                     categorySelect.options[i].value !== 'recent' &&
-					categorySelect.options[i].value !== 'uncategorized'
-				) {
+                    categorySelect.options[i].value !== 'uncategorized'
+                ) {
                     categories.push({
                         id: categorySelect.options[i].value,
                         name: categorySelect.options[i].textContent
                     });
                 }
             }
-			console.log('网站分类:', categories);
+            console.log('网站分类:', categories);
 
             // 发送AJAX请求到后端API
             const response = await fetch('/api/analyze-website', {
@@ -2880,19 +2884,19 @@ function fillFormWithAIData(data) {
         // 从所有选项中查找包含该分类关键词的选项
         for (let i = 0; i < categorySelect.options.length; i++) {
             const option = categorySelect.options[i];
-			//获取option的value
-			const optionValue = option.value.toLowerCase();
-			//跳过空选项
-			if (optionValue==="") {
-				continue;
-			}
+            //获取option的value
+            const optionValue = option.value.toLowerCase();
+            //跳过空选项
+            if (optionValue === "") {
+                continue;
+            }
 
             const categoryLower = data.category.toLowerCase();
-			console.log('categoryLower:', categoryLower);
+            console.log('categoryLower:', categoryLower);
             if (optionValue === categoryLower
-				|| optionValue === `category-${categoryLower}`) {
+                || optionValue === `category-${categoryLower}`) {
                 categorySelect.selectedIndex = i;
-				categorySelect.options[i].setAttribute('selected', 'selected');
+                categorySelect.options[i].setAttribute('selected', 'selected');
                 foundMatch = true;
                 break;
             }
@@ -2916,7 +2920,7 @@ function fillFormWithAIData(data) {
                 })
                 .then(blob => {
                     const reader = new FileReader();
-                    reader.onload = function(e) {
+                    reader.onload = function (e) {
                         const base64Image = e.target.result;
 
                         // 保存base64图片数据

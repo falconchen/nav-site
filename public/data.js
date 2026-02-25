@@ -2,6 +2,11 @@
 let categories = [];
 let websites = {};
 
+// 初始化全局变量，防止 script.js 在数据加载完成前访问出现 undefined
+window.categories = categories;
+window.websites = websites;
+window.dataLoaded = null; // 将在 loadData 开始时被赋值为 Promise
+
 // 默认网站数据
 const defaultCategories = [
   {
@@ -226,55 +231,91 @@ const defaultWebsites = {
 };
 
 // 从localStorage加载数据或使用默认数据
-function loadData() {
-  try {
-    // 尝试从localStorage加载分类数据
-    const savedCategories = localStorage.getItem('navSiteCategories');
-    const savedWebsites = localStorage.getItem('navSiteWebsites');
+// 从存储加载数据或使用默认数据
+async function loadData() {
+  if (window.dataLoaded) return window.dataLoaded;
 
-    if (savedCategories && savedWebsites) {
-      categories = JSON.parse(savedCategories);
-      websites = JSON.parse(savedWebsites);
+  window.dataLoaded = (async () => {
+    try {
+      console.log('📂 Starting loadData from storage...');
+      // 尝试从 IndexedDB 加载
+      let savedCategories = await dbStorage.getItem('navSiteCategories');
+      let savedWebsites = await dbStorage.getItem('navSiteWebsites');
+
+      // 迁移逻辑：如果 IndexedDB 没数据但 localStorage 有，则迁移
+      if (!savedCategories || !savedWebsites) {
+        console.log('🔍 Checking for data in localStorage to migrate...');
+        const lsCategories = localStorage.getItem('navSiteCategories');
+        const lsWebsites = localStorage.getItem('navSiteWebsites');
+
+        if (lsCategories && lsWebsites) {
+          console.log('🚚 Migrating data from localStorage to IndexedDB...');
+          try {
+            savedCategories = JSON.parse(lsCategories);
+            savedWebsites = JSON.parse(lsWebsites);
+
+            // 存入 IndexedDB
+            await dbStorage.setItem('navSiteCategories', savedCategories);
+            await dbStorage.setItem('navSiteWebsites', savedWebsites);
+          } catch (e) {
+            console.error('Migration JSON parse error:', e);
+          }
+        }
+      }
+
+      if (savedCategories && savedWebsites) {
+        categories = typeof savedCategories === 'string' ? JSON.parse(savedCategories) : savedCategories;
+        websites = typeof savedWebsites === 'string' ? JSON.parse(savedWebsites) : savedWebsites;
+      } else {
+        // 如果没有存储的数据，使用默认数据
+        console.log('ℹ️ No stored data found, using defaults');
+        categories = [...defaultCategories];
+        websites = JSON.parse(JSON.stringify(defaultWebsites)); // 深拷贝
+      }
+
+      // 同步到全局变量
       window.websites = websites;
-      window.categories = categories; // 添加别名
+      window.categories = categories;
+
       // 确保固定分类存在且位置正确
       ensureFixedCategories();
-    } else {
-      // 如果localStorage中没有数据，使用默认数据
+
+      // 清空虚拟分类中的数据
+      if (websites['pinned']) {
+        websites['pinned'] = [];
+      }
+      if (websites['recent']) {
+        websites['recent'] = [];
+      }
+
+      // 再次同步到全局变量
+      window.websites = websites;
+      window.categories = categories;
+
+      console.log('✅ loadData completed');
+
+      // 渲染分类列表
+      if (typeof renderCategoryList === 'function') {
+        renderCategoryList();
+      }
+
+      return { categories, websites };
+    } catch (error) {
+      console.error('❌ 加载数据出错:', error);
       categories = [...defaultCategories];
-      websites = JSON.parse(JSON.stringify(defaultWebsites)); // 深拷贝
+      websites = JSON.parse(JSON.stringify(defaultWebsites));
+      window.websites = websites;
+      window.categories = categories;
+      ensureFixedCategories();
+
+      if (typeof renderCategoryList === 'function') {
+        renderCategoryList();
+      }
+      return { categories, websites };
     }
+  })();
 
-    // 清空虚拟分类中的数据
-    if (websites['pinned']) {
-      websites['pinned'] = [];
-    }
-    if (websites['recent']) {
-      websites['recent'] = [];
-    }
-
-    window.websites = websites;
-
-    // 初始化全局分类数据
-    window.categories = categories; // 添加别名
-
-    // 渲染分类列表
-    renderCategoryList();
-  } catch (error) {
-    console.error('加载数据出错:', error);
-    // 发生错误时使用默认数据
-    categories = [...defaultCategories];
-    websites = JSON.parse(JSON.stringify(defaultWebsites)); // 深拷贝
-    window.websites = websites;
-    window.categories = categories; // 添加别名
-    // 确保固定分类存在且位置正确
-    ensureFixedCategories();
-
-
-
-    // 渲染分类列表
-    renderCategoryList();
-  }
+  return window.dataLoaded;
 }
 
 // 确保置顶分类存在且位于第一位
@@ -442,8 +483,8 @@ function renderCategoryList() {
   categoriesContainer.innerHTML = html;
 }
 
-// 保存数据到localStorage
-function saveNavData() {
+// 保存数据到存储（优先使用 IndexedDB）
+async function saveNavData() {
   try {
     let categoriesFromGlobal = null;
     if (window.categories) {
@@ -459,8 +500,23 @@ function saveNavData() {
       websites = window.websites;
     }
 
-    localStorage.setItem('navSiteCategories', JSON.stringify(categories));
-    localStorage.setItem('navSiteWebsites', JSON.stringify(websites));
+    // 保存到 IndexedDB
+    await dbStorage.setItem('navSiteCategories', categories);
+    await dbStorage.setItem('navSiteWebsites', websites);
+
+    // 同时尝试保存到 localStorage 作为备份（仅当数据较小时）
+    try {
+      const catStr = JSON.stringify(categories);
+      const webStr = JSON.stringify(websites);
+      // 如果数据总量 < 4MB，尝试同步到 localStorage
+      if (catStr.length + webStr.length < 4 * 1024 * 1024) {
+        localStorage.setItem('navSiteCategories', catStr);
+        localStorage.setItem('navSiteWebsites', webStr);
+      }
+    } catch (e) {
+      // 如果 localStorage 满了，不报错，因为 IndexedDB 已经保存成功了
+      console.warn('Backup to localStorage failed (probably full), but data is safe in IndexedDB');
+    }
 
     // 只在非云端更新时触发数据变化事件
     if (!window.isUpdatingFromCloud) {
@@ -534,7 +590,7 @@ function importData(jsonFile) {
     try {
       const reader = new FileReader();
 
-      reader.onload = function(event) {
+      reader.onload = function (event) {
         try {
           // 解析JSON
           const importedData = JSON.parse(event.target.result);
@@ -573,7 +629,7 @@ function importData(jsonFile) {
         }
       };
 
-      reader.onerror = function() {
+      reader.onerror = function () {
         reject(new Error('读取文件时出错'));
       };
 
@@ -672,8 +728,8 @@ function createImportExportUI() {
 }
 
 // 页面加载时自动加载数据
-document.addEventListener('DOMContentLoaded', function() {
-  loadData();
+document.addEventListener('DOMContentLoaded', async function () {
+  await loadData();
 
   // 创建导入导出UI
   createImportExportUI();
