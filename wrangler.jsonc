@@ -35,7 +35,7 @@
 
 	"vars": {
 		"environment": "development",
-		"JWT_EXPIRATION_DAYS": "3",
+		"JWT_EXPIRATION_DAYS": "30",
 		"MAX_USER_VERSIONS": "5"
 	},
 

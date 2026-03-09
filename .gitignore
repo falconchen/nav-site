@@ -173,3 +173,4 @@ bak
 .dev.vars
 .wrangler/
 .cursor/
+.claude/
