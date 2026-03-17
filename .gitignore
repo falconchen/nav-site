@@ -174,3 +174,4 @@ bak
 .wrangler/
 .cursor/
 .claude/
+*.json

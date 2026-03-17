@@ -1,11 +1,13 @@
 /**
- * GitHub OAuth 认证API
+ * GitHub & Google OAuth 认证API
  */
 
 import { Hono } from 'hono';
 import { sign, verify } from 'hono/jwt';
 
 const app = new Hono();
+
+// ============ GitHub OAuth ============
 
 // GitHub OAuth登录端点
 app.get('/auth/github', async (c) => {
@@ -20,22 +22,20 @@ app.get('/auth/github', async (c) => {
         return c.text('GitHub Client ID not configured', 500);
     }
 
+    const state = crypto.randomUUID();
     const params = new URLSearchParams({
         client_id: clientId,
         redirect_uri: redirectUri,
         scope: 'user:email',
-        state: crypto.randomUUID() // 防止CSRF攻击
+        state: state
     });
 
     try {
-        // 将state存储到KV中，设置10分钟过期
         if (c.env.USER_SESSIONS) {
-            await c.env.USER_SESSIONS.put(`github_state_${params.get('state')}`, 'valid', {
-                expirationTtl: 600 // 10分钟
+            await c.env.USER_SESSIONS.put(`github_state_${state}`, 'valid', {
+                expirationTtl: 600
             });
-            console.log('State stored in KV:', params.get('state'));
         } else {
-            console.error('USER_SESSIONS KV namespace not available');
             return c.text('KV storage not configured', 500);
         }
     } catch (error) {
@@ -44,8 +44,6 @@ app.get('/auth/github', async (c) => {
     }
 
     const githubAuthUrl = `https://github.com/login/oauth/authorize?${params.toString()}`;
-    console.log('Redirecting to GitHub:', githubAuthUrl);
-
     return c.redirect(githubAuthUrl);
 });
 
@@ -58,10 +56,7 @@ app.get('/auth/github/callback', async (c) => {
     if (error) {
         return c.html(`
             <script>
-                window.opener.postMessage({
-                    type: 'AUTH_ERROR',
-                    error: '${error}'
-                }, window.location.origin);
+                window.opener.postMessage({ type: 'AUTH_ERROR', error: '${error}' }, window.location.origin);
                 window.close();
             </script>
         `);
@@ -70,38 +65,26 @@ app.get('/auth/github/callback', async (c) => {
     if (!code || !state) {
         return c.html(`
             <script>
-                window.opener.postMessage({
-                    type: 'AUTH_ERROR',
-                    error: 'missing_code_or_state'
-                }, window.location.origin);
+                window.opener.postMessage({ type: 'AUTH_ERROR', error: 'missing_code_or_state' }, window.location.origin);
                 window.close();
             </script>
         `);
     }
 
-        // 验证state参数（如果KV可用）
     if (c.env.USER_SESSIONS) {
         const storedState = await c.env.USER_SESSIONS.get(`github_state_${state}`);
         if (!storedState) {
             return c.html(`
                 <script>
-                    window.opener.postMessage({
-                        type: 'AUTH_ERROR',
-                        error: 'invalid_state'
-                    }, window.location.origin);
+                    window.opener.postMessage({ type: 'AUTH_ERROR', error: 'invalid_state' }, window.location.origin);
                     window.close();
                 </script>
             `);
         }
-
-        // 删除已使用的state
         await c.env.USER_SESSIONS.delete(`github_state_${state}`);
-    } else {
-        console.log('KV namespace not available, skipping state validation');
     }
 
-        try {
-        // 交换access token
+    try {
         const tokenResponse = await fetch('https://github.com/login/oauth/access_token', {
             method: 'POST',
             headers: {
@@ -116,39 +99,17 @@ app.get('/auth/github/callback', async (c) => {
             }),
         });
 
-        // 检查响应状态
         if (!tokenResponse.ok) {
-            const errorText = await tokenResponse.text();
-            console.error('GitHub token exchange failed:', {
-                status: tokenResponse.status,
-                statusText: tokenResponse.statusText,
-                response: errorText
-            });
-            throw new Error(`GitHub token exchange failed: ${tokenResponse.status} ${tokenResponse.statusText}`);
+            throw new Error(`GitHub token exchange failed: ${tokenResponse.status}`);
         }
 
-        // 获取响应文本并尝试解析JSON
-        const responseText = await tokenResponse.text();
-        console.log('GitHub token response:', responseText);
-
-        let tokenData;
-        try {
-            tokenData = JSON.parse(responseText);
-        } catch (parseError) {
-            console.error('Failed to parse GitHub response as JSON:', {
-                responseText,
-                error: parseError.message
-            });
-            throw new Error('Invalid response format from GitHub');
-        }
-
+        const tokenData = JSON.parse(await tokenResponse.text());
         if (tokenData.error) {
             throw new Error(tokenData.error_description || tokenData.error);
         }
 
         const accessToken = tokenData.access_token;
 
-                // 获取用户信息
         const userResponse = await fetch('https://api.github.com/user', {
             headers: {
                 'Authorization': `Bearer ${accessToken}`,
@@ -157,32 +118,8 @@ app.get('/auth/github/callback', async (c) => {
             },
         });
 
-        // 检查用户信息响应
-        if (!userResponse.ok) {
-            const errorText = await userResponse.text();
-            console.error('GitHub user API failed:', {
-                status: userResponse.status,
-                statusText: userResponse.statusText,
-                response: errorText
-            });
-            throw new Error(`GitHub user API failed: ${userResponse.status} ${userResponse.statusText}`);
-        }
+        const userData = JSON.parse(await userResponse.text());
 
-        const userResponseText = await userResponse.text();
-        console.log('GitHub user response:', userResponseText);
-
-        let userData;
-        try {
-            userData = JSON.parse(userResponseText);
-        } catch (parseError) {
-            console.error('Failed to parse GitHub user response as JSON:', {
-                responseText: userResponseText,
-                error: parseError.message
-            });
-            throw new Error('Invalid user response format from GitHub');
-        }
-
-        // 获取用户邮箱
         const emailResponse = await fetch('https://api.github.com/user/emails', {
             headers: {
                 'Authorization': `Bearer ${accessToken}`,
@@ -193,145 +130,447 @@ app.get('/auth/github/callback', async (c) => {
 
         let emailData = [];
         if (emailResponse.ok) {
-            const emailResponseText = await emailResponse.text();
-            console.log('GitHub email response:', emailResponseText);
-
-            try {
-                emailData = JSON.parse(emailResponseText);
-            } catch (parseError) {
-                console.error('Failed to parse GitHub email response as JSON:', {
-                    responseText: emailResponseText,
-                    error: parseError.message
-                });
-                // 继续执行，不抛出错误，因为邮箱不是必需的
-            }
-        } else {
-            console.warn('GitHub email API failed:', {
-                status: emailResponse.status,
-                statusText: emailResponse.statusText
-            });
+            emailData = JSON.parse(await emailResponse.text());
         }
 
         const primaryEmail = emailData.find && emailData.find(email => email.primary)?.email || userData.email;
 
-        // 创建用户对象
-        const user = {
-            id: userData.id,
+        const providerInfo = {
+            provider: 'github',
+            providerId: String(userData.id),
+            email: primaryEmail,
             login: userData.login,
             name: userData.name || userData.login,
-            email: primaryEmail,
-            avatar_url: userData.avatar_url,
-            created_at: new Date().toISOString(),
-            last_login: new Date().toISOString()
+            avatar_url: userData.avatar_url
         };
 
-        // 保存用户信息到Redis
-        await saveUserToRedis(c, user);
+        const user = await handleOAuthLogin(c, primaryEmail, providerInfo);
 
-                // 获取JWT过期时间配置（默认7天）
-        const jwtExpirationDays = parseInt(c.env.JWT_EXPIRATION_DAYS) || 7;
-        const jwtExpirationSeconds = jwtExpirationDays * 24 * 60 * 60;
-
-        console.log('🕒 JWT expiration configured:', {
-            days: jwtExpirationDays,
-            seconds: jwtExpirationSeconds,
-            expiresAt: new Date((Math.floor(Date.now() / 1000) + jwtExpirationSeconds) * 1000).toISOString()
-        });
-
-        // 生成session ID用于多端登录支持
-        const sessionId = crypto.randomUUID();
-
-        // 生成JWT token，包含session ID
-        const jwtPayload = {
-            userId: user.id,
-            sessionId: sessionId, // 新增session ID
-            login: user.login,
-            name: user.name,
-            email: user.email,
-            avatar_url: user.avatar_url,
-            exp: Math.floor(Date.now() / 1000) + jwtExpirationSeconds,
-        };
-
-        console.log('🔐 Generating JWT with payload:', {
-            userId: jwtPayload.userId,
-            sessionId: jwtPayload.sessionId,
-            login: jwtPayload.login,
-            name: jwtPayload.name,
-            email: jwtPayload.email,
-            avatar_url: jwtPayload.avatar_url,
-            exp: new Date(jwtPayload.exp * 1000).toISOString()
-        });
-        console.log('🔐 JWT Secret available for signing:', c.env.JWT_SECRET ? 'Yes' : 'No');
-
-        const token = await sign(jwtPayload, c.env.JWT_SECRET);
-        console.log('🎫 Generated JWT token:', token.substring(0, 30) + '...');
-
-        // 将token存储到KV中，支持多端登录（如果可用）
-        if (c.env.USER_SESSIONS) {
-            const sessionKey = `user_session_${user.id}_${sessionId}`;
-            console.log('🗃️ Storing token in KV with key:', sessionKey);
-            await c.env.USER_SESSIONS.put(sessionKey, JSON.stringify({
-                token: token,
-                userAgent: c.req.header('User-Agent') || 'Unknown',
-                createdAt: new Date().toISOString(),
-                lastUsed: new Date().toISOString()
-            }), {
-                expirationTtl: jwtExpirationSeconds // 与JWT过期时间保持一致
-            });
-
-            // 维护session列表
-            const sessionListKey = `user_sessions_list_${user.id}`;
-            const existingSessionList = await c.env.USER_SESSIONS.get(sessionListKey);
-            let sessionIds = [];
-
-            if (existingSessionList) {
-                try {
-                    sessionIds = JSON.parse(existingSessionList);
-                } catch (parseError) {
-                    console.error('Failed to parse existing session list:', parseError);
-                    sessionIds = [];
-                }
-            }
-
-            // 添加新的session ID（如果不存在）
-            if (!sessionIds.includes(sessionId)) {
-                sessionIds.push(sessionId);
-                await c.env.USER_SESSIONS.put(sessionListKey, JSON.stringify(sessionIds), {
-                    expirationTtl: jwtExpirationSeconds + 86400 // 比token稍长一点的过期时间
-                });
-                console.log('✅ Session list updated with new session');
-            }
-
-            console.log('✅ Token stored in KV successfully with expiration:', jwtExpirationDays, 'days');
-        } else {
-            console.log('⚠️ KV namespace not available, token not stored server-side');
-        }
-
-        // 返回成功页面，将token传递给父窗口
-        return c.html(`
-            <script>
-                window.opener.postMessage({
-                    type: 'AUTH_SUCCESS',
-                    token: '${token}',
-                    user: ${JSON.stringify(user)}
-                }, window.location.origin);
-                window.close();
-            </script>
-        `);
-
+        return generateAuthResponse(c, user);
     } catch (error) {
         console.error('GitHub OAuth error:', error);
         return c.html(`
             <script>
-                window.opener.postMessage({
-                    type: 'AUTH_ERROR',
-                    error: '${error.message}'
-                }, window.location.origin);
+                window.opener.postMessage({ type: 'AUTH_ERROR', error: '${error.message}' }, window.location.origin);
                 window.close();
             </script>
         `);
     }
 });
+
+// ============ Google OAuth ============
+
+// Google OAuth登录端点
+app.get('/auth/google', async (c) => {
+    const clientId = c.env.GOOGLE_CLIENT_ID;
+    const clientSecret = c.env.GOOGLE_CLIENT_SECRET;
+    const redirectUri = `${new URL(c.req.url).origin}/api/auth/google/callback`;
+
+    console.log('Google OAuth redirect URI:', redirectUri);
+    console.log('Google Client ID configured:', !!clientId);
+    console.log('Google Client Secret configured:', !!clientSecret);
+    console.log('KV configured:', !!c.env.USER_SESSIONS);
+
+    if (!clientId) {
+        return c.text('Google Client ID not configured', 500);
+    }
+
+    const state = crypto.randomUUID();
+    const params = new URLSearchParams({
+        client_id: clientId,
+        redirect_uri: redirectUri,
+        response_type: 'code',
+        scope: 'openid email profile',
+        access_type: 'offline',
+        state: state
+    });
+
+    try {
+        if (c.env.USER_SESSIONS) {
+            console.log('Storing Google state in KV:', state);
+            await c.env.USER_SESSIONS.put(`google_state_${state}`, 'valid', {
+                expirationTtl: 600
+            });
+            console.log('Google state stored successfully');
+        } else {
+            console.error('KV namespace not available');
+            return c.text('KV storage not configured', 500);
+        }
+    } catch (error) {
+        console.error('Error storing state in KV:', error);
+        return c.text('Error storing session state: ' + error.message, 500);
+    }
+
+    const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+    return c.redirect(googleAuthUrl);
+});
+
+// Google OAuth回调端点
+app.get('/auth/google/callback', async (c) => {
+    const code = c.req.query('code');
+    const state = c.req.query('state');
+    const error = c.req.query('error');
+
+    if (error) {
+        return c.html(`
+            <script>
+                window.opener.postMessage({ type: 'AUTH_ERROR', error: '${error}' }, window.location.origin);
+                window.close();
+            </script>
+        `);
+    }
+
+    if (!code || !state) {
+        return c.html(`
+            <script>
+                window.opener.postMessage({ type: 'AUTH_ERROR', error: 'missing_code_or_state' }, window.location.origin);
+                window.close();
+            </script>
+        `);
+    }
+
+    if (c.env.USER_SESSIONS) {
+        const storedState = await c.env.USER_SESSIONS.get(`google_state_${state}`);
+        if (!storedState) {
+            return c.html(`
+                <script>
+                    window.opener.postMessage({ type: 'AUTH_ERROR', error: 'invalid_state' }, window.location.origin);
+                    window.close();
+                </script>
+            `);
+        }
+        await c.env.USER_SESSIONS.delete(`google_state_${state}`);
+    }
+
+    try {
+        const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: new URLSearchParams({
+                client_id: c.env.GOOGLE_CLIENT_ID,
+                client_secret: c.env.GOOGLE_CLIENT_SECRET,
+                code: code,
+                grant_type: 'authorization_code',
+                redirect_uri: `${new URL(c.req.url).origin}/api/auth/google/callback`
+            })
+        });
+
+        if (!tokenResponse.ok) {
+            const errorText = await tokenResponse.text();
+            console.error('Google token exchange failed:', errorText);
+            throw new Error('Google token exchange failed');
+        }
+
+        const tokenData = JSON.parse(await tokenResponse.text());
+        const accessToken = tokenData.access_token;
+
+        const userResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+            headers: {
+                'Authorization': `Bearer ${accessToken}`
+            }
+        });
+
+        if (!userResponse.ok) {
+            throw new Error('Failed to get Google user info');
+        }
+
+        const userData = JSON.parse(await userResponse.text());
+
+        const providerInfo = {
+            provider: 'google',
+            providerId: String(userData.id),
+            email: userData.email,
+            login: userData.email.split('@')[0],
+            name: userData.name,
+            avatar_url: userData.picture
+        };
+
+        const user = await handleOAuthLogin(c, userData.email, providerInfo);
+
+        return generateAuthResponse(c, user);
+    } catch (error) {
+        console.error('Google OAuth error:', error);
+        return c.html(`
+            <script>
+                window.opener.postMessage({ type: 'AUTH_ERROR', error: '${error.message}' }, window.location.origin);
+                window.close();
+            </script>
+        `);
+    }
+});
+
+// ============ 通用函数 ============
+
+// 处理 OAuth 登录 - 支持多 provider 关联
+async function handleOAuthLogin(c, email, providerInfo) {
+    console.log('🔐 OAuth Login:', providerInfo.provider, email);
+
+    // 尝试通过邮箱查找已有用户
+    const existingUser = await findUserByEmail(c, email);
+
+    if (existingUser) {
+        // 检查该 provider 是否已绑定
+        const existingProvider = existingUser.providers?.find(
+            p => p.provider === providerInfo.provider && p.providerId === providerInfo.providerId
+        );
+
+        if (existingProvider) {
+            // 已绑定，直接更新最后登录时间
+            console.log('✅ Existing user, provider already bound');
+            existingUser.lastLogin = new Date().toISOString();
+            await saveUserToRedis(c, existingUser);
+            return existingUser;
+        } else {
+            // 新 provider，添加到 providers 列表
+            console.log('➕ Adding new provider to existing user');
+            if (!existingUser.providers) {
+                existingUser.providers = [];
+            }
+            existingUser.providers.push({
+                provider: providerInfo.provider,
+                providerId: providerInfo.providerId,
+                email: providerInfo.email,
+                login: providerInfo.login,
+                name: providerInfo.name,
+                avatar_url: providerInfo.avatar_url
+            });
+            existingUser.lastLogin = new Date().toISOString();
+            await saveUserToRedis(c, existingUser);
+            return existingUser;
+        }
+    }
+
+    // 新用户，创建新账户
+    console.log('👤 Creating new user with provider:', providerInfo.provider);
+    const newUser = {
+        id: `user_${crypto.randomUUID().substring(0, 8)}`,
+        primaryEmail: email,
+        providers: [{
+            provider: providerInfo.provider,
+            providerId: providerInfo.providerId,
+            email: providerInfo.email,
+            login: providerInfo.login,
+            name: providerInfo.name,
+            avatar_url: providerInfo.avatar_url
+        }],
+        name: providerInfo.name,
+        avatar_url: providerInfo.avatar_url,
+        createdAt: new Date().toISOString(),
+        lastLogin: new Date().toISOString()
+    };
+
+    await saveUserToRedis(c, newUser);
+    return newUser;
+}
+
+// 通过邮箱查找用户
+async function findUserByEmail(c, email) {
+    try {
+        const redisUrl = c.env.UPSTASH_REDIS_REST_URL;
+        const redisToken = c.env.UPSTASH_REDIS_REST_TOKEN;
+
+        if (!redisUrl || !redisToken) {
+            return null;
+        }
+
+        // 扫描所有 user: 开头的 key
+        const keysResponse = await fetch(`${redisUrl}/keys/user:*`, {
+            headers: {
+                'Authorization': `Bearer ${redisToken}`
+            }
+        });
+
+        if (!keysResponse.ok) {
+            return null;
+        }
+
+        const keysData = await keysResponse.json();
+        const keys = keysData.result || [];
+
+        for (const key of keys) {
+            if (!key.startsWith('user:')) continue;
+
+            const userResponse = await fetch(`${redisUrl}/get/${key}`, {
+                headers: {
+                    'Authorization': `Bearer ${redisToken}`
+                }
+            });
+
+            if (!userResponse.ok) continue;
+
+            const userData = await userResponse.json();
+            if (!userData.result) continue;
+
+            let user;
+            try {
+                user = JSON.parse(userData.result);
+            } catch (e) {
+                continue;
+            }
+
+            // 检查新结构 (primaryEmail)
+            if (user.primaryEmail && user.primaryEmail.toLowerCase() === email.toLowerCase()) {
+                return user;
+            }
+
+            // 检查旧结构 (email)
+            if (user.email && user.email.toLowerCase() === email.toLowerCase()) {
+                // 迁移旧用户到新结构
+                console.log('🔄 Migrating old user structure:', user.id);
+                return migrateOldUser(c, user);
+            }
+
+            // 检查 providers 数组
+            if (user.providers) {
+                const found = user.providers.find(p => 
+                    p.email && p.email.toLowerCase() === email.toLowerCase()
+                );
+                if (found) {
+                    return user;
+                }
+            }
+        }
+
+        return null;
+    } catch (error) {
+        console.error('Error finding user by email:', error);
+        return null;
+    }
+}
+
+// 迁移旧用户结构到新结构
+async function migrateOldUser(c, oldUser) {
+    console.log('🔄 Migrating old user, id type:', typeof oldUser.id, oldUser.id);
+    
+    const userId = String(oldUser.id);
+    let providerType, providerId;
+
+    // 尝试从 avatar_url 判断 provider 类型
+    const avatarUrl = oldUser.avatar_url || '';
+    if (avatarUrl.includes('github.com') || avatarUrl.includes('avatars.githubusercontent.com')) {
+        providerType = 'github';
+    } else if (avatarUrl.includes('googleusercontent.com')) {
+        providerType = 'google';
+    } else {
+        // 根据 ID 格式判断
+        if (userId.startsWith('github_')) {
+            providerType = 'github';
+        } else if (userId.startsWith('google_')) {
+            providerType = 'google';
+        } else {
+            // 纯数字 ID，很可能是旧的 GitHub ID
+            providerType = 'github';
+        }
+    }
+
+    providerId = userId.replace(/^(github_|google_)/, '');
+
+    const newUser = {
+        id: userId,
+        primaryEmail: oldUser.email,
+        providers: [{
+            provider: providerType,
+            providerId: providerId,
+            email: oldUser.email,
+            login: oldUser.login,
+            name: oldUser.name,
+            avatar_url: oldUser.avatar_url
+        }],
+        name: oldUser.name,
+        avatar_url: oldUser.avatar_url,
+        createdAt: oldUser.created_at || oldUser.createdAt,
+        lastLogin: oldUser.last_login || oldUser.lastLogin
+    };
+
+    await saveUserToRedis(c, newUser);
+    console.log('✅ Old user migrated:', newUser.id, 'provider:', providerType);
+    return newUser;
+}
+async function generateAuthResponse(c, user) {
+    const jwtExpirationDays = parseInt(c.env.JWT_EXPIRATION_DAYS) || 7;
+    const jwtExpirationSeconds = jwtExpirationDays * 24 * 60 * 60;
+
+    const sessionId = crypto.randomUUID();
+
+    // 从新用户结构中提取信息
+    const login = user.login || (user.providers?.[0]?.login) || user.primaryEmail?.split('@')[0] || 'user';
+    const name = user.name || (user.providers?.[0]?.name) || login;
+    const email = user.email || user.primaryEmail || (user.providers?.[0]?.email);
+    const avatar_url = user.avatar_url || (user.providers?.[0]?.avatar_url);
+
+    // 获取当前登录的 provider 信息
+    const currentProvider = user.providers?.[user.providers.length - 1];
+
+    const jwtPayload = {
+        userId: user.id,
+        sessionId: sessionId,
+        login: login,
+        name: name,
+        email: email,
+        avatar_url: avatar_url,
+        provider: currentProvider?.provider || 'unknown',
+        providers: user.providers,
+        exp: Math.floor(Date.now() / 1000) + jwtExpirationSeconds,
+    };
+
+    const token = await sign(jwtPayload, c.env.JWT_SECRET);
+
+    if (c.env.USER_SESSIONS) {
+        const sessionKey = `user_session_${user.id}_${sessionId}`;
+        await c.env.USER_SESSIONS.put(sessionKey, JSON.stringify({
+            token: token,
+            userAgent: c.req.header('User-Agent') || 'Unknown',
+            createdAt: new Date().toISOString(),
+            lastUsed: new Date().toISOString()
+        }), {
+            expirationTtl: jwtExpirationSeconds
+        });
+
+        const sessionListKey = `user_sessions_list_${user.id}`;
+        const existingSessionList = await c.env.USER_SESSIONS.get(sessionListKey);
+        let sessionIds = [];
+
+        if (existingSessionList) {
+            try {
+                sessionIds = JSON.parse(existingSessionList);
+            } catch (parseError) {
+                sessionIds = [];
+            }
+        }
+
+        if (!sessionIds.includes(sessionId)) {
+            sessionIds.push(sessionId);
+            await c.env.USER_SESSIONS.put(sessionListKey, JSON.stringify(sessionIds), {
+                expirationTtl: jwtExpirationSeconds + 86400
+            });
+        }
+    }
+
+    // 构建返回给前端的用户数据
+    const frontendUser = {
+        id: user.id,
+        login: login,
+        name: name,
+        email: email,
+        avatar_url: avatar_url,
+        provider: currentProvider?.provider,
+        providers: user.providers,
+        createdAt: user.createdAt
+    };
+
+    return c.html(`
+        <script>
+            window.opener.postMessage({
+                type: 'AUTH_SUCCESS',
+                token: '${token}',
+                user: ${JSON.stringify(frontendUser)}
+            }, window.location.origin);
+            window.close();
+        </script>
+    `);
+}
 
 // 验证token端点
 app.get('/auth/verify', async (c) => {
@@ -597,7 +836,7 @@ async function saveUserToRedis(c, user) {
 
         console.log('💾 Saving user to Redis:', user);
 
-        // Upstash Redis REST API格式：["key", "value"]
+        // Upstash Redis REST API 格式
         const response = await fetch(`${redisUrl}/set/user:${user.id}`, {
             method: 'POST',
             headers: {
@@ -627,7 +866,7 @@ async function getUserFromRedis(c, userId) {
             return null;
         }
 
-        // Upstash Redis REST API格式
+        // Upstash Redis REST API 格式
         const response = await fetch(`${redisUrl}/get/user:${userId}`, {
             headers: {
                 'Authorization': `Bearer ${redisToken}`,

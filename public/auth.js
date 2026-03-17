@@ -87,6 +87,7 @@ async function checkAuthStatus() {
 // 显示登录按钮
 function showLoginButton() {
     document.getElementById('loginBtn').style.display = 'flex';
+    document.getElementById('loginBtnGoogle').style.display = 'flex';
     document.getElementById('userInfo').style.display = 'none';
 }
 
@@ -115,8 +116,10 @@ function showUserInfo(user) {
     }
 
     console.log('👤 Processed user data:', userData);
+    console.log('📧 User email:', userData.email);
 
     document.getElementById('loginBtn').style.display = 'none';
+    document.getElementById('loginBtnGoogle').style.display = 'none';
     document.getElementById('userInfo').style.display = 'flex';
 
     // 显示云端覆盖按钮
@@ -137,21 +140,21 @@ function showUserInfo(user) {
 
 }
 
-// 登录函数
-function login() {
+// 登录函数 - GitHub
+function login(provider = 'github') {
+    const authUrl = provider === 'google' ? '/api/auth/google' : '/api/auth/github';
+    
     const popup = window.open(
-        '/api/auth/github',
-        'github-auth',
+        authUrl,
+        `${provider}-auth`,
         'width=600,height=700,scrollbars=yes,resizable=yes'
     );
 
-    // 检查弹窗是否被阻止
     if (!popup) {
         alert('请允许弹出窗口以完成登录');
         return;
     }
 
-    // 监听弹窗关闭
     const checkClosed = setInterval(() => {
         if (popup.closed) {
             clearInterval(checkClosed);
