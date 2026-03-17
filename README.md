@@ -64,7 +64,12 @@ npm run deploy
 wrangler secret put GITHUB_CLIENT_ID
 wrangler secret put GITHUB_CLIENT_SECRET
 wrangler secret put JWT_SECRET
+
+wrangler secret put GOOGLE_CLIENT_ID
+wrangler secret put GOOGLE_CLIENT_SECRET
 ```
+
+
 
 ## 数据同步
 
