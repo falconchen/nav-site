@@ -415,13 +415,6 @@ async function findUserByEmail(c, email) {
                 return user;
             }
 
-            // 检查旧结构 (email)
-            if (user.email && user.email.toLowerCase() === email.toLowerCase()) {
-                // 迁移旧用户到新结构
-                console.log('🔄 Migrating old user structure:', user.id);
-                return migrateOldUser(c, user);
-            }
-
             // 检查 providers 数组
             if (user.providers) {
                 const found = user.providers.find(p => 
@@ -440,54 +433,6 @@ async function findUserByEmail(c, email) {
     }
 }
 
-// 迁移旧用户结构到新结构
-async function migrateOldUser(c, oldUser) {
-    console.log('🔄 Migrating old user, id type:', typeof oldUser.id, oldUser.id);
-    
-    const userId = String(oldUser.id);
-    let providerType, providerId;
-
-    // 尝试从 avatar_url 判断 provider 类型
-    const avatarUrl = oldUser.avatar_url || '';
-    if (avatarUrl.includes('github.com') || avatarUrl.includes('avatars.githubusercontent.com')) {
-        providerType = 'github';
-    } else if (avatarUrl.includes('googleusercontent.com')) {
-        providerType = 'google';
-    } else {
-        // 根据 ID 格式判断
-        if (userId.startsWith('github_')) {
-            providerType = 'github';
-        } else if (userId.startsWith('google_')) {
-            providerType = 'google';
-        } else {
-            // 纯数字 ID，很可能是旧的 GitHub ID
-            providerType = 'github';
-        }
-    }
-
-    providerId = userId.replace(/^(github_|google_)/, '');
-
-    const newUser = {
-        id: userId,
-        primaryEmail: oldUser.email,
-        providers: [{
-            provider: providerType,
-            providerId: providerId,
-            email: oldUser.email,
-            login: oldUser.login,
-            name: oldUser.name,
-            avatar_url: oldUser.avatar_url
-        }],
-        name: oldUser.name,
-        avatar_url: oldUser.avatar_url,
-        createdAt: oldUser.created_at || oldUser.createdAt,
-        lastLogin: oldUser.last_login || oldUser.lastLogin
-    };
-
-    await saveUserToRedis(c, newUser);
-    console.log('✅ Old user migrated:', newUser.id, 'provider:', providerType);
-    return newUser;
-}
 async function generateAuthResponse(c, user) {
     const jwtExpirationDays = parseInt(c.env.JWT_EXPIRATION_DAYS) || 7;
     const jwtExpirationSeconds = jwtExpirationDays * 24 * 60 * 60;
