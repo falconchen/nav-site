@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { fetchRemoteImage } from '../lib/fetch-remote-image.js';
 
 const app = new Hono();
 
@@ -13,25 +14,13 @@ app.get('/proxy-image', async (c) => {
       }
 
       console.log('代理获取图片:', imageUrl);
-          //获取图片的协议和域名，在referer中添加
-          const imageUrlObj = new URL(imageUrl);
 
-          const referer = imageUrlObj.protocol+'//' + imageUrlObj.host;
-          console.log('referer:', referer);
-      // 请求图片
-      const response = await fetch(imageUrl, {
-        headers: {
-                  'User-Agent': c.env.USER_AGENT || 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36',
-                  'Accept-Language': c.env.ACCEPT_LANGUAGE || 'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7',
-									'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-                  'Referer': referer
-        }
-      });
+      // 请求图片（带防盗链 Referer）
+      const response = await fetchRemoteImage(imageUrl, c.env);
 
       if (!response.ok) {
         return c.json({ error: '无法获取图片' }, 500);
       }
-
 
       // 获取图片内容类型
       const contentType = response.headers.get('content-type') || 'image/png';

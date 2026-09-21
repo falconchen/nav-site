@@ -12,6 +12,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import analyzeApi from './api/analyze.js';
 import proxyImageApi from './api/proxy-image.js';
+import uploadImageApi from './api/upload-image.js';
 import authApi from './api/auth.js';
 import userDataApi from './api/user-data.js';
 
@@ -69,6 +70,7 @@ app.get('/test/user-info', (c) => {
 // API 路由
 app.route('/api', analyzeApi);
 app.route('/api', proxyImageApi);
+app.route('/api', uploadImageApi);
 app.route('/api', authApi);
 app.route('/api', userDataApi);
 

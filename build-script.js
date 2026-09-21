@@ -24,6 +24,7 @@ async function buildProject() {
                 'public/sync.js',
                 'public/session.js',
                 'public/auth.js',
+                'public/image-upload.js',
                 'public/script.js',
                 'public/category-edit.js',
                 'public/icon-selector.js'

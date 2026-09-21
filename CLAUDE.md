@@ -31,6 +31,8 @@
 - `server/api/user-data.js` - 用户数据存储和版本管理系统
 - `server/api/analyze.js` - AI 驱动的网站元数据提取
 - `server/api/proxy-image.js` - 图片代理用于解决 CORS
+- `server/api/upload-image.js` - 图标上传中转到 cf-photos 图床，返回公开 URL
+- `server/lib/fetch-remote-image.js` - 带防盗链 Referer 的远程图片抓取（代理与转存共用）
 
 **前端 (`public/`)：**
 - `public/index.html` - 主 HTML 结构，包含内联主题脚本
@@ -42,7 +44,19 @@
 - `public/session.js` - 本地会话管理
 - `public/category-edit.js` - 分类编辑 UI 和逻辑
 - `public/icon-selector.js` - 图标选择模态框
+- `public/image-upload.js` - 图标压缩转 WebP 并上传图床
 - `public/utils.js` - 共享工具函数
+
+### 图标存储
+
+网站卡片的自定义图标存在 `website.imageData` 字段：
+
+- **新图标存图床 URL**。手动上传的图片在浏览器端缩放到 ≤256px 并转成 WebP，POST 到 `/api/upload-image`；AI 识别出的远程图标由 Worker 直接抓取后 POST 到 `/api/upload-image/from-url` 转存，图片不经过浏览器。
+- **历史 base64 数据原样保留**。渲染路径把 `imageData` 当成不透明的 `<img src>`，data URL 和 http URL 都能用，不需要迁移。
+- 图床不可用时降级为 base64 并提示用户，保证离线优先不被打破。
+- 图床地址和 token 都在服务端（`CF_PHOTOS_ENDPOINT` / `CF_PHOTOS_TOKEN`），换图床不用改代码。
+- cf-photos 没有开 CORS，图床 token 也不能下发到前端，所以必须由 Worker 中转。上传端点不鉴权，靠 5MB 上限、MIME 白名单、按 IP 每分钟 20 次限流兜底。
+- 服务端 MIME 白名单**不含 SVG**（图床原样存储，SVG 可内嵌脚本），前端会把 SVG 光栅化成 WebP 再传。
 
 ### 数据同步系统
 
@@ -94,6 +108,11 @@ npm run deploy      # 部署到 Cloudflare Workers 生产环境
 - `GITHUB_CLIENT_ID` - GitHub OAuth 应用客户端 ID
 - `GITHUB_CLIENT_SECRET` - GitHub OAuth 应用密钥
 - `JWT_SECRET` - JWT 签名密钥
+- `CF_PHOTOS_ENDPOINT` - 图床地址（如 `https://your-photo-host`）
+- `CF_PHOTOS_TOKEN` - 图床的 AUTH_TOKEN
+
+图床地址走 secret 而不是 `wrangler.jsonc` 的 vars，是为了不把自己的图床域名硬编码进仓库。
+换图床只改环境变量即可，代码不用动；只填域名时会按 https 补全。
 
 设置 secrets：`wrangler secret put SECRET_NAME`
 

@@ -527,7 +527,7 @@ function openAddWebsiteModal() {
     }
 
     // 重置图标预览
-    updateIconPreview('fas fa-globe');
+    setIconPreview('fas fa-globe');
 
     // 重置上传区域
     resetIconUpload();
@@ -850,25 +850,16 @@ function editWebsite(card) {
     // 检查图片：如果有图片数据，显示图片预览；如果没有，则显示图标
     if (imageData) {
         // 更新图标预览为图片
-        updateIconPreview('', imageData);
+        setIconPreview('', imageData);
 
         // 更新上传区域显示已上传的图片
-        const uploadArea = document.getElementById('iconUploadArea');
-        uploadArea.innerHTML = `
-            <div class="uploaded-image-preview">
-                <img src="${imageData}" alt="上传的图标">
-                <button type="button" class="delete-image-btn" onclick="deleteUploadedImage(event)">
-                    <i class="fas fa-times"></i>
-                </button>
-            </div>
-            <div class="upload-text">图片已上传</div>
-        `;
+        renderUploadedIconPreview(imageData);
 
         // 隐藏图标选择器
         toggleIconSelectorVisibility(true);
     } else {
         // 更新图标预览
-        updateIconPreview(iconClass);
+        setIconPreview(iconClass);
 
         // 重置文件上传区域
         resetIconUpload();
@@ -2133,38 +2124,59 @@ function setupFileUpload() {
     });
 }
 
-function handleFileUpload(file) {
-    if (file.type.startsWith('image/')) {
-        // 读取文件并转换为base64
-        const reader = new FileReader();
-        reader.onload = function (e) {
-            const base64Image = e.target.result;
+// 渲染上传区的「已上传图片」状态
+// 删除按钮由 setupFileUpload 里的事件委托统一处理，不需要写 onclick
+function renderUploadedIconPreview(imageSrc) {
+    const uploadArea = document.getElementById('iconUploadArea');
+    uploadArea.innerHTML = `
+        <div class="uploaded-image-preview">
+            <img src="${imageSrc}" alt="上传的图标">
+            <button type="button" class="delete-image-btn">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="upload-text">图片已上传</div>
+    `;
+}
 
-            // 保存base64图片数据
-            document.getElementById('websiteIcon').value = ''; // 清空图标类
-            document.getElementById('websiteIcon').dataset.imageData = base64Image;
+// 渲染上传区的「上传中」状态
+function renderIconUploadingState() {
+    const uploadArea = document.getElementById('iconUploadArea');
+    uploadArea.innerHTML = `
+        <i class="fas fa-spinner fa-spin upload-icon"></i>
+        <div class="upload-text">正在上传图标…</div>
+    `;
+}
 
-            // 更新图标预览为图片
-            updateIconPreview('', base64Image);
+// 把表单的图标设置为一张图片。imageSrc 是图床 URL（降级时才是 base64）
+function applyUploadedIcon(imageSrc) {
+    document.getElementById('websiteIcon').value = ''; // 清空图标类
+    document.getElementById('websiteIcon').dataset.imageData = imageSrc;
 
-            // 更新上传区域显示
-            const uploadArea = document.getElementById('iconUploadArea');
-            uploadArea.innerHTML = `
-                <div class="uploaded-image-preview">
-                    <img src="${base64Image}" alt="上传的图标">
-                    <button type="button" class="delete-image-btn">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-                <div class="upload-text">图片已上传</div>
-            `;
+    setIconPreview('', imageSrc);
+    renderUploadedIconPreview(imageSrc);
 
-            // 隐藏图标选择器
-            toggleIconSelectorVisibility(true);
-        };
-        reader.readAsDataURL(file);
-    } else {
+    // 隐藏图标选择器
+    toggleIconSelectorVisibility(true);
+}
+
+async function handleFileUpload(file) {
+    if (!file.type.startsWith('image/')) {
         alert('请上传图片文件');
+        return;
+    }
+
+    renderIconUploadingState();
+
+    try {
+        // 压缩成 WebP 后上传图床，imageData 只存 URL。
+        // 图床不可用时 uploadIconFile 内部会降级成 base64 并给出提示。
+        const { url } = await uploadIconFile(file);
+        applyUploadedIcon(url);
+    } catch (error) {
+        console.error('图标上传失败:', error);
+        showNotification('图标上传失败: ' + error.message, 'error');
+        resetIconUpload();
     }
 }
 
@@ -2178,7 +2190,7 @@ function deleteUploadedImage() {
     document.getElementById('websiteIcon').value = defaultIcon;
 
     // 更新图标预览
-    updateIconPreview(defaultIcon);
+    setIconPreview(defaultIcon);
 
     // 重置上传区域
     resetIconUpload();
@@ -2188,7 +2200,7 @@ function deleteUploadedImage() {
 }
 
 // 更新图标预览函数，添加对图片的支持
-function updateIconPreview(iconClass, imageData) {
+function setIconPreview(iconClass, imageData) {
     const iconPreview = document.getElementById('iconPreview');
 
     if (iconPreview) {
@@ -2910,54 +2922,26 @@ function fillFormWithAIData(data) {
     if (data.icon) {
         // 如果是图片URL
         if (data.icon.startsWith('http')) {
-            // 使用代理API获取图片，避免跨域问题
-            fetch(`/api/proxy-image?url=${encodeURIComponent(data.icon)}`)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('通过代理获取图片失败');
-                    }
-                    return response.blob();
-                })
-                .then(blob => {
-                    const reader = new FileReader();
-                    reader.onload = function (e) {
-                        const base64Image = e.target.result;
-
-                        // 保存base64图片数据
-                        document.getElementById('websiteIcon').value = ''; // 清空图标类
-                        document.getElementById('websiteIcon').dataset.imageData = base64Image;
-
-                        // 更新图标预览为图片
-                        updateIconPreview('', base64Image);
-
-                        // 更新上传区域显示
-                        const uploadArea = document.getElementById('iconUploadArea');
-                        uploadArea.innerHTML = `
-                            <div class="uploaded-image-preview">
-                                <img src="${base64Image}" alt="上传的图标">
-                                <button type="button" class="delete-image-btn" onclick="deleteUploadedImage(event)">
-                                    <i class="fas fa-times"></i>
-                                </button>
-                            </div>
-                            <div class="upload-text">图片已上传</div>
-                        `;
-
-                        // 隐藏图标选择器
-                        toggleIconSelectorVisibility(true);
-                    };
-                    reader.readAsDataURL(blob);
+            // 由 Worker 直接抓取并转存到图床，图片不经过浏览器，imageData 只存 URL
+            renderIconUploadingState();
+            uploadIconFromUrl(data.icon)
+                .then(url => {
+                    applyUploadedIcon(url);
                 })
                 .catch(error => {
-                    console.error('无法加载网站图标:', error);
+                    console.error('无法转存网站图标:', error);
                     // 使用默认图标作为备选
                     const defaultIcon = 'fas fa-globe';
                     document.getElementById('websiteIcon').value = defaultIcon;
-                    updateIconPreview(defaultIcon);
+                    document.getElementById('websiteIcon').dataset.imageData = '';
+                    setIconPreview(defaultIcon);
+                    resetIconUpload();
+                    toggleIconSelectorVisibility(false);
                 });
         } else {
             // 如果是Font Awesome类名
             document.getElementById('websiteIcon').value = data.icon;
-            updateIconPreview(data.icon);
+            setIconPreview(data.icon);
         }
     }
 }
