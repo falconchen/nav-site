@@ -74,6 +74,20 @@ describe('POST /upload-image', () => {
         expect(fetchSpy).not.toHaveBeenCalled();
     });
 
+    it('类型被拒时返回机器可读的 code，供前端退到浏览器光栅化', async () => {
+        const blob = new Blob(['<svg xmlns="http://www.w3.org/2000/svg"/>'], { type: 'image/svg+xml' });
+        const res = await uploadImageApi.request(
+            '/upload-image', createUploadRequest(blob, 'icon.svg'), createEnv()
+        );
+
+        expect(res.status).toBe(415);
+        await expect(res.json()).resolves.toMatchObject({
+            success: false,
+            code: 'unsupported_type',
+            contentType: 'image/svg+xml'
+        });
+    });
+
     it('超过 5MB 上限时返回 413', async () => {
         const blob = new Blob([new Uint8Array(5 * 1024 * 1024 + 1)], { type: 'image/png' });
         const res = await uploadImageApi.request(
@@ -205,6 +219,27 @@ describe('POST /upload-image/from-url', () => {
 
         expect(res.status).toBe(415);
         // 没有走到上传图床那一步
+        expect(fetchSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('远程图标是 SVG 时带 code 拒绝，而不是硬塞进图床', async () => {
+        // GitHub 这类站点只提供 SVG favicon，前端靠这个 code 决定退到浏览器光栅化
+        fetchSpy.mockResolvedValueOnce(new Response('<svg xmlns="http://www.w3.org/2000/svg"/>', {
+            status: 200,
+            headers: { 'Content-Type': 'image/svg+xml' }
+        }));
+
+        const res = await uploadImageApi.request(
+            '/upload-image/from-url',
+            fromUrlRequest('https://github.githubassets.com/favicons/favicon.svg'),
+            createEnv()
+        );
+
+        expect(res.status).toBe(415);
+        await expect(res.json()).resolves.toMatchObject({
+            code: 'unsupported_type',
+            contentType: 'image/svg+xml'
+        });
         expect(fetchSpy).toHaveBeenCalledTimes(1);
     });
 

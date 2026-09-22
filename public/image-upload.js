@@ -202,9 +202,48 @@ async function uploadIconFile(file) {
 }
 
 /**
+ * 把远程图标拉到浏览器里光栅化后再上传
+ *
+ * 服务端不收 SVG（图床是原样存储再原样吐回的，SVG 能内嵌脚本），而 Worker 里
+ * 没有 canvas 没法转格式，只能绕回浏览器这边做。GitHub 这类站点只提供 SVG
+ * favicon，不走这条路就只能退回默认图标。
+ *
+ * 经自家的 /api/proxy-image 取字节：一是绕开跨域，二是 blob URL 属于同源，
+ * 画进 canvas 不会污染画布导致 toBlob 抛 SecurityError。
+ *
+ * @param {string} remoteUrl 远程图标地址
+ * @returns {Promise<string>} 图床 URL（图床不可用时是 base64）
+ */
+async function rasterizeAndUploadRemoteIcon(remoteUrl) {
+    const response = await fetch(`/api/proxy-image?url=${encodeURIComponent(remoteUrl)}`);
+    if (!response.ok) {
+        throw new Error(`代理获取图标失败（${response.status}）`);
+    }
+
+    const blob = await response.blob();
+
+    let filename = 'icon';
+    let type = blob.type;
+    try {
+        filename = new URL(remoteUrl).pathname.split('/').pop() || 'icon';
+    } catch (e) {
+        // 地址取不出文件名就用默认名
+    }
+    // 代理没给出类型时按后缀兜一下，compressImageToWebp 要靠它判断能不能直传
+    if (!type && /\.svg$/i.test(filename)) {
+        type = 'image/svg+xml';
+    }
+
+    console.log(`图标是服务端不收的类型，改在浏览器里光栅化: ${remoteUrl}`);
+    const result = await uploadIconFile(new File([blob], filename, { type }));
+    return result.url;
+}
+
+/**
  * 把远程图标转存到图床（AI 识别网站图标时用）
  *
- * 图片由 Worker 直接抓取转发，不经过浏览器。
+ * 正常情况由 Worker 直接抓取转发，图片不经过浏览器。
+ * 只有服务端不收的类型才退回浏览器光栅化。
  *
  * @param {string} remoteUrl 远程图标地址
  * @returns {Promise<string>} 图床 URL
@@ -217,11 +256,15 @@ async function uploadIconFromUrl(remoteUrl) {
     });
 
     const data = await response.json();
-    if (!response.ok || !data.success || !data.url) {
-        throw new Error(data.error || `服务返回 ${response.status}`);
+    if (response.ok && data.success && data.url) {
+        return data.url;
     }
 
-    return data.url;
+    if (data.code === 'unsupported_type') {
+        return await rasterizeAndUploadRemoteIcon(remoteUrl);
+    }
+
+    throw new Error(data.error || `服务返回 ${response.status}`);
 }
 
 // 暴露给其他脚本使用

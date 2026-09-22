@@ -26,17 +26,28 @@ const RATE_LIMIT_PER_MINUTE = 20;
 
 /**
  * 校验图片类型
- * @returns {string|null} 出错信息，null 表示通过
+ * @returns {{mime: string, error: string|null}}
  */
 function validateMime(contentType) {
     const mime = (contentType || '').split(';')[0].trim().toLowerCase();
     if (!mime) {
-        return '缺少图片类型';
+        return { mime, error: '缺少图片类型' };
     }
     if (!ALLOWED_MIME.has(mime)) {
-        return `不支持的图片类型: ${mime}`;
+        return { mime, error: `不支持的图片类型: ${mime}` };
     }
-    return null;
+    return { mime, error: null };
+}
+
+/**
+ * 类型不受支持时的响应
+ *
+ * 带上机器可读的 code 和实际类型：前端拿到 unsupported_type 会退到
+ * 浏览器里把图片光栅化成 WebP 再传（典型是 SVG，Worker 里没有 canvas 做不了），
+ * 而不是去解析中文错误文案。
+ */
+function unsupportedTypeResponse(c, { mime, error }) {
+    return c.json({ success: false, error, code: 'unsupported_type', contentType: mime }, 415);
 }
 
 /**
@@ -135,9 +146,9 @@ app.post('/upload-image', async (c) => {
             return c.json({ success: false, error: '图片超过 5MB 上限' }, 413);
         }
 
-        const mimeError = validateMime(file.type);
-        if (mimeError) {
-            return c.json({ success: false, error: mimeError }, 415);
+        const mimeCheck = validateMime(file.type);
+        if (mimeCheck.error) {
+            return unsupportedTypeResponse(c, mimeCheck);
         }
 
         const url = await uploadToPhotoHost(c.env, file, file.name || 'icon.webp');
@@ -185,9 +196,9 @@ app.post('/upload-image/from-url', async (c) => {
         }
 
         const contentType = response.headers.get('content-type') || '';
-        const mimeError = validateMime(contentType);
-        if (mimeError) {
-            return c.json({ success: false, error: mimeError }, 415);
+        const mimeCheck = validateMime(contentType);
+        if (mimeCheck.error) {
+            return unsupportedTypeResponse(c, mimeCheck);
         }
 
         const buffer = await response.arrayBuffer();
@@ -198,10 +209,9 @@ app.post('/upload-image/from-url', async (c) => {
             return c.json({ success: false, error: '图片内容为空' }, 502);
         }
 
-        const mime = contentType.split(';')[0].trim().toLowerCase();
         // 从原始地址里取个文件名，图床靠后缀推断类型
         const originalName = parsed.pathname.split('/').pop() || 'icon';
-        const blob = new Blob([buffer], { type: mime });
+        const blob = new Blob([buffer], { type: mimeCheck.mime });
 
         const url = await uploadToPhotoHost(c.env, blob, originalName);
         console.log('远程图标转存成功:', imageUrl, '->', url);
