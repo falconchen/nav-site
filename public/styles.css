@@ -1191,6 +1191,22 @@ html[data-sidebar="compact"] .cards-grid {
   transition: all 0.3s ease;
   background-color: var(--background-color);
   min-width: 90px;
+  /* 宽度也要锁：父容器是 align-items:center 的 flex，不给宽度的话
+     这个框会按内容收缩，三个状态实测 149 / 132 / 106，横向也在跳 */
+  width: 100%;
+  /* 高度锁死，否则上传过程中容器会先塌再弹回来。
+     三个状态的自然高度差很多（在 149px 宽度下实测：默认态提示文字会折成
+     四行 156px、上传中只有图标加一行 89px、已上传是图片加一行 137px），
+     取最高的那个，任何切换都不跳。 */
+  min-height: 9.75rem;
+  /* 内容在两个方向上都居中，上传中的转圈图才不会偏上 */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  /* 间距交给 gap，不要用子元素的 margin：margin 会参与居中计算，
+     导致上下留白差几个像素 */
+  gap: 0.5rem;
 }
 
 .file-upload-area:hover {
@@ -1206,12 +1222,15 @@ html[data-sidebar="compact"] .cards-grid {
 .upload-icon {
   font-size: 2rem;
   color: var(--text-muted);
-  margin-bottom: 0.5rem;
+  /* 间距由 .file-upload-area 的 gap 控制 */
 }
 
 .upload-text {
   color: var(--text-secondary);
   font-size: 0.875rem;
+  /* 撑满宽度，否则作为 flex item 会按内容收缩，
+     默认态那两行提示被挤成三行，容器又对不齐了 */
+  width: 100%;
 }
 
 .file-input {
@@ -1875,7 +1894,8 @@ html[data-sidebar="compact"] .cards-grid {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 0.5rem;
+  /* 间距由 .file-upload-area 的 gap 控制 */
+  flex-shrink: 0;
 }
 
 .uploaded-image-preview img {
