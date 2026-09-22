@@ -157,6 +157,24 @@ turbo-frame.category-frame {
 .category-row .category-item {
   flex: 1;
   min-width: 0;
+  text-decoration: none;
+}
+
+/* 链接被用作图标按钮时，不保留浏览器默认的下划线。 */
+a.add-category-btn,
+a.floating-btn,
+a.modal-close {
+  text-decoration: none;
+}
+
+/* 分类标题跟在显示模式切换按钮旁边，而不是被推到侧边栏最右侧。 */
+.categories-sidebar .categories-title-container {
+  justify-content: flex-start;
+  gap: 0.5rem;
+}
+
+.categories-title-container #categories-toggle-btn {
+  margin-left: 0;
 }
 
 .category-row-actions {
@@ -205,4 +223,9 @@ html[data-sidebar="compact"] .category-row-actions {
   flex: 1;
   padding: 0.25rem 0.5rem;
   font-size: 0.75rem;
+}
+
+.category-editing a.btn,
+.website-card-editing a.btn {
+  text-decoration: none;
 }
