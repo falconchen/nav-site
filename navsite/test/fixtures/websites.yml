@@ -1,4 +1,5 @@
 google:
+  user: alice
   category: tools
   title: Google
   url: https://google.com
@@ -7,9 +8,20 @@ google:
   position: 0
 
 figma:
+  user: alice
   category: design
   title: Figma
   url: https://figma.com
   description: 界面设计工具
   icon: fab fa-figma
+  position: 0
+
+# 标题足够特征化，便于在 alice 的页面 HTML 里断言「搜不到」
+bob_secret_site:
+  user: bob
+  category: bob_stuff
+  title: BobPrivateBookmark
+  url: https://bob-private.example.com
+  description: 只有鲍勃能看到
+  icon: fas fa-lock
   position: 0

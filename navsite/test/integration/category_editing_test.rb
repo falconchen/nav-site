@@ -2,6 +2,7 @@ require "test_helper"
 
 class CategoryEditingTest < ActionDispatch::IntegrationTest
   setup do
+    sign_in_as users(:alice)
     @category = categories(:tools)
     @frame    = "sidebar_category_#{@category.id}"
   end

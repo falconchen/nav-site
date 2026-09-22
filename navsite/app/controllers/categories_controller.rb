@@ -4,7 +4,7 @@ class CategoriesController < ApplicationController
   before_action :set_category, only: %i[edit update destroy item]
 
   def new
-    @category = Category.new
+    @category = current_user.categories.new
   end
 
   # 取消新建：渲染回「添加分类」按钮
@@ -13,7 +13,7 @@ class CategoriesController < ApplicationController
   end
 
   def create
-    @category = Category.new(category_params)
+    @category = current_user.categories.new(category_params)
 
     if @category.save
       render turbo_stream: [
@@ -50,7 +50,7 @@ class CategoriesController < ApplicationController
         turbo_stream.remove(dom_id(@category, :sidebar)),
         turbo_stream.remove("category_#{@category.id}_section"),
         # 里面的网站被挪到了「未分类」，那一段要重渲染
-        section_stream(Category.uncategorized)
+        section_stream(current_user.uncategorized)
       ]
     else
       render turbo_stream: turbo_stream.replace(dom_id(@category, :sidebar),
@@ -62,7 +62,8 @@ class CategoriesController < ApplicationController
 
   private
 
-  def set_category = @category = Category.find(params[:id])
+  # 从 current_user 出发，别人的记录查不到 —— 404 而不是 403
+  def set_category = @category = current_user.categories.find(params[:id])
 
   def category_params = params.expect(category: %i[name icon])
 

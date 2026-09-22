@@ -21,7 +21,7 @@
 
   <div class="form-group">
     <%= f.label :category_id, "所属分类 *", class: "form-label" %>
-    <%= f.collection_select :category_id, Category.ordered, :id, :name, {}, class: "form-select", required: true %>
+    <%= f.collection_select :category_id, current_user.categories.ordered, :id, :name, {}, class: "form-select", required: true %>
   </div>
 
   <div class="form-group">
@@ -37,9 +37,6 @@
   <div class="form-group form-checks">
     <label class="checkbox-label">
       <%= f.check_box :pinned %> <i class="fas fa-thumbtack"></i> 置顶
-    </label>
-    <label class="checkbox-label">
-      <%= f.check_box :hidden %> <i class="fas fa-eye-slash"></i> 对访客隐藏
     </label>
   </div>
 

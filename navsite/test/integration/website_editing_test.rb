@@ -2,6 +2,7 @@ require "test_helper"
 
 class WebsiteEditingTest < ActionDispatch::IntegrationTest
   setup do
+    sign_in_as users(:alice)
     @website  = websites(:google)
     @category = categories(:tools)
     @anchor   = "category_#{@category.id}"
@@ -36,7 +37,7 @@ class WebsiteEditingTest < ActionDispatch::IntegrationTest
   # 空段落靠 CSS 的 .category-section:has(> .cards-grid:empty) 隐藏，
   # 而 :empty 连空白文本节点都算数 —— grid 里只要有换行缩进就隐藏不掉。
   test "没有内容的段落，grid 里不能有任何空白" do
-    Website.update_all(pinned: false)
+    users(:alice).websites.update_all(pinned: false)
 
     get root_path
 

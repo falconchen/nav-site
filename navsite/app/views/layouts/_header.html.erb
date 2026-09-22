@@ -20,6 +20,17 @@
               data-action="theme#toggleTheme">
         <i class="fas fa-moon" id="theme-icon" data-theme-target="themeIcon"></i>
       </button>
+
+      <% if authenticated? %>
+        <span class="user-email" title="<%= current_user.email_address %>">
+          <%= current_user.email_address %>
+        </span>
+        <%= button_to session_path, method: :delete, class: "theme-toggle logout-btn",
+                      title: "登出", form: { data: { turbo_confirm: "确定登出？" } },
+                      aria: { label: "登出" } do %>
+          <i class="fas fa-right-from-bracket"></i>
+        <% end %>
+      <% end %>
     </div>
   </div>
 </header>

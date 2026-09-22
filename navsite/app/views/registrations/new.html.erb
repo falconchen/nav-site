@@ -1,0 +1,55 @@
+<main class="auth-container">
+  <div class="auth-card">
+    <div class="auth-brand">
+      <i class="fas fa-compass"></i>
+      <span>皮皮2047</span>
+    </div>
+    <h1 class="auth-title">注册</h1>
+
+    <% if flash[:alert] %>
+      <div class="form-errors"><i class="fas fa-circle-exclamation"></i> <%= flash[:alert] %></div>
+    <% end %>
+
+    <%= form_with model: @user, url: registration_path, class: "auth-form" do |f| %>
+      <% if @user.errors.any? %>
+        <div class="form-errors">
+          <% @user.errors.full_messages.each do |msg| %>
+            <div><i class="fas fa-circle-exclamation"></i> <%= msg %></div>
+          <% end %>
+        </div>
+      <% end %>
+
+      <div class="form-group">
+        <%= f.label :email_address, "邮箱", class: "form-label" %>
+        <%= f.email_field :email_address, class: "form-input", required: true, autofocus: true,
+                          autocomplete: "username" %>
+      </div>
+
+      <div class="form-group">
+        <%= f.label :password, "密码", class: "form-label" %>
+        <%= f.password_field :password, class: "form-input", required: true,
+                             autocomplete: "new-password", minlength: 12, maxlength: 72 %>
+        <p class="form-hint">至少 12 位</p>
+      </div>
+
+      <div class="form-group">
+        <%= f.label :password_confirmation, "再输一次", class: "form-label" %>
+        <%= f.password_field :password_confirmation, class: "form-input", required: true,
+                             autocomplete: "new-password", maxlength: 72 %>
+      </div>
+
+      <%# 这不是免责声明，是这套设计的真实后果，用户有权在注册前知道 %>
+      <div class="auth-warning">
+        <i class="fas fa-triangle-exclamation"></i>
+        <div>
+          <strong>密码丢失无法找回。</strong>
+          本站不验证邮箱、也不提供邮件重置，忘记密码就无法证明账号归属。请用密码管理器保存。
+        </div>
+      </div>
+
+      <%= f.submit "注册", class: "btn btn-primary btn-block" %>
+    <% end %>
+
+    <p class="auth-alt">已经有账号？<%= link_to "登录", new_session_path %></p>
+  </div>
+</main>

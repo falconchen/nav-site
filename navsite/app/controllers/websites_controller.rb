@@ -2,11 +2,11 @@ class WebsitesController < ApplicationController
   before_action :set_website, only: %i[edit update destroy card]
 
   def new
-    @website = Website.new(category_id: params[:category_id] || Category.ordered.first&.id)
+    @website = current_user.websites.new(category_id: params[:category_id] || current_user.categories.ordered.first&.id)
   end
 
   def create
-    @website = Website.new(website_params)
+    @website = current_user.websites.new(website_params)
 
     if @website.save
       render turbo_stream: [
@@ -52,14 +52,15 @@ class WebsitesController < ApplicationController
 
   private
 
-  def set_website = @website = Website.find(params[:id])
+  # 从 current_user 出发，别人的记录查不到 —— 404 而不是 403
+  def set_website = @website = current_user.websites.find(params[:id])
 
   # 注意不能用 :anchor 作为参数名 —— 那是 Rails URL helper 的保留字，
   # link_to(..., anchor: "x") 会生成 "#x" 片段而不是查询参数，服务端永远收不到。
   def anchor_param = params[:section].presence || category_anchor(@website)
 
   def website_params
-    params.expect(website: %i[title url description icon category_id pinned hidden])
+    params.expect(website: %i[title url description icon category_id pinned])
   end
 
   # 同一条网站会同时出现在「置顶」「最近添加」和它自己的分类里。
@@ -91,8 +92,8 @@ class WebsitesController < ApplicationController
   # 「置顶」和「最近添加」是派生视图，成员可能变，整段重渲染
   def derived_section_streams
     [
-      section_stream("pinned", "fas fa-thumbtack", "置顶", Website.pinned.ordered.with_attached_custom_icon),
-      section_stream("recent", "fas fa-clock", "最近添加", Website.recent.with_attached_custom_icon)
+      section_stream("pinned", "fas fa-thumbtack", "置顶", current_user.websites.pinned.ordered.with_attached_custom_icon),
+      section_stream("recent", "fas fa-clock", "最近添加", current_user.websites.recent.with_attached_custom_icon)
     ]
   end
 

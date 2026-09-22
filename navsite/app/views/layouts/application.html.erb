@@ -37,9 +37,16 @@
   </head>
 
   <body>
-    <%= render "layouts/header" %>
+    <%# 登录/注册页自带品牌标识，不需要带搜索框的主导航头部 %>
+    <% if authenticated? %>
+      <%= render "layouts/header" %>
+    <% end %>
+
     <%= yield %>
-    <%= render "layouts/footer" %>
+
+    <% if authenticated? %>
+      <%= render "layouts/footer" %>
+    <% end %>
 
     <%# 新建/确认类弹窗都渲染进这个 frame；清空它就等于关闭 %>
     <%= turbo_frame_tag "modal" %>

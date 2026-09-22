@@ -1,14 +1,31 @@
 tools:
+  user: alice
   name: 实用工具
   icon: fas fa-tools
   position: 0
 
 design:
+  user: alice
   name: 设计资源
   icon: fas fa-palette
   position: 1
 
 uncategorized:
+  user: alice
+  name: 未分类
+  icon: fas fa-inbox
+  position: 99
+  builtin: true
+
+# bob 的分类
+bob_stuff:
+  user: bob
+  name: 鲍勃的收藏
+  icon: fas fa-folder
+  position: 0
+
+bob_uncategorized:
+  user: bob
   name: 未分类
   icon: fas fa-inbox
   position: 99

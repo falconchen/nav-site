@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_21_125231) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_22_051002) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
@@ -46,7 +46,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_21_125231) do
     t.string "name", null: false
     t.integer "position", null: false
     t.datetime "updated_at", null: false
-    t.index ["position"], name: "index_categories_on_position"
+    t.integer "user_id", null: false
+    t.index ["user_id", "name"], name: "index_categories_on_user_id_and_name", unique: true
+    t.index ["user_id", "position"], name: "index_categories_on_user_id_and_position"
+    t.index ["user_id"], name: "index_categories_on_user_id"
+  end
+
+  create_table "identities", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "provider", null: false
+    t.string "uid", null: false
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.index ["provider", "uid"], name: "index_identities_on_provider_and_uid", unique: true
+    t.index ["user_id", "provider"], name: "index_identities_on_user_id_and_provider", unique: true
+    t.index ["user_id"], name: "index_identities_on_user_id"
   end
 
   create_table "secrets", force: :cascade do |t|
@@ -59,6 +73,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_21_125231) do
     t.index ["website_id"], name: "index_secrets_on_website_id", unique: true
   end
 
+  create_table "sessions", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "ip_address"
+    t.datetime "updated_at", null: false
+    t.string "user_agent"
+    t.integer "user_id", null: false
+    t.index ["user_id"], name: "index_sessions_on_user_id"
+  end
+
   create_table "settings", force: :cascade do |t|
     t.string "accent"
     t.text "ai_api_key"
@@ -68,7 +91,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_21_125231) do
     t.boolean "sidebar_compact", default: false, null: false
     t.string "theme", default: "light", null: false
     t.datetime "updated_at", null: false
-    t.string "vault_password_digest"
+    t.integer "user_id", null: false
+    t.index ["user_id"], name: "index_settings_on_user_id", unique: true
   end
 
   create_table "taggings", force: :cascade do |t|
@@ -85,7 +109,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_21_125231) do
     t.datetime "created_at", null: false
     t.string "name", null: false
     t.datetime "updated_at", null: false
-    t.index ["name"], name: "index_tags_on_name", unique: true
+    t.integer "user_id", null: false
+    t.index ["user_id", "name"], name: "index_tags_on_user_id_and_name", unique: true
+    t.index ["user_id"], name: "index_tags_on_user_id"
+  end
+
+  create_table "users", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "email_address", null: false
+    t.string "password_digest", null: false
+    t.datetime "updated_at", null: false
+    t.index ["email_address"], name: "index_users_on_email_address", unique: true
   end
 
   create_table "websites", force: :cascade do |t|
@@ -93,7 +127,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_21_125231) do
     t.integer "clicks_count", default: 0, null: false
     t.datetime "created_at", null: false
     t.text "description"
-    t.boolean "hidden", default: false, null: false
     t.string "icon"
     t.datetime "last_clicked_at"
     t.boolean "pinned", default: false, null: false
@@ -101,16 +134,24 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_21_125231) do
     t.string "title", null: false
     t.datetime "updated_at", null: false
     t.string "url", null: false
+    t.integer "user_id", null: false
     t.index ["category_id", "position"], name: "index_websites_on_category_id_and_position"
     t.index ["category_id"], name: "index_websites_on_category_id"
-    t.index ["clicks_count"], name: "index_websites_on_clicks_count"
-    t.index ["pinned"], name: "index_websites_on_pinned"
+    t.index ["user_id", "clicks_count"], name: "index_websites_on_user_id_and_clicks_count"
+    t.index ["user_id", "pinned"], name: "index_websites_on_user_id_and_pinned"
+    t.index ["user_id"], name: "index_websites_on_user_id"
   end
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "categories", "users"
+  add_foreign_key "identities", "users"
   add_foreign_key "secrets", "websites"
+  add_foreign_key "sessions", "users"
+  add_foreign_key "settings", "users"
   add_foreign_key "taggings", "tags"
   add_foreign_key "taggings", "websites"
+  add_foreign_key "tags", "users"
   add_foreign_key "websites", "categories"
+  add_foreign_key "websites", "users"
 end

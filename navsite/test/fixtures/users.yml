@@ -1,0 +1,10 @@
+<% password_digest = BCrypt::Password.create("correct horse battery staple") %>
+
+alice:
+  email_address: alice@example.com
+  password_digest: <%= password_digest %>
+
+# bob 的存在是为了跨租户隔离测试 —— alice 绝不能看到或改动 bob 的任何数据
+bob:
+  email_address: bob@example.com
+  password_digest: <%= password_digest %>
