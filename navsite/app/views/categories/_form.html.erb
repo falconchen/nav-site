@@ -1,0 +1,11 @@
+<%= form_with model: category, class: "category-form" do |f| %>
+  <% if category.errors.any? %>
+    <div class="form-errors"><%= category.errors.full_messages.to_sentence %></div>
+  <% end %>
+  <%= f.text_field :name, class: "form-input", placeholder: "分类名称", required: true, autofocus: true %>
+  <%= f.text_field :icon, class: "form-input", placeholder: "fas fa-folder" %>
+  <div class="form-buttons">
+    <%= link_to "取消", cancel_href, class: "btn btn-secondary" %>
+    <%= f.submit category.persisted? ? "保存" : "添加", class: "btn btn-primary" %>
+  </div>
+<% end %>

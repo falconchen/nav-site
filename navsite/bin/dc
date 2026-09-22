@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# 薄封装：在容器里跑 Rails 命令
+# 用法: bin/dc rails c        bin/dc rails db:migrate      bin/dc bundle install
+set -euo pipefail
+cd "$(dirname "$0")/.."
+if docker compose ps --status running --services 2>/dev/null | grep -qx web; then
+  exec docker compose exec web "$@"
+else
+  exec docker compose run --rm web "$@"
+fi

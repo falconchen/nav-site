@@ -1,0 +1,33 @@
+<main class="main-container">
+  <aside class="categories-sidebar">
+    <div class="categories-title-container" data-controller="theme">
+      <button id="categories-toggle-btn" title="切换显示模式" aria-label="切换显示模式"
+              data-action="theme#toggleSidebar">
+        <i class="fa-solid fa-down-left-and-up-right-to-center" id="toggle-icon"></i>
+      </button>
+      <h3 class="categories-title">网站分类</h3>
+    </div>
+    <div class="categories-list" id="categories_list">
+      <%= render partial: "categories/sidebar_item", collection: @categories, as: :category %>
+    </div>
+    <%= render "categories/new_button" %>
+  </aside>
+
+  <div class="content-area" id="content_area">
+    <%# 这两段是派生视图，不是分类。无条件渲染，好让 turbo_stream 有固定的替换目标 %>
+    <%= render "websites/section", anchor: "pinned", icon: "fas fa-thumbtack",
+               title: "置顶", websites: @pinned %>
+    <%= render "websites/section", anchor: "recent", icon: "fas fa-clock",
+               title: "最近添加", websites: @recent %>
+
+    <% @categories.each do |category| %>
+      <%= render "websites/section", anchor: "category_#{category.id}", icon: category.icon,
+                 title: category.name, websites: category.websites %>
+    <% end %>
+  </div>
+</main>
+
+<%= link_to new_website_path, class: "add-website-btn floating-btn",
+            data: { turbo_frame: "modal" }, title: "添加网站", aria: { label: "添加网站" } do %>
+  <i class="fas fa-plus"></i>
+<% end %>

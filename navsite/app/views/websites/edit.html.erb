@@ -1,0 +1,6 @@
+<%= turbo_frame_tag dom_id(@website, @anchor), class: "website-frame website_frame_#{@website.id}" do %>
+  <div class="website-card website-card-editing website_card_<%= @website.id %>">
+    <%= render "websites/form", website: @website, anchor: @anchor,
+                cancel_href: card_website_path(@website, section: @anchor) %>
+  </div>
+<% end %>

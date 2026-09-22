@@ -1,0 +1,10 @@
+<%#
+  同一条网站会同时出现在「置顶」「最近添加」和它自己的分类里，
+  所以 frame id 必须带 section 前缀，否则一个文档里会有重复 DOM id。
+  两个类各有用处：
+    .website_frame_<id>  删除/换分类时按它移除所有副本
+    .website_card_<id>   改内容时按它一次替换所有副本（见 _card）
+%>
+<%= turbo_frame_tag dom_id(website, anchor), class: "website-frame website_frame_#{website.id}" do %>
+  <%= render "websites/card", website: website, anchor: anchor %>
+<% end %>

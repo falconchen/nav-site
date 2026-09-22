@@ -1,0 +1,9 @@
+<section class="category-section" id="<%= anchor %>_section">
+  <h2 class="section-title" id="<%= anchor %>">
+    <i class="<%= icon %>"></i>
+    <%= title %>
+  </h2>
+  <%# 内容紧贴标签写：CSS 的 :empty 连空白文本节点都算数，
+      有缩进换行的话空段落就隐藏不掉了。render collection 为空时返回 nil。 %>
+  <div class="cards-grid" id="<%= anchor %>_grid"><%= render partial: "websites/website", collection: websites, locals: { anchor: anchor } %></div>
+</section>

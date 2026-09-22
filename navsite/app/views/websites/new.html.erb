@@ -1,0 +1,14 @@
+<%= turbo_frame_tag "modal" do %>
+  <div class="modal-overlay active" data-controller="modal" data-action="click->modal#closeOnBackdrop">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title">添加网站</h3>
+        <%= link_to root_path, class: "modal-close", data: { turbo_frame: "modal" },
+                    aria: { label: "关闭" } do %>
+          <i class="fas fa-times"></i>
+        <% end %>
+      </div>
+      <%= render "websites/form", website: @website, anchor: nil, cancel_href: nil %>
+    </div>
+  </div>
+<% end %>

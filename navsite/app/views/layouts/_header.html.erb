@@ -1,0 +1,25 @@
+<header class="header" data-controller="theme">
+  <div class="header-container">
+    <div class="header-left">
+      <div class="logo">
+        <button id="accentSwatch" class="accent-swatch" title="切换配色" aria-label="切换配色"
+                data-action="theme#cycleAccent">
+          <i class="fas fa-compass"></i>
+        </button>
+        <span>皮皮2047</span>
+      </div>
+    </div>
+
+    <div class="search-container">
+      <i class="fas fa-search search-icon"></i>
+      <input type="text" class="search-box" placeholder="搜索网站...">
+    </div>
+
+    <div class="header-right">
+      <button class="theme-toggle" title="切换明暗" aria-label="切换明暗"
+              data-action="theme#toggleTheme">
+        <i class="fas fa-moon" id="theme-icon" data-theme-target="themeIcon"></i>
+      </button>
+    </div>
+  </div>
+</header>

@@ -1,0 +1,15 @@
+tools:
+  name: 实用工具
+  icon: fas fa-tools
+  position: 0
+
+design:
+  name: 设计资源
+  icon: fas fa-palette
+  position: 1
+
+uncategorized:
+  name: 未分类
+  icon: fas fa-inbox
+  position: 99
+  builtin: true

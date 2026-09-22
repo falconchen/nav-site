@@ -1,0 +1,15 @@
+google:
+  category: tools
+  title: Google
+  url: https://google.com
+  description: 搜索引擎
+  icon: fab fa-google
+  position: 0
+
+figma:
+  category: design
+  title: Figma
+  url: https://figma.com
+  description: 界面设计工具
+  icon: fab fa-figma
+  position: 0

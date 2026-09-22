@@ -1,0 +1,5 @@
+<%= turbo_frame_tag "new_category" do %>
+  <div class="category-editing">
+    <%= render "categories/form", category: @category, cancel_href: cancel_new_categories_path %>
+  </div>
+<% end %>

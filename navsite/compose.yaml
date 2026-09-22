@@ -1,0 +1,20 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - bundle:/bundle   # gem 缓存，改 Gemfile 后无需重建镜像
+      # 注意：不要给 storage/ 挂 named volume。
+      # Rails 8 的开发库在 storage/development.sqlite3，挂卷会让它对宿主机不可见，
+      # 同时 ActiveStorage 附件也会躲进卷里，不便查看和备份。
+    environment:
+      RAILS_ENV: development
+    stdin_open: true
+    tty: true
+
+volumes:
+  bundle:

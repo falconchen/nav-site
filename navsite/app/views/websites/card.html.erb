@@ -1,0 +1,3 @@
+<%= turbo_frame_tag dom_id(@website, @anchor), class: "website-frame website_frame_#{@website.id}" do %>
+  <%= render "websites/card", website: @website, anchor: @anchor %>
+<% end %>

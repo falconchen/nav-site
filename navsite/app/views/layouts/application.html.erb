@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light" data-sidebar="normal">
+  <head>
+    <title><%= content_for(:title) || "皮皮2047 - 次世代网络导航助手" %></title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+
+    <%= favicon_link_tag asset_path("compass-solid.svg"), type: "image/svg+xml" %>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+          integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw=="
+          crossorigin="anonymous" referrerpolicy="no-referrer">
+
+    <%# 防止主题闪烁：在 CSS 应用前就把属性写到 <html> 上 %>
+    <script>
+      (function () {
+        try {
+          var theme = localStorage.getItem('theme');
+          if (theme === 'dark' || theme === 'light') {
+            document.documentElement.setAttribute('data-theme', theme);
+          }
+          document.documentElement.setAttribute(
+            'data-sidebar',
+            localStorage.getItem('categoriesCompactMode') === 'true' ? 'compact' : 'normal'
+          );
+          var accent = localStorage.getItem('accent');
+          if (accent) document.documentElement.setAttribute('data-accent', accent);
+        } catch (e) {}
+      })();
+    </script>
+
+    <%= stylesheet_link_tag "application", "navsite" %>
+    <%= javascript_importmap_tags %>
+  </head>
+
+  <body>
+    <%= render "layouts/header" %>
+    <%= yield %>
+    <%= render "layouts/footer" %>
+
+    <%# 新建/确认类弹窗都渲染进这个 frame；清空它就等于关闭 %>
+    <%= turbo_frame_tag "modal" %>
+  </body>
+</html>

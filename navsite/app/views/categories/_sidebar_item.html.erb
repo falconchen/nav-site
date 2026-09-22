@@ -1,0 +1,25 @@
+<%= turbo_frame_tag dom_id(category, :sidebar), class: "category-frame" do %>
+  <div class="category-row">
+    <a class="category-item" href="#category_<%= category.id %>">
+      <i class="<%= category.icon %>"></i>
+      <span class="category-name"><%= category.name %></span>
+    </a>
+    <span class="category-row-actions">
+      <%= link_to edit_category_path(category), class: "card-action", title: "重命名",
+                  aria: { label: "编辑分类 #{category.name}" } do %>
+        <i class="fas fa-pen"></i>
+      <% end %>
+      <% if category.deletable? %>
+        <%= button_to category_path(category), method: :delete,
+                      class: "card-action card-action-danger", title: "删除",
+                      form: { data: { turbo_confirm: "删除「#{category.name}」？里面的网站会移到「未分类」，不会丢失。" } },
+                      aria: { label: "删除分类 #{category.name}" } do %>
+          <i class="fas fa-trash"></i>
+        <% end %>
+      <% end %>
+    </span>
+  </div>
+  <% if category.errors.any? %>
+    <div class="form-errors"><%= category.errors.full_messages.to_sentence %></div>
+  <% end %>
+<% end %>

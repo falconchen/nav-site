@@ -1,0 +1,33 @@
+<div class="website-card website_card_<%= website.id %> <%= "pinned" if website.pinned? %>">
+  <a class="card-link" href="<%= website.url %>" target="_blank" rel="noopener noreferrer">
+    <div class="card-header">
+      <div class="card-icon <%= "with-img" if website.custom_icon.attached? %>">
+        <% if website.custom_icon.attached? %>
+          <%= image_tag website.custom_icon, alt: website.title %>
+        <% elsif website.icon.to_s.start_with?("http") %>
+          <%= image_tag website.icon, alt: website.title %>
+        <% else %>
+          <i class="<%= website.icon.presence || "fas fa-globe" %>"></i>
+        <% end %>
+      </div>
+      <div>
+        <div class="card-title"><%= website.title %></div>
+        <div class="card-url"><%= website.url %></div>
+      </div>
+    </div>
+    <div class="card-description"><%= website.description %></div>
+  </a>
+
+  <div class="card-actions">
+    <%= link_to edit_website_path(website, section: anchor), class: "card-action",
+                title: "编辑", aria: { label: "编辑 #{website.title}" } do %>
+      <i class="fas fa-pen"></i>
+    <% end %>
+
+    <%= button_to website_path(website), method: :delete, class: "card-action card-action-danger",
+                  form: { data: { turbo_confirm: "确定删除「#{website.title}」？" } },
+                  title: "删除", aria: { label: "删除 #{website.title}" } do %>
+      <i class="fas fa-trash"></i>
+    <% end %>
+  </div>
+</div>
