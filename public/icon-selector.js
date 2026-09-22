@@ -236,29 +236,15 @@ function renderIconGrid(icons) {
     const iconGrid = document.getElementById('iconGrid');
     if (!iconGrid) return;
 
-    let html = '';
-
-    // 计算每行要显示的图标数量
-    const iconsPerRow = isCompactMode ? 13 : 13;
-    let currentRow = [];
-
-    icons.forEach((icon, index) => {
-        currentRow.push(icon);
-
-        // 当达到每行所需图标数量时，生成HTML
-        if (currentRow.length === iconsPerRow || index === icons.length - 1) {
-            html += '<div class="icon-row">';
-            currentRow.forEach(rowIcon => {
-                html += `
-                    <div class="icon-item" data-icon="${rowIcon}" title="${rowIcon}">
-                        <i class="${rowIcon}"></i>
-                    </div>
-                `;
-            });
-            html += '</div>';
-            currentRow = [];
-        }
-    });
+    // 平铺输出，不再手动切行：每行放几个交给 .icon-grid 的
+    // grid-template-columns: repeat(auto-fill, ...) 按实际宽度决定。
+    // 以前写死 13 个一行，和容器真正放得下的个数对不上，每行会再折一次，
+    // 行尾就剩一个图标独占一行。
+    let html = icons.map(icon => `
+        <div class="icon-item" data-icon="${icon}" title="${icon}">
+            <i class="${icon}"></i>
+        </div>
+    `).join('');
 
     if (icons.length === 0) {
         html = '<div style="text-align: center; padding: 0.5rem; color: var(--text-muted);">没有找到匹配的图标</div>';

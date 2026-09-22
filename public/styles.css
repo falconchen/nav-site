@@ -1591,26 +1591,25 @@ html[data-sidebar="compact"] .cards-grid {
 }
 
 .icon-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-}
-
-.icon-row {
-  display: flex;
-  justify-content: flex-start;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-  margin-bottom: 0.5rem;
+  /* 格子尺寸，网格列宽和格子本身都由它驱动，改一处就够 */
+  --icon-item-size: 2.2rem;
+  display: grid;
+  /* auto-fill 按容器可用宽度决定每行放几个，整块连续排布。
+     以前是 JS 里按固定个数（13 / 12）手动切成 .icon-row，
+     但那个数字和实际能放下的个数对不上，每行会再折一次，
+     行尾就剩一个图标独占一行。 */
+  grid-template-columns: repeat(auto-fill, minmax(var(--icon-item-size), 1fr));
+  gap: 0.3rem;
 }
 
 .icon-item {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 2.2rem;
-  width: 2.2rem;
-  min-width: 2.2rem;
+  height: var(--icon-item-size, 2.2rem);
+  /* 填满网格轨道，这样每行是真的排满，右侧不留空档 */
+  width: 100%;
+  min-width: var(--icon-item-size, 2.2rem);
   border: 1px solid var(--border-color);
   border-radius: 0.25rem;
   cursor: pointer;
@@ -1656,15 +1655,12 @@ html[data-sidebar="compact"] .cards-grid {
   padding-bottom: 0.15rem;
 }
 
-#websiteModal .icon-row {
-  margin-bottom: 0.25rem;
-  gap: 0.35rem;
+#websiteModal .icon-grid {
+  --icon-item-size: 1.8rem;
+  gap: 0.25rem;
 }
 
 #websiteModal .icon-item {
-  height: 1.8rem;
-  width: 1.8rem;
-  min-width: 1.8rem;
   font-size: 1rem;
 }
 
@@ -1709,17 +1705,12 @@ html[data-sidebar="compact"] .cards-grid {
   overflow-y: auto;
 }
 
-#categoryIconModal .icon-row {
-  justify-content: flex-start;
+#categoryIconModal .icon-grid {
+  --icon-item-size: 3rem;
   gap: 0.35rem;
-  padding: 0.2rem 0;
-  margin-bottom: 0.2rem;
 }
 
 #categoryIconModal .icon-item {
-  height: 3rem;
-  width: 3rem;
-  min-width: 3rem;
   font-size: 1.5rem;
   margin: 0;
   display: flex;
@@ -1761,23 +1752,22 @@ html[data-sidebar="compact"] .cards-grid {
 
 /* 响应式调整 */
 @media (max-width: 1200px) {
+  #categoryIconModal .icon-grid {
+    --icon-item-size: 2.5rem;
+  }
+
   #categoryIconModal .icon-item {
-    height: 2.5rem;
-    width: 2.5rem;
-    min-width: 2.5rem;
     font-size: 1.2rem;
   }
 }
 
 @media (max-width: 768px) {
-  #categoryIconModal .icon-row {
+  #categoryIconModal .icon-grid {
+    --icon-item-size: 2.2rem;
     gap: 0.3rem;
   }
 
   #categoryIconModal .icon-item {
-    height: 2.2rem;
-    width: 2.2rem;
-    min-width: 2.2rem;
     font-size: 1.1rem;
   }
 
@@ -1787,15 +1777,13 @@ html[data-sidebar="compact"] .cards-grid {
 }
 
 @media (max-width: 480px) {
-  #categoryIconModal .icon-item {
-    height: 1.8rem;
-    width: 1.8rem;
-    min-width: 1.8rem;
-    font-size: 0.9rem;
+  #categoryIconModal .icon-grid {
+    --icon-item-size: 1.8rem;
+    gap: 0.25rem;
   }
 
-  #categoryIconModal .icon-row {
-    gap: 0.25rem;
+  #categoryIconModal .icon-item {
+    font-size: 0.9rem;
   }
 
   .hidden-cards-container {
@@ -1995,10 +1983,8 @@ html[data-sidebar="compact"] .cards-grid {
   }
 
   /* 确保图标选择器在iPad竖屏下不会太拥挤 */
-  .icon-item {
-    height: 2rem;
-    width: 2rem;
-    min-width: 2rem;
+  .icon-grid {
+    --icon-item-size: 2rem;
   }
 
   /* 页脚在iPad竖屏下居中显示 */

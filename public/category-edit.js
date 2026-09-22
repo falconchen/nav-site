@@ -811,29 +811,12 @@ function renderCategoryIconGrid(icons) {
     const iconGrid = document.getElementById('categoryIconGrid');
     if (!iconGrid) return;
     
-    let html = '';
-    
-    // 每行显示的图标数量
-    const iconsPerRow = 12;
-    let currentRow = [];
-    
-    icons.forEach((icon, index) => {
-        currentRow.push(icon);
-        
-        // 当达到每行所需图标数量时，生成HTML
-        if (currentRow.length === iconsPerRow || index === icons.length - 1) {
-            html += '<div class="icon-row">';
-            currentRow.forEach(rowIcon => {
-                html += `
-                    <div class="icon-item" data-icon="${rowIcon}" title="${rowIcon}">
-                        <i class="${rowIcon}"></i>
-                    </div>
-                `;
-            });
-            html += '</div>';
-            currentRow = [];
-        }
-    });
+    // 平铺输出，每行放几个交给 .icon-grid 的 auto-fill 网格按实际宽度决定
+    let html = icons.map(icon => `
+        <div class="icon-item" data-icon="${icon}" title="${icon}">
+            <i class="${icon}"></i>
+        </div>
+    `).join('');
     
     if (icons.length === 0) {
         html = '<div style="text-align: center; padding: 0.5rem; color: var(--text-muted);">没有找到匹配的图标</div>';
