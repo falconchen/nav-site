@@ -29,10 +29,11 @@
 - `server/index.js` - 主 Hono 应用，路由所有 API 端点
 - `server/api/auth.js` - GitHub OAuth 认证流程
 - `server/api/user-data.js` - 用户数据存储和版本管理系统
-- `server/api/analyze.js` - AI 驱动的网站元数据提取
+- `server/api/analyze.js` - AI 驱动的网站元数据提取（分类 + 描述生成）
 - `server/api/proxy-image.js` - 图片代理用于解决 CORS
 - `server/api/upload-image.js` - 图标上传中转到 cf-photos 图床，返回公开 URL
 - `server/lib/fetch-remote-image.js` - 带防盗链 Referer 的远程图片抓取（代理与转存共用）
+- `server/lib/rate-limit.js` - 按 IP 的固定窗口限流（图床上传与 AI 识别共用）
 
 **前端 (`public/`)：**
 - `public/index.html` - 主 HTML 结构，包含内联主题脚本
@@ -46,6 +47,29 @@
 - `public/icon-selector.js` - 图标选择模态框
 - `public/image-upload.js` - 图标压缩转 WebP 并上传图床
 - `public/utils.js` - 共享工具函数
+
+### AI 网站识别
+
+「AI识别」按钮触发 `POST /api/analyze-website`，抓取目标网页后跑两轮模型：分类和描述生成。
+
+**分类用编号制，不让模型输出分类 id。** 用户会改分类名而 id 不变（比如「社交媒体」改名成
+AIGC、id 仍是 `social`），让模型输出 id 会被这种语义错位带偏。现在 prompt 里给的是编号 +
+分类**名称** + 该分类下已收录的站点样例，模型返回编号，服务端按下标映射回 id
+（`buildCategoryCandidates` / `parseCategoryResponse`）。
+
+**样例是个人化分类唯一的判断依据。** 「稍后阅读」「工作相关」「个人项目」这类分类不是网站
+属性而是用户与网站的关系，光看网页内容判断不出来。前端 `collectCategorySamples()` 按
+`weight` 倒序取每个分类前 5 个站点的标题+域名传给服务端，服务端再做条数和长度的防御性裁剪。
+
+其它约定：
+- 用 JSON 模式（`response_format` + `json_schema`）拿 `{category_index, confidence}`，
+  分类 `temperature: 0`，描述 `0.3`
+- `confidence` 为 `low` 或编号越界 → 返回空分类，前端保持下拉框不动并提示用户手选。
+  错分比不分更烦，且静默错分用户未必会发现
+- 分类只喂 800 字正文，描述喂 3000 字——分类塞太多正文会被导航栏、页脚、广告冲淡指令
+- 没有 AI 绑定或调用失败 → 退回 `getCategoryByKeywords` 关键词规则，`categoryConfidence`
+  标为 `fallback`（注意这条兜底命中率很低，多数会判成未分类）
+- 接口不鉴权，限流 10 次/分钟（`server/lib/rate-limit.js`，与图床上传共用）
 
 ### 图标存储
 
@@ -172,7 +196,7 @@ npm run deploy      # 部署到 Cloudflare Workers 生产环境
 ## 重要说明
 
 - 应用支持离线优先：所有数据存储在 localStorage，云端同步可选
-- AI 分析使用 Cloudflare 的 `@cf/meta/llama-3.3-70b-instruct-fp8-fast` 模型
+- AI 分析使用 Cloudflare 的 `@cf/meta/llama-3.3-70b-instruct-fp8-fast` 模型（常量 `AI_MODEL`，分类和描述共用）
 - 图片代理是必需的，因为许多网站不允许直接嵌入
 - 版本管理仅保留最近 5 个版本（30 天 TTL）
 - 构建版本格式在 `index.html` 中：`<span id="version">dev</span>` → 被替换为时间戳

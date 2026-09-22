@@ -87,7 +87,7 @@ describe('POST /upload-image', () => {
     it('同一 IP 超过每分钟上限时返回 429', async () => {
         const bucket = Math.floor(Date.now() / 60000);
         const env = createEnv({
-            USER_SESSIONS: createKvStub({ [`upload_rl_1.2.3.4_${bucket}`]: '20' })
+            USER_SESSIONS: createKvStub({ [`rl_upload_1.2.3.4_${bucket}`]: '20' })
         });
 
         const blob = new Blob([new Uint8Array([1, 2, 3])], { type: 'image/webp' });

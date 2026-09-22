@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import { fetchRemoteImage } from '../lib/fetch-remote-image.js';
+import { isRateLimited } from '../lib/rate-limit.js';
 
 const app = new Hono();
 
@@ -22,45 +23,6 @@ const ALLOWED_MIME = new Set([
 
 // 限流：每个 IP 每分钟允许的上传次数
 const RATE_LIMIT_PER_MINUTE = 20;
-
-/**
- * 取客户端 IP
- */
-function getClientIp(c) {
-    return c.req.header('CF-Connecting-IP') ||
-           c.req.header('X-Forwarded-For') ||
-           c.req.header('X-Real-IP') ||
-           'unknown';
-}
-
-/**
- * 按 IP 做固定窗口限流，窗口 1 分钟。
- * KV 没绑定时直接放行，不因为限流本身把功能打挂。
- * @returns {Promise<boolean>} true 表示超限，应当拒绝
- */
-async function isRateLimited(c) {
-    if (!c.env.USER_SESSIONS) {
-        console.log('⚠️ KV namespace not available, skipping upload rate limit');
-        return false;
-    }
-
-    const ip = getClientIp(c);
-    const bucket = Math.floor(Date.now() / 60000);
-    const key = `upload_rl_${ip}_${bucket}`;
-
-    try {
-        const current = parseInt(await c.env.USER_SESSIONS.get(key) || '0', 10);
-        if (current >= RATE_LIMIT_PER_MINUTE) {
-            return true;
-        }
-        // KV 的 TTL 最小值是 60 秒
-        await c.env.USER_SESSIONS.put(key, String(current + 1), { expirationTtl: 60 });
-        return false;
-    } catch (error) {
-        console.error('限流检查失败，放行:', error);
-        return false;
-    }
-}
 
 /**
  * 校验图片类型
@@ -152,7 +114,7 @@ async function uploadToPhotoHost(env, blob, filename) {
  */
 app.post('/upload-image', async (c) => {
     try {
-        if (await isRateLimited(c)) {
+        if (await isRateLimited(c, { scope: 'upload', limit: RATE_LIMIT_PER_MINUTE })) {
             return c.json({ success: false, error: '上传过于频繁，请稍后再试' }, 429);
         }
 
@@ -196,7 +158,7 @@ app.post('/upload-image', async (c) => {
  */
 app.post('/upload-image/from-url', async (c) => {
     try {
-        if (await isRateLimited(c)) {
+        if (await isRateLimited(c, { scope: 'upload', limit: RATE_LIMIT_PER_MINUTE })) {
             return c.json({ success: false, error: '上传过于频繁，请稍后再试' }, 429);
         }
 

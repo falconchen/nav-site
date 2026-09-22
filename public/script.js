@@ -2796,6 +2796,34 @@ function toggleIconSelectorVisibility(hasImage) {
 }
 
 // AI网站识别功能
+// 每个分类取几个已收录站点当样例。
+// 样例太少会覆盖不到分类内部的子簇（比如 AIGC 里既有对话类产品也有 AI 仓库），
+// 模型就会按泛泛的主题去判，实测 5 个不够。
+const AI_SAMPLES_PER_CATEGORY = 12;
+
+// 从某个分类里挑几个最有代表性的站点，只取标题和域名
+// 不发完整 URL 和描述：既是控制 prompt 体积，也是少外发一点信息
+function collectCategorySamples(categoryId) {
+    const sites = (window.websites && window.websites[categoryId]) || [];
+
+    return [...sites]
+        // 按权重倒序，权重高的是用户最常用的，最能代表这个分类
+        .sort((a, b) => (b.weight || 100) - (a.weight || 100))
+        .slice(0, AI_SAMPLES_PER_CATEGORY)
+        .map(site => {
+            let host = '';
+            try {
+                host = new URL(site.url).host;
+            } catch (e) {
+                // URL 存坏了就只用标题
+            }
+            const title = (site.title || '').trim();
+            if (!title && !host) return '';
+            return host ? `${title} (${host})` : title;
+        })
+        .filter(Boolean);
+}
+
 function setupAIDetection() {
     const urlInput = document.getElementById('websiteUrl');
     const aiDetectBtn = document.getElementById('aiDetectBtn');
@@ -2825,7 +2853,9 @@ function setupAIDetection() {
         aiDetectBtn.innerHTML = '<span class="ai-loading"></span> 识别中...';
 
         try {
-            // 获取所有可用分类
+            // 获取所有可用分类，并带上每个分类下已收录的站点作为样例。
+            // 「稍后阅读」「工作相关」这类个人分类，光看网页内容判断不出来，
+            // 样例是模型唯一能参考的依据。
             const categorySelect = document.getElementById('websiteCategory');
             const categories = [];
             for (let i = 0; i < categorySelect.options.length; i++) {
@@ -2834,9 +2864,11 @@ function setupAIDetection() {
                     categorySelect.options[i].value !== 'recent' &&
                     categorySelect.options[i].value !== 'uncategorized'
                 ) {
+                    const categoryId = categorySelect.options[i].value;
                     categories.push({
-                        id: categorySelect.options[i].value,
-                        name: categorySelect.options[i].textContent
+                        id: categoryId,
+                        name: categorySelect.options[i].textContent,
+                        samples: collectCategorySamples(categoryId)
                     });
                 }
             }
@@ -2888,34 +2920,23 @@ function fillFormWithAIData(data) {
     }
 
     // 选择合适的分类
+    // 服务端保证返回的要么是候选列表里的合法分类 id，要么是空串，
+    // 所以这里只需要一次精确匹配，不用再做模糊兜底
+    const categorySelect = document.getElementById('websiteCategory');
     if (data.category) {
-        const categorySelect = document.getElementById('websiteCategory');
-        // 尝试找到最匹配的分类
-        let foundMatch = false;
+        const matched = Array.from(categorySelect.options)
+            .findIndex(option => option.value === data.category);
 
-        // 从所有选项中查找包含该分类关键词的选项
-        for (let i = 0; i < categorySelect.options.length; i++) {
-            const option = categorySelect.options[i];
-            //获取option的value
-            const optionValue = option.value.toLowerCase();
-            //跳过空选项
-            if (optionValue === "") {
-                continue;
-            }
-
-            const categoryLower = data.category.toLowerCase();
-            console.log('categoryLower:', categoryLower);
-            if (optionValue === categoryLower
-                || optionValue === `category-${categoryLower}`) {
-                categorySelect.selectedIndex = i;
-                categorySelect.options[i].setAttribute('selected', 'selected');
-                foundMatch = true;
-                break;
-            }
+        if (matched >= 0) {
+            categorySelect.selectedIndex = matched;
+            categorySelect.options[matched].setAttribute('selected', 'selected');
+        } else {
+            console.warn('服务端返回的分类不在下拉列表中:', data.category);
         }
-
-
-
+    } else {
+        // 模型拿不准时不自作主张：保持分类框不动，让用户自己选。
+        // 错分比不分更烦，而且静默错分用户未必会发现。
+        showNotification('AI 没能判断分类，请手动选择', 'info');
     }
 
     // 设置图标
