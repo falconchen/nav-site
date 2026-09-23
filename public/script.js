@@ -526,6 +526,14 @@ function openAddWebsiteModal() {
         }
     }
 
+    // 默认勾选置顶。websiteForm.reset() 会按 HTML 的默认值清掉勾选，
+    // 所以放在 reset 之后设置。编辑已有网站走的是另一条路径，
+    // 那边会按卡片的实际状态覆盖这个值，不受影响。
+    const pinnedCheckbox = document.getElementById('websitePinned');
+    if (pinnedCheckbox) {
+        pinnedCheckbox.checked = true;
+    }
+
     // 重置图标预览
     setIconPreview('fas fa-globe');
 
