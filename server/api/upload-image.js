@@ -1,5 +1,4 @@
 import { Hono } from 'hono';
-import { fetchRemoteImage } from '../lib/fetch-remote-image.js';
 import { isRateLimited } from '../lib/rate-limit.js';
 
 const app = new Hono();
@@ -158,68 +157,6 @@ app.post('/upload-image', async (c) => {
     } catch (error) {
         console.error('上传图片到图床失败:', error);
         return c.json({ success: false, error: '上传失败: ' + error.message }, 502);
-    }
-});
-
-/**
- * 服务端转存远程图片：body { url }
- *
- * 给 AI 识别网站图标用。图片从 Worker 直接抓取再转发到图床，
- * 完全不经过浏览器，省掉一整趟 base64 往返。
- */
-app.post('/upload-image/from-url', async (c) => {
-    try {
-        if (await isRateLimited(c, { scope: 'upload', limit: RATE_LIMIT_PER_MINUTE })) {
-            return c.json({ success: false, error: '上传过于频繁，请稍后再试' }, 429);
-        }
-
-        const body = await c.req.json();
-        const imageUrl = body && body.url;
-
-        if (!imageUrl) {
-            return c.json({ success: false, error: '缺少 url 参数' }, 400);
-        }
-
-        let parsed;
-        try {
-            parsed = new URL(imageUrl);
-        } catch {
-            return c.json({ success: false, error: '无效的图片地址' }, 400);
-        }
-        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-            return c.json({ success: false, error: '只支持 http/https 图片地址' }, 400);
-        }
-
-        const response = await fetchRemoteImage(imageUrl, c.env);
-        if (!response.ok) {
-            return c.json({ success: false, error: `无法获取图片（${response.status}）` }, 502);
-        }
-
-        const contentType = response.headers.get('content-type') || '';
-        const mimeCheck = validateMime(contentType);
-        if (mimeCheck.error) {
-            return unsupportedTypeResponse(c, mimeCheck);
-        }
-
-        const buffer = await response.arrayBuffer();
-        if (buffer.byteLength > MAX_UPLOAD_BYTES) {
-            return c.json({ success: false, error: '图片超过 5MB 上限' }, 413);
-        }
-        if (buffer.byteLength === 0) {
-            return c.json({ success: false, error: '图片内容为空' }, 502);
-        }
-
-        // 从原始地址里取个文件名，图床靠后缀推断类型
-        const originalName = parsed.pathname.split('/').pop() || 'icon';
-        const blob = new Blob([buffer], { type: mimeCheck.mime });
-
-        const url = await uploadToPhotoHost(c.env, blob, originalName);
-        console.log('远程图标转存成功:', imageUrl, '->', url);
-
-        return c.json({ success: true, url });
-    } catch (error) {
-        console.error('转存远程图片失败:', error);
-        return c.json({ success: false, error: '转存失败: ' + error.message }, 502);
     }
 });
 

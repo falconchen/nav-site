@@ -202,22 +202,25 @@ async function uploadIconFile(file) {
 }
 
 /**
- * 把远程图标拉到浏览器里光栅化后再上传
+ * 把远程图标转存到图床（AI 识别网站图标时用）
  *
- * 服务端不收 SVG（图床是原样存储再原样吐回的，SVG 能内嵌脚本），而 Worker 里
- * 没有 canvas 没法转格式，只能绕回浏览器这边做。GitHub 这类站点只提供 SVG
- * favicon，不走这条路就只能退回默认图标。
+ * 走浏览器中转，和手动上传共用同一套压缩：Worker 里没有 canvas，压不了图。
+ * 早先那版在服务端原样转发，结果 AI 识别来的图标既没缩尺寸也没转格式，
+ * 图床上堆了一批几十 KB 的 PNG（最大一张 540KB），而浏览器压过的 WebP
+ * 平均只有 2KB。多一趟往返，但图标本来就小，换来两条路径行为一致。
  *
- * 经自家的 /api/proxy-image 取字节：一是绕开跨域，二是 blob URL 属于同源，
- * 画进 canvas 不会污染画布导致 toBlob 抛 SecurityError。
+ * 经自家的 /api/proxy-image 取字节：一是绕开跨域和防盗链，二是 blob URL
+ * 属于同源，画进 canvas 不会污染画布导致 toBlob 抛 SecurityError。
+ * 这条路顺带解决了 SVG——服务端白名单不收 SVG（图床原样存储，SVG 能内嵌
+ * 脚本），而 GitHub 这类站点只提供 SVG favicon，光栅化后就能正常入库。
  *
  * @param {string} remoteUrl 远程图标地址
  * @returns {Promise<string>} 图床 URL（图床不可用时是 base64）
  */
-async function rasterizeAndUploadRemoteIcon(remoteUrl) {
+async function uploadIconFromUrl(remoteUrl) {
     const response = await fetch(`/api/proxy-image?url=${encodeURIComponent(remoteUrl)}`);
     if (!response.ok) {
-        throw new Error(`代理获取图标失败（${response.status}）`);
+        throw new Error(`获取图标失败（${response.status}）`);
     }
 
     const blob = await response.blob();
@@ -234,37 +237,8 @@ async function rasterizeAndUploadRemoteIcon(remoteUrl) {
         type = 'image/svg+xml';
     }
 
-    console.log(`图标是服务端不收的类型，改在浏览器里光栅化: ${remoteUrl}`);
     const result = await uploadIconFile(new File([blob], filename, { type }));
     return result.url;
-}
-
-/**
- * 把远程图标转存到图床（AI 识别网站图标时用）
- *
- * 正常情况由 Worker 直接抓取转发，图片不经过浏览器。
- * 只有服务端不收的类型才退回浏览器光栅化。
- *
- * @param {string} remoteUrl 远程图标地址
- * @returns {Promise<string>} 图床 URL
- */
-async function uploadIconFromUrl(remoteUrl) {
-    const response = await fetch('/api/upload-image/from-url', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: remoteUrl })
-    });
-
-    const data = await response.json();
-    if (response.ok && data.success && data.url) {
-        return data.url;
-    }
-
-    if (data.code === 'unsupported_type') {
-        return await rasterizeAndUploadRemoteIcon(remoteUrl);
-    }
-
-    throw new Error(data.error || `服务返回 ${response.status}`);
 }
 
 // 暴露给其他脚本使用
