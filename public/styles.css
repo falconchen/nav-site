@@ -2361,7 +2361,7 @@ html[data-sidebar="compact"] .website-card:hover {
 /* 输入组样式 */
 .input-group {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   width: 100%;
   position: relative;
 }
@@ -2376,17 +2376,18 @@ html[data-sidebar="compact"] .website-card:hover {
 .ai-detect-btn {
   background-color: var(--primary-color);
   color: white;
-  border: .6px solid var(--border-color);
+  border: 2px solid var(--border-color);
   border-left: none;
   border-radius: 0 0.5rem 0.5rem 0;
   padding: 0.5rem 0.75rem;
-  height: 100%;
   cursor: pointer;
   transition: all 0.3s ease;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
   font-size: 0.95rem;
+  box-sizing: border-box;
 }
 
 .ai-detect-btn:hover {
