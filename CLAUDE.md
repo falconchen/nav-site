@@ -59,7 +59,7 @@ AIGC、id 仍是 `social`），让模型输出 id 会被这种语义错位带偏
 
 **样例是个人化分类唯一的判断依据。** 「稍后阅读」「工作相关」「个人项目」这类分类不是网站
 属性而是用户与网站的关系，光看网页内容判断不出来。前端 `collectCategorySamples()` 按
-`weight` 倒序取每个分类前 5 个站点的标题+域名传给服务端，服务端再做条数和长度的防御性裁剪。
+`weight` 倒序取每个分类前 12 个站点的标题+域名传给服务端，服务端再做条数和长度的防御性裁剪。
 
 其它约定：
 - 用 JSON 模式（`response_format` + `json_schema`）拿 `{category_index, confidence}`，
@@ -75,12 +75,12 @@ AIGC、id 仍是 `social`），让模型输出 id 会被这种语义错位带偏
 
 网站卡片的自定义图标存在 `website.imageData` 字段：
 
-- **新图标存图床 URL**。手动上传的图片在浏览器端缩放到 ≤256px 并转成 WebP，POST 到 `/api/upload-image`；AI 识别出的远程图标由 Worker 直接抓取后 POST 到 `/api/upload-image/from-url` 转存，图片不经过浏览器。
+- **新图标存图床 URL**，两条来源共用同一套压缩：浏览器端缩放到 ≤256px 转成 WebP，再 POST 到 `/api/upload-image`。手动上传直接压；AI 识别出的远程图标先经 `/api/proxy-image` 取回字节（绕开跨域和防盗链，且 blob URL 同源不会污染 canvas），再走同一条压缩上传路径。
 - **历史 base64 数据原样保留**。渲染路径把 `imageData` 当成不透明的 `<img src>`，data URL 和 http URL 都能用，不需要迁移。
 - 图床不可用时降级为 base64 并提示用户，保证离线优先不被打破。
 - 图床地址和 token 都在服务端（`CF_PHOTOS_ENDPOINT` / `CF_PHOTOS_TOKEN`），换图床不用改代码。
 - cf-photos 没有开 CORS，图床 token 也不能下发到前端，所以必须由 Worker 中转。上传端点不鉴权，靠 5MB 上限、MIME 白名单、按 IP 每分钟 20 次限流兜底。
-- 服务端 MIME 白名单**不含 SVG**（图床原样存储，SVG 可内嵌脚本），前端会把 SVG 光栅化成 WebP 再传。
+- 服务端 MIME 白名单**不含 SVG**（图床原样存储，SVG 可内嵌脚本）。前端的压缩步骤会把 SVG 光栅化成 WebP，所以 GitHub 这类只提供 SVG favicon 的站点也能正常入库。
 
 ### 数据同步系统
 
