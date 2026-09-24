@@ -5,10 +5,13 @@
 // 全局用户状态
 let currentUser = null;
 let authToken = null;
+let authRetryTimer = null;
+let authRetryPending = false;
 
 // 初始化认证状态
 document.addEventListener('DOMContentLoaded', function() {
     checkAuthStatus();
+    window.addEventListener('online', checkAuthStatus);
 
     // 监听来自认证窗口的消息
     window.addEventListener('message', handleAuthMessage);
@@ -25,10 +28,22 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // 检查认证状态
+function scheduleAuthRetry() {
+    showLoginButton();
+    if (!authRetryPending && typeof showNotification === 'function') {
+        showNotification('暂时无法验证登录状态，网络恢复后会自动重试', 'info');
+    }
+    authRetryPending = true;
+    clearTimeout(authRetryTimer);
+    authRetryTimer = setTimeout(checkAuthStatus, 15000);
+}
+
 async function checkAuthStatus() {
     const token = localStorage.getItem('authToken');
 
     if (!token) {
+        clearTimeout(authRetryTimer);
+        authRetryPending = false;
         showLoginButton();
         return;
     }
@@ -41,11 +56,17 @@ async function checkAuthStatus() {
             }
         });
 
+        // 校验期间用户可能已退出或登录了另一个账号。
+        if (localStorage.getItem('authToken') !== token) return;
+
         if (response.ok) {
             const data = await response.json();
+            if (localStorage.getItem('authToken') !== token) return;
             console.log('🔍 Auth verify response:', data);
 
             if (data.valid) {
+                clearTimeout(authRetryTimer);
+                authRetryPending = false;
                 authToken = token;
                 currentUser = data.user;
                 console.log('✅ User authenticated, user data:', data.user);
@@ -65,22 +86,28 @@ async function checkAuthStatus() {
                 if (typeof checkForCloudUpdates === 'function') {
                     setTimeout(() => checkForCloudUpdates(), 1000);
                 }
-            } else {
+            } else if (data.valid === false) {
                 console.log('❌ Token validation failed');
+                clearTimeout(authRetryTimer);
+                authRetryPending = false;
                 localStorage.removeItem('authToken');
                 showLoginButton();
+            } else {
+                scheduleAuthRetry();
             }
-        } else {
+        } else if (response.status === 401) {
             console.error('❌ Auth verify request failed:', response.status, response.statusText);
-            const errorText = await response.text();
-            console.error('❌ Error response:', errorText);
+            clearTimeout(authRetryTimer);
+            authRetryPending = false;
             localStorage.removeItem('authToken');
             showLoginButton();
+        } else {
+            console.error('❌ Auth verify temporarily unavailable:', response.status, response.statusText);
+            scheduleAuthRetry();
         }
     } catch (error) {
         console.error('Error verifying auth:', error);
-        localStorage.removeItem('authToken');
-        showLoginButton();
+        if (localStorage.getItem('authToken') === token) scheduleAuthRetry();
     }
 }
 
@@ -169,6 +196,8 @@ function handleAuthMessage(event) {
     }
 
     if (event.data.type === 'AUTH_SUCCESS') {
+        clearTimeout(authRetryTimer);
+        authRetryPending = false;
         authToken = event.data.token;
         currentUser = event.data.user;
 
@@ -217,6 +246,9 @@ function toggleUserMenu() {
 // 登出函数
 async function logout() {
     if (!authToken) return;
+
+    clearTimeout(authRetryTimer);
+    authRetryPending = false;
 
     // 停止同步检测
     if (typeof stopSyncDetection === 'function') {
