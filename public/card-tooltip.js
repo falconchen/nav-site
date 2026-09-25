@@ -29,7 +29,7 @@
             <div class="card-tooltip-description"></div>
             <div class="card-tooltip-actions">
                 <button type="button" data-action="copy-url"><i class="fas fa-link"></i><span>复制网址</span></button>
-                <button type="button" data-action="copy-markdown"><i class="fab fa-markdown"></i><span>复制 Markdown</span></button>
+                <button type="button" data-action="copy-markdown"><i class="fab fa-markdown"></i><span>复制为Markdown</span></button>
             </div>
         `;
         tooltip.addEventListener('click', handleActionClick);
