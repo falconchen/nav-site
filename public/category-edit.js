@@ -748,7 +748,8 @@ function initCategoryIconSelector() {
     // 图标搜索功能
     if (iconSearch) {
         iconSearch.addEventListener('input', function() {
-            const searchTerm = this.value.toLowerCase();
+            // trim：粘贴图标名很容易带上前后空格，不去掉会一个都搜不到
+            const searchTerm = this.value.trim().toLowerCase();
             
             // 如果没有搜索词，显示当前类别的所有图标
             if (!searchTerm) {
@@ -767,18 +768,19 @@ function initCategoryIconSelector() {
                 }
             });
             
-            // 如果当前类别没有足够的结果，搜索其他类别
-            if (results.length < 5) {
-                Object.keys(window.iconSets).forEach(category => {
-                    if (category === window.currentIconCategory) return;
-                    
-                    window.iconSets[category].forEach(icon => {
-                        if (icon.toLowerCase().includes(searchTerm) && !results.includes(icon)) {
-                            results.push(icon);
-                        }
-                    });
+            // 再搜其他类别。以前这里有个 results.length < 5 的阈值，当前类别命中
+            // 够多就不搜别处了，结果是同一个词在不同页签下结果不同，还会静默漏掉
+            // 匹配项（实测搜 user 在「常规」页签出 9 个、在「实心」只出 7 个）。
+            // 当前类别的结果先入 results，天然排在前面，优先级意图仍然保留。
+            Object.keys(window.iconSets).forEach(category => {
+                if (category === window.currentIconCategory) return;
+
+                window.iconSets[category].forEach(icon => {
+                    if (icon.toLowerCase().includes(searchTerm) && !results.includes(icon)) {
+                        results.push(icon);
+                    }
                 });
-            }
+            });
             
             // 渲染搜索结果
             renderCategoryIconGrid(results);
