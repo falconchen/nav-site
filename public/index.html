@@ -76,6 +76,11 @@
                             管理设备
                         </div>
 
+                        <div class="user-menu-item" onclick="openApiTokens()">
+                            <i class="fas fa-key"></i>
+                            个人令牌
+                        </div>
+
                         <div class="user-menu-item" onclick="logout()">
                             <i class="fas fa-sign-out-alt"></i>
                             退出登录
@@ -325,10 +330,49 @@
         </div>
     </div>
 
+    <!-- 个人令牌模态框 -->
+    <div class="modal-overlay" id="apiTokensModal">
+        <div class="modal api-tokens-modal">
+            <div class="modal-header">
+                <h3 class="modal-title">个人令牌</h3>
+                <button class="modal-close" onclick="closeModal('apiTokensModal')" aria-label="关闭">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <p class="api-tokens-hint">
+                令牌用于浏览器扩展、脚本等通过 <code>/api/v1</code> 读写你的网址数据，
+                请求时放在 <code>Authorization: Bearer &lt;令牌&gt;</code> 头里。令牌不会过期，不用时请吊销。
+            </p>
+
+            <form class="api-token-create" onsubmit="event.preventDefault(); createApiToken();">
+                <input type="text" id="apiTokenName" class="form-input" maxlength="50" placeholder="令牌名称，如「Chrome 扩展」">
+                <button type="submit" class="btn btn-primary" id="apiTokenCreateBtn">
+                    <i class="fas fa-plus"></i>
+                    生成
+                </button>
+            </form>
+
+            <div class="api-token-new" id="apiTokenNew" hidden>
+                <p><i class="fas fa-exclamation-circle"></i> 请立即复制保存，关闭后无法再次查看。</p>
+                <div class="api-token-new-row">
+                    <code id="apiTokenNewValue"></code>
+                    <button type="button" class="btn btn-secondary" onclick="copyNewApiToken()">
+                        <i class="fas fa-copy"></i>
+                        复制
+                    </button>
+                </div>
+            </div>
+
+            <div class="api-token-list" id="apiTokenList"></div>
+        </div>
+    </div>
+
     <script src="utils.js"></script>
     <script src="data.js"></script>
     <script src="sync.js"></script>
     <script src="session.js"></script>
+    <script src="api-tokens.js"></script>
     <script src="auth.js"></script>
     <script src="image-upload.js"></script>
     <script src="script.js"></script>

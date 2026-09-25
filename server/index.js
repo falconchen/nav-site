@@ -15,6 +15,8 @@ import proxyImageApi from './api/proxy-image.js';
 import uploadImageApi from './api/upload-image.js';
 import authApi from './api/auth.js';
 import userDataApi from './api/user-data.js';
+import tokensApi from './api/tokens.js';
+import v1Api from './api/v1.js';
 
 // 创建 Hono 应用
 const app = new Hono();
@@ -73,6 +75,8 @@ app.route('/api', proxyImageApi);
 app.route('/api', uploadImageApi);
 app.route('/api', authApi);
 app.route('/api', userDataApi);
+app.route('/api', tokensApi);
+app.route('/api', v1Api);
 
 // 添加：处理所有静态资源请求
 app.get('/*', async (c) => {

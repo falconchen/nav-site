@@ -3,7 +3,7 @@
  */
 
 import { Hono } from 'hono';
-import { verify } from 'hono/jwt';
+import { requireSession } from '../lib/session-auth.js';
 
 const app = new Hono();
 
@@ -90,9 +90,8 @@ async function decompressData(base64String) {
     }
 }
 
-// 中间件：验证用户身份
 // 解析用户代理字符串
-function parseUserAgent(userAgent) {
+export function parseUserAgent(userAgent) {
     const parser = {
         device: 'Unknown Device',
         browser: 'Unknown Browser',
@@ -133,60 +132,7 @@ function parseUserAgent(userAgent) {
     return parser;
 }
 
-const authMiddleware = async (c, next) => {
-    const authHeader = c.req.header('Authorization');
-
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return c.json({ error: 'Missing or invalid authorization header' }, 401);
-    }
-
-    const token = authHeader.split(' ')[1];
-
-    try {
-        const payload = await verify(token, c.env.JWT_SECRET);
-
-        // 检查token是否在KV中存在（支持多端登录）
-        if (c.env.USER_SESSIONS) {
-            if (!payload.sessionId) {
-                console.log('❌ No sessionId in token payload - token may be from old system');
-                return c.json({
-                    error: 'Token format outdated',
-                    message: 'Please logout and login again to get a new token',
-                    needReauth: true
-                }, 401);
-            }
-
-            const sessionKey = `user_session_${payload.userId}_${payload.sessionId}`;
-            const storedSessionData = await c.env.USER_SESSIONS.get(sessionKey);
-
-            if (storedSessionData) {
-                try {
-                    const sessionInfo = JSON.parse(storedSessionData);
-
-                    if (sessionInfo.token !== token) {
-                        console.log('❌ Token mismatch for session');
-                        return c.json({ error: 'Token not found or invalid' }, 401);
-                    }
-
-                } catch (parseError) {
-                    console.log('❌ Failed to parse session data:', parseError);
-                    return c.json({ error: 'Token not found or invalid' }, 401);
-                }
-            } else {
-                console.log('❌ Session not found in KV');
-                return c.json({ error: 'Token not found or invalid' }, 401);
-            }
-        } else {
-            console.log('⚠️ KV namespace not available, skipping server-side token validation');
-        }
-
-        // 将用户信息添加到context中
-        c.set('user', payload);
-        await next();
-    } catch (error) {
-        return c.json({ error: 'Invalid token' }, 401);
-    }
-};
+const authMiddleware = requireSession;
 
 // 保存用户数据
 app.post('/user-data/save', authMiddleware, async (c) => {
@@ -408,7 +354,7 @@ app.delete('/user-data/delete', authMiddleware, async (c) => {
 });
 
 // 辅助函数：保存数据到Redis
-async function saveDataToRedis(c, userId, data) {
+export async function saveDataToRedis(c, userId, data) {
     try {
         const redisUrl = c.env.UPSTASH_REDIS_REST_URL;
         const redisToken = c.env.UPSTASH_REDIS_REST_TOKEN;
@@ -447,7 +393,7 @@ async function saveDataToRedis(c, userId, data) {
 }
 
 // 辅助函数：从Redis加载数据
-async function loadDataFromRedis(c, userId) {
+export async function loadDataFromRedis(c, userId) {
     try {
         const redisUrl = c.env.UPSTASH_REDIS_REST_URL;
         const redisToken = c.env.UPSTASH_REDIS_REST_TOKEN;
@@ -523,7 +469,7 @@ async function deleteDataFromRedis(c, userId) {
 }
 
 // 辅助函数：保存版本历史到Redis
-async function saveVersionToRedis(c, userId, data) {
+export async function saveVersionToRedis(c, userId, data, description) {
     try {
         const redisUrl = c.env.UPSTASH_REDIS_REST_URL;
         const redisToken = c.env.UPSTASH_REDIS_REST_TOKEN;
@@ -557,7 +503,7 @@ async function saveVersionToRedis(c, userId, data) {
         const versionInfo = {
             version: version,
             lastUpdated: data.lastUpdated,
-            description: data.restoredFrom ? `从版本 ${data.restoredFrom} 恢复` : '数据更新',
+            description: description || (data.restoredFrom ? `从版本 ${data.restoredFrom} 恢复` : '数据更新'),
             deviceInfo: data.deviceInfo || null, // 添加设备信息
             userIP: data.userIP || null, // 添加用户IP
             userCountry: data.userCountry || null // 添加用户国家

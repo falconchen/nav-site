@@ -802,7 +802,7 @@ async function saveUserToRedis(c, user) {
 }
 
 // 辅助函数：从Redis获取用户信息
-async function getUserFromRedis(c, userId) {
+export async function getUserFromRedis(c, userId) {
     try {
         const redisUrl = c.env.UPSTASH_REDIS_REST_URL;
         const redisToken = c.env.UPSTASH_REDIS_REST_TOKEN;

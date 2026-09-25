@@ -23,6 +23,7 @@ async function buildProject() {
                 'public/utils.js',
                 'public/sync.js',
                 'public/session.js',
+                'public/api-tokens.js',
                 'public/auth.js',
                 'public/image-upload.js',
                 'public/script.js',
