@@ -3028,6 +3028,7 @@ body.searching .view-tab.active {
   display: none;
 }
 
+html[data-tab="frequent"] #tab-frequent,
 html[data-tab="pinned"] #tab-pinned,
 html[data-tab="recent"] #tab-recent,
 html[data-tab="all"] #tab-all,
@@ -3035,6 +3036,7 @@ body.searching #tab-all {
   display: block;
 }
 
+body.searching #tab-frequent,
 body.searching #tab-pinned,
 body.searching #tab-recent {
   display: none;

@@ -303,11 +303,8 @@ function loadWebsitesFromData() {
         });
     });
 
-    // 渲染置顶分类
-    renderPinnedCategory();
-
-    // 渲染最近添加分类
-    renderRecentCategory();
+    // 渲染访问最多、特别收藏、最近添加三个视图
+    renderVirtualViews();
 
     // 为所有卡片添加事件监听器
     document.querySelectorAll('.website-card').forEach(addCardEventListeners);
@@ -557,7 +554,7 @@ function confirmDeleteWebsite() {
         const categoryId = categorySection.id;
 
         // 如果是从虚拟分类（置顶或最近添加）删除，需要找到原始分类
-        if (categoryId === 'pinned' || categoryId === 'recent') {
+        if (isVirtualSection(categoryId)) {
             const originalCategory = websiteToDelete.dataset.originalCategory;
             if (originalCategory) {
                 // 在原分类中查找并删除网站
@@ -575,17 +572,6 @@ function confirmDeleteWebsite() {
 
                         // 更新原分类UI（如果当前可见）
                         refreshCategoryUI(originalCategory);
-
-                        // 如果是从置顶分类删除，同时更新最近添加分类
-                        if (categoryId === 'pinned') {
-                            removeFromRecentUI(title, url);
-                            renderRecentCategory();
-                        }
-                        // 如果是从最近添加分类删除，同时更新置顶分类
-                        else if (categoryId === 'recent') {
-                            removeSiteFromPinnedUI(title, url);
-                            renderPinnedCategory();
-                        }
                     }
                 }
             }
@@ -619,9 +605,8 @@ function confirmDeleteWebsite() {
             websiteToDelete.remove();
             websiteToDelete = null;
 
-            // 重新渲染置顶和最近添加：最近添加要补上第 24 个之后的网站，空状态也要更新
-            renderPinnedCategory();
-            renderRecentCategory();
+            // 重新渲染几个视图：要补上排在后面的网站，空状态也要更新
+            renderVirtualViews();
         }, 300);
     }
     closeModal('deleteConfirmModal');
@@ -729,7 +714,7 @@ function editWebsite(card) {
     let categoryId;
     const categorySection = card.closest('.category-section');
 
-    if (categorySection.id === 'pinned' || categorySection.id === 'recent') {
+    if (isVirtualSection(categorySection.id)) {
         // 如果是从虚拟分类（置顶或最近添加）编辑，使用存储在卡片上的原始分类
         categoryId = card.dataset.originalCategory;
 
@@ -740,7 +725,7 @@ function editWebsite(card) {
 
             // 在所有非虚拟分类中查找匹配的网站
             Object.keys(websites).forEach(catId => {
-                if (catId !== 'pinned' && catId !== 'recent' && !categoryId) {
+                if (!categoryId) {
                     const foundSite = websites[catId].find(site =>
                         site.title === cardTitle && site.url === cardUrl);
                     if (foundSite) {
@@ -923,16 +908,15 @@ function submitWebsiteForm() {
         let oldWeight = 0; // 记录旧权重
         const categorySection = currentEditingCard.closest('.category-section');
 
-        if (categorySection.id === 'pinned' || categorySection.id === 'recent') {
+        if (isVirtualSection(categorySection.id)) {
             // 如果是从虚拟分类编辑，使用存储在卡片上的原始分类
             oldCategoryId = currentEditingCard.dataset.originalCategory;
             oldTitle = currentEditingCard.querySelector('.card-title').textContent;
             oldUrl = currentEditingCard.querySelector('.card-url').textContent;
-            oldPinned = categorySection.id === 'pinned'; // 如果是从置顶分类编辑，则认为是置顶状态
         } else {
             oldCategoryId = categorySection.id;
-            oldPinned = currentEditingCard.classList.contains('pinned');
         }
+        oldPinned = currentEditingCard.classList.contains('pinned');
 
         // 检查置顶状态是否变更
         pinnedChanged = oldPinned !== isPinned;
@@ -948,7 +932,7 @@ function submitWebsiteForm() {
         let cardIndex = -1;
 
         // 如果是编辑虚拟分类中的卡片，需要在原始分类中查找匹配的网站
-        if (categorySection.id === 'pinned' || categorySection.id === 'recent') {
+        if (isVirtualSection(categorySection.id)) {
             cardIndex = websites[oldCategoryId].findIndex(site =>
                 site.title === oldTitle && site.url === oldUrl);
         } else {
@@ -993,7 +977,7 @@ function submitWebsiteForm() {
             });
 
             // 如果当前正在编辑非虚拟分类中的卡片，先隐藏旧卡片，准备移除
-            if (categorySection.id !== 'pinned' && categorySection.id !== 'recent') {
+            if (!isVirtualSection(categorySection.id)) {
                 currentEditingCard.style.display = 'none';
 
                 // 设置延迟移除旧卡片
@@ -1042,7 +1026,7 @@ function submitWebsiteForm() {
                 sortAndRefreshCategory(oldCategoryId);
             } else {
                 // 如果当前编辑的不是虚拟分类中的卡片，更新卡片UI
-                if (categorySection.id !== 'pinned' && categorySection.id !== 'recent') {
+                if (!isVirtualSection(categorySection.id)) {
                     updateWebsiteCard(currentEditingCard, name, url, description, iconUrl, isPinned);
                 } else {
                     // 如果是在虚拟分类中编辑，需要更新原始分类的UI
@@ -1051,7 +1035,7 @@ function submitWebsiteForm() {
             }
 
             // 如果标题或URL有变化，且是从虚拟分类编辑的，需要删除旧卡片
-            if ((categorySection.id === 'pinned' || categorySection.id === 'recent') && (oldTitle !== name || oldUrl !== url)) {
+            if (isVirtualSection(categorySection.id) && (oldTitle !== name || oldUrl !== url)) {
                 // 添加删除动画
                 currentEditingCard.style.animation = 'fadeOut 0.3s ease-out';
 
@@ -1105,9 +1089,8 @@ function submitWebsiteForm() {
         });
     }
 
-    // 更新虚拟分类
-    renderPinnedCategory();
-    renderRecentCategory();
+    // 更新虚拟视图
+    renderVirtualViews();
 
     // 保存数据到localStorage
     if (window.saveNavData) {
@@ -1224,6 +1207,35 @@ function sortAndRefreshCategory(categoryId) {
 
     // 刷新分类UI
     refreshCategoryUI(categoryId);
+}
+
+// 置顶 / 最近添加 / 访问最多 这几个视图里的卡片不属于某个分类 section，
+// 编辑、删除时要靠卡片上的 data-original-category 找回原分类
+const VIRTUAL_SECTION_IDS = ['frequent', 'recent', 'pinned'];
+
+function isVirtualSection(id) {
+    return VIRTUAL_SECTION_IDS.includes(id);
+}
+
+// 「访问最多」tab 展示的网站数量，与最近添加同理取 60
+const FREQUENT_LIMIT = 60;
+
+// 渲染访问最多视图：只列有访问记录的网站，按次数 + 近期加权排序
+function renderFrequentCategory() {
+    if (typeof getVisitScore !== 'function') return;
+    const frequentWebsites = collectAllWebsites()
+        .map(website => ({ ...website, visitScore: getVisitScore(website.url) }))
+        .filter(website => website.visitScore > 0)
+        .sort((a, b) => b.visitScore - a.visitScore)
+        .slice(0, FREQUENT_LIMIT);
+
+    renderVirtualView('frequent', frequentWebsites);
+}
+
+function renderVirtualViews() {
+    renderFrequentCategory();
+    renderPinnedCategory();
+    renderRecentCategory();
 }
 
 // 「最近添加」tab 展示的网站数量。60 是 1～5 的最小公倍数，
@@ -1478,6 +1490,10 @@ function createContextMenu() {
             <i class="fas fa-star"></i>
             <span id="pin-action-text">特别收藏</span>
         </div>
+        <div class="context-menu-item" id="remove-frequent-btn">
+            <i class="fas fa-eye-slash"></i>
+            <span>从访问最多中移除</span>
+        </div>
         <div class="context-menu-item danger" id="delete-website-btn">
             <i class="fas fa-trash"></i>
             <span>删除网站</span>
@@ -1520,6 +1536,14 @@ function createContextMenu() {
         }
     });
 
+    contextMenu.querySelector('#remove-frequent-btn').addEventListener('click', function () {
+        if (contextMenuTarget) {
+            removeVisitStats(contextMenuTarget.querySelector('.card-url').textContent);
+            renderFrequentCategory();
+            hideContextMenu();
+        }
+    });
+
     return contextMenu;
 }
 
@@ -1546,7 +1570,7 @@ function togglePinStatus(card) {
     let categoryId;
     const categorySection = card.closest('.category-section');
 
-    if (categorySection.id === 'pinned' || categorySection.id === 'recent') {
+    if (isVirtualSection(categorySection.id)) {
         // 如果是从置顶分类或最近添加分类，使用存储在卡片上的原始分类
         categoryId = card.dataset.originalCategory;
         if (!categoryId) {
@@ -1567,7 +1591,7 @@ function togglePinStatus(card) {
     let websiteIndex = -1;
 
     // 如果是从置顶分类或最近添加分类，需要在原始分类中查找匹配的网站
-    if (categorySection.id === 'pinned' || categorySection.id === 'recent') {
+    if (isVirtualSection(categorySection.id)) {
         websiteIndex = websites[categoryId].findIndex(site =>
             site.title === title && site.url === url);
     } else {
@@ -1609,7 +1633,7 @@ function togglePinStatus(card) {
     }
 
     // 更新UI
-    if (categorySection.id === 'pinned' || categorySection.id === 'recent') {
+    if (isVirtualSection(categorySection.id)) {
         // 如果是在置顶分类或最近添加分类操作，我们需要在当前分类中移除它
         card.style.animation = 'fadeOut 0.3s ease-out';
         setTimeout(() => {
@@ -1629,9 +1653,8 @@ function togglePinStatus(card) {
     // 对分类进行排序并刷新UI
     sortAndRefreshCategory(categoryId);
 
-    // 更新置顶和最近添加视图（最近添加里的卡片也显示置顶状态）
-    renderPinnedCategory();
-    renderRecentCategory();
+    // 更新各个视图（其它视图里的卡片也显示收藏状态）
+    renderVirtualViews();
 
     // 保存数据
     if (window.saveNavData) {
@@ -1692,15 +1715,11 @@ function showContextMenu(e, card) {
     // 根据卡片当前状态更新置顶/取消置顶菜单项
     const isPinned = card.classList.contains('pinned');
     const pinActionText = menu.querySelector('#pin-action-text');
-    const pinIcon = menu.querySelector('#toggle-pin-btn i');
+    pinActionText.textContent = isPinned ? '取消特别收藏' : '特别收藏';
 
-    if (isPinned) {
-        pinActionText.textContent = '取消特别收藏';
-        pinIcon.style.transform = 'rotate(45deg)';
-    } else {
-        pinActionText.textContent = '特别收藏';
-        pinIcon.style.transform = 'rotate(0deg)';
-    }
+    // 「从访问最多中移除」只在访问最多视图里出现
+    const inFrequent = card.closest('.category-section')?.id === 'frequent';
+    menu.querySelector('#remove-frequent-btn').style.display = inFrequent ? '' : 'none';
 
     // 隐藏其他可能显示的菜单
     hideContextMenu();
@@ -1816,6 +1835,10 @@ function addCardEventListeners(card) {
     // 左键点击（访问网站）
     card.addEventListener('click', handleCardClick);
 
+    // 中键点击
+    card.removeEventListener('auxclick', handleCardAuxClick);
+    card.addEventListener('auxclick', handleCardAuxClick);
+
     // 右上角图钉：点击取消置顶（只有置顶卡片显示）
     const pinBtn = card.querySelector('.card-pin-btn');
     if (pinBtn) {
@@ -1881,7 +1904,16 @@ function handleCardClick(e) {
     const url = this.querySelector('.card-url').textContent;
     // 检查URL是否已包含协议
     const fullUrl = url.includes('://') ? url : `http://${url}`;
+    if (typeof recordVisit === 'function') recordVisit(fullUrl);
     window.open(fullUrl, '_blank');
+}
+
+// 中键点击卡片：卡片不是链接，浏览器不会自己打开，这里按新标签页打开并计一次访问
+function handleCardAuxClick(e) {
+    if (e.button !== 1) return;
+    if (e.target.closest('.card-menu-btn') || e.target.closest('.card-pin-btn')) return;
+    e.preventDefault();
+    handleCardClick.call(this, e);
 }
 
 // 文件上传功能
@@ -2060,6 +2092,11 @@ document.addEventListener('DOMContentLoaded', async function () {
 
     // 加载数据并创建卡片
     loadWebsitesFromData();
+
+    // 访问统计从 IndexedDB 异步读取，读完再渲染一次访问最多
+    if (window.visitStatsLoaded) {
+        window.visitStatsLoaded.then(renderFrequentCategory);
+    }
 
     // 设置文件上传
     setupFileUpload();

@@ -26,6 +26,7 @@ async function buildProject() {
                 'public/api-tokens.js',
                 'public/auth.js',
                 'public/image-upload.js',
+                'public/visit-stats.js',
                 'public/script.js',
                 'public/category-edit.js',
                 'public/icon-selector.js',

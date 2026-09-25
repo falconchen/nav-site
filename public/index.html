@@ -29,7 +29,7 @@
 
         // 读取并应用上次停留的视图 tab，避免刷新时闪到别的 tab
         var tab = localStorage.getItem('activeTab');
-        if (tab !== 'recent' && tab !== 'all') tab = 'pinned';
+        if (tab !== 'frequent' && tab !== 'recent' && tab !== 'all') tab = 'pinned';
         document.documentElement.setAttribute('data-tab', tab);
 
         // 读取并应用强调色（accent）
@@ -107,11 +107,14 @@
         </div>
     </header>
 
-    <!-- 视图 tab：最近添加 / 特别收藏 / 全部网站 -->
+    <!-- 视图 tab：最近添加 / 访问最多 / 特别收藏 / 全部网站 -->
     <nav class="view-tabs" role="tablist" aria-label="视图">
         <div class="view-tabs-inner">
             <button type="button" class="view-tab" role="tab" data-tab="recent" aria-controls="tab-recent">
                 <i class="fas fa-clock"></i><span>最近添加</span>
+            </button>
+            <button type="button" class="view-tab" role="tab" data-tab="frequent" aria-controls="tab-frequent">
+                <i class="fas fa-fire"></i><span>访问最多</span>
             </button>
             <button type="button" class="view-tab" role="tab" data-tab="pinned" aria-controls="tab-pinned">
                 <i class="fas fa-star"></i><span>特别收藏</span>
@@ -151,6 +154,12 @@
                 <section class="category-section" id="recent">
                     <div class="cards-grid" id="recent-cards"></div>
                     <p class="tab-empty">还没有添加过网站。</p>
+                </section>
+            </div>
+            <div class="tab-panel" id="tab-frequent" role="tabpanel">
+                <section class="category-section" id="frequent">
+                    <div class="cards-grid" id="frequent-cards"></div>
+                    <p class="tab-empty">还没有访问记录。从这里打开网站后，常去的会出现在这里。</p>
                 </section>
             </div>
             <div class="tab-panel" id="tab-pinned" role="tabpanel">
@@ -412,6 +421,7 @@
     <script src="api-tokens.js"></script>
     <script src="auth.js"></script>
     <script src="image-upload.js"></script>
+    <script src="visit-stats.js"></script>
     <script src="script.js"></script>
     <script src="category-edit.js"></script>
     <script src="icon-selector.js"></script>

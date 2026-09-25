@@ -1,7 +1,7 @@
-// 视图 tab：最近添加 / 置顶 / 全部网站
+// 视图 tab：最近添加 / 访问最多 / 特别收藏 / 全部网站
 // 当前 tab 写在 <html data-tab>，index.html 的内联脚本在首屏前就设好了，CSS 按它切换面板
 
-const VIEW_TABS = ['recent', 'pinned', 'all'];
+const VIEW_TABS = ['recent', 'frequent', 'pinned', 'all'];
 // 每个 tab 各自记住滚动位置，来回切换时不用重新往下翻
 const tabScrollPositions = {};
 
@@ -22,6 +22,11 @@ function switchTab(tab, options = {}) {
 
     const current = getActiveTab();
     if (tab === current) return;
+
+    // 访问最多在点击卡片后不立即重排（免得卡片在光标下跳动），切过来时再按最新次数排
+    if (tab === 'frequent' && typeof renderFrequentCategory === 'function') {
+        renderFrequentCategory();
+    }
 
     tabScrollPositions[current] = window.scrollY;
     document.documentElement.setAttribute('data-tab', tab);
@@ -123,4 +128,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     setupTabSwipe();
+
+    // 从打开的网站切回来时，刷新访问最多的排序
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && getActiveTab() === 'frequent' &&
+            typeof renderFrequentCategory === 'function') {
+            renderFrequentCategory();
+        }
+    });
 });
