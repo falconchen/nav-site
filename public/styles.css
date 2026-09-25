@@ -647,103 +647,163 @@ html[data-sidebar="compact"] .cards-grid {
   max-height: 2.8em;
 }
 
-/* 卡片悬浮提示：显示完整标题、网址和描述 */
+/* 卡片悬浮提示：显示完整标题、网址和描述
+   与卡片区分靠三点：淡强调色底 + 强调色描边、指向来源卡片的小箭头、比卡片小一号的字，
+   都压在低饱和度，避免喧宾夺主 */
 .card-tooltip {
+  --tip-tint: rgba(var(--primary-color-rgb), 0.045);
+  --tip-bg: linear-gradient(var(--tip-tint), var(--tip-tint)), var(--surface-color);
+  --tip-border: rgba(var(--primary-color-rgb), 0.22);
+  --tip-divider: rgba(var(--primary-color-rgb), 0.12);
+  --caret-y: 24px;
+
   position: fixed;
   top: 0;
   left: -9999px;
   z-index: 995;
   width: max-content;
-  max-width: min(320px, calc(100vw - 16px));
-  padding: 0.75rem 0.9rem;
-  background-color: var(--surface-color);
-  border: 1px solid var(--border-color);
-  border-radius: 0.6rem;
-  box-shadow: var(--shadow-large);
+  max-width: min(300px, calc(100vw - 16px));
+  background: var(--tip-bg);
+  border: 1px solid var(--tip-border);
+  border-radius: 0.625rem;
+  box-shadow: 0 12px 28px -10px rgba(15, 23, 42, 0.22), 0 2px 6px rgba(15, 23, 42, 0.05);
   pointer-events: none;
   opacity: 0;
-  transform: translateX(-4px);
-  transition: opacity 0.15s ease, transform 0.15s ease;
+  transform: translateX(-4px) scale(0.98);
+  transform-origin: left var(--caret-y);
+  transition: opacity 0.16s ease, transform 0.16s ease;
+}
+
+[data-theme="dark"] .card-tooltip {
+  --tip-tint: rgba(var(--primary-color-rgb), 0.08);
+  --tip-border: rgba(var(--primary-color-rgb), 0.35);
+  --tip-divider: rgba(var(--primary-color-rgb), 0.2);
+  box-shadow: 0 14px 32px -8px rgba(0, 0, 0, 0.6), 0 2px 6px rgba(0, 0, 0, 0.3);
 }
 
 .card-tooltip[data-side="left"] {
-  transform: translateX(4px);
+  transform: translateX(4px) scale(0.98);
+  transform-origin: right var(--caret-y);
 }
 
 .card-tooltip.visible {
   opacity: 1;
-  transform: translateX(0);
+  transform: none;
   pointer-events: auto;
 }
 
+/* 指向来源卡片的小箭头：旋转 45° 的方块，只描朝外的两条边，背景与提示框一致以盖住接缝 */
+.card-tooltip::before {
+  content: "";
+  position: absolute;
+  top: calc(var(--caret-y) - 5px);
+  width: 10px;
+  height: 10px;
+  background: var(--tip-bg);
+  border: 1px solid var(--tip-border);
+  transform: rotate(45deg);
+}
+
+.card-tooltip[data-side="right"]::before {
+  left: -6px;
+  border-top-color: transparent;
+  border-right-color: transparent;
+}
+
+.card-tooltip[data-side="left"]::before {
+  right: -6px;
+  border-bottom-color: transparent;
+  border-left-color: transparent;
+}
+
+/* 两侧都放不下、贴边覆盖在卡片上时不画箭头 */
+.card-tooltip[data-side="edge"]::before {
+  display: none;
+}
+
+.card-tooltip-body {
+  padding: 0.7rem 0.85rem 0.65rem;
+}
+
 .card-tooltip-title {
-  font-size: 0.95rem;
+  font-size: 0.875rem;
   font-weight: 600;
   color: var(--text-primary);
-  line-height: 1.35;
+  line-height: 1.4;
   word-break: break-word;
 }
 
 .card-tooltip-url {
   display: block;
-  margin-top: 0.2rem;
+  margin-top: 0.15rem;
   font-size: 0.75rem;
-  color: var(--primary-color);
+  color: var(--text-secondary);
   text-decoration: none;
   word-break: break-all;
+  border-radius: 0.2rem;
+  transition: color 0.15s ease;
 }
 
 .card-tooltip-url:hover,
 .card-tooltip-url:focus-visible {
+  color: var(--primary-color);
   text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .card-tooltip-description {
   margin-top: 0.5rem;
-  padding-top: 0.5rem;
-  border-top: 1px solid var(--border-color);
-  font-size: 0.85rem;
-  line-height: 1.5;
+  font-size: 0.8125rem;
+  line-height: 1.6;
   color: var(--text-secondary);
   white-space: pre-line;
   word-break: break-word;
 }
 
+/* 操作区做成底部条，按钮去掉边框，避免又是一排「小卡片」 */
 .card-tooltip-actions {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  margin-top: 0.65rem;
+  gap: 0.15rem;
+  padding: 0.3rem 0.4rem;
+  border-top: 1px solid var(--tip-divider);
 }
 
 .card-tooltip-actions button {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  padding: 0.3rem 0.6rem;
+  padding: 0.3rem 0.5rem;
   font: inherit;
   font-size: 0.75rem;
   color: var(--text-secondary);
-  background-color: var(--background-color);
-  border: 1px solid var(--border-color);
-  border-radius: 0.4rem;
+  background: transparent;
+  border: none;
+  border-radius: 0.375rem;
+  white-space: nowrap;
   cursor: pointer;
-  transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+  transition: color 0.15s ease, background-color 0.15s ease;
 }
 
-.card-tooltip-actions button[hidden] {
-  display: none;
+.card-tooltip-actions button i {
+  width: 1em;
+  text-align: center;
+  opacity: 0.8;
 }
 
-.card-tooltip-actions button:hover,
-.card-tooltip-actions button:focus-visible {
+.card-tooltip-actions button:hover {
   color: var(--primary-color);
-  border-color: var(--primary-color);
+  background-color: rgba(var(--primary-color-rgb), 0.1);
+}
+
+.card-tooltip-url:focus-visible,
+.card-tooltip-actions button:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 1px;
 }
 
 .card-tooltip-actions button.copied {
   color: var(--secondary-color);
-  border-color: var(--secondary-color);
+  background-color: rgba(var(--secondary-color-rgb), 0.12);
 }
 
 @media (prefers-reduced-motion: reduce) {

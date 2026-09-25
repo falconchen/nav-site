@@ -4,7 +4,9 @@
 (function () {
     const SHOW_DELAY = 400;
     const HIDE_DELAY = 250;
-    const GAP = 8;
+    const GAP = 10;          // 留出箭头伸出的位置
+    const CARET_ANCHOR = 28; // 箭头对准卡片顶部往下这么多像素（大致是图标/标题行）
+    const CARET_INSET = 14;  // 箭头离提示框上下边缘的最小距离
     const VIEWPORT_MARGIN = 8;
     const COPIED_FEEDBACK_MS = 1200;
 
@@ -24,9 +26,11 @@
         tooltip.className = 'card-tooltip';
         tooltip.setAttribute('role', 'tooltip');
         tooltip.innerHTML = `
-            <div class="card-tooltip-title"></div>
-            <a class="card-tooltip-url" target="_blank" rel="noopener noreferrer"></a>
-            <div class="card-tooltip-description"></div>
+            <div class="card-tooltip-body">
+                <div class="card-tooltip-title"></div>
+                <a class="card-tooltip-url" target="_blank" rel="noopener noreferrer"></a>
+                <div class="card-tooltip-description"></div>
+            </div>
             <div class="card-tooltip-actions">
                 <button type="button" data-action="copy-url"><i class="fas fa-link"></i><span>复制网址</span></button>
                 <button type="button" data-action="copy-markdown"><i class="fab fa-markdown"></i><span>复制为Markdown</span></button>
@@ -67,6 +71,7 @@
                 side = 'left';
             } else {
                 left = vw - VIEWPORT_MARGIN - tipWidth;
+                side = 'edge';
             }
         }
 
@@ -77,6 +82,11 @@
         tooltip.style.left = `${Math.max(left, VIEWPORT_MARGIN)}px`;
         tooltip.style.top = `${top}px`;
         tooltip.dataset.side = side;
+
+        // 提示框被视口夹住上下移位时，箭头仍要对准卡片
+        const caretTarget = rect.top + Math.min(CARET_ANCHOR, rect.height / 2) - top;
+        const caretY = Math.min(Math.max(caretTarget, CARET_INSET), tipHeight - CARET_INSET);
+        tooltip.style.setProperty('--caret-y', `${caretY}px`);
     }
 
     function show(card) {
@@ -178,8 +188,11 @@
 
     function markCopied(button) {
         const label = button.querySelector('span');
+        const icon = button.querySelector('i');
         if (!button.dataset.label) button.dataset.label = label.textContent;
+        if (!button.dataset.icon) button.dataset.icon = icon.className;
         label.textContent = '已复制';
+        icon.className = 'fas fa-check';
         button.classList.add('copied');
         clearTimeout(button._copiedTimer);
         button._copiedTimer = setTimeout(() => resetCopiedButton(button), COPIED_FEEDBACK_MS);
@@ -189,6 +202,7 @@
         clearTimeout(button._copiedTimer);
         button.classList.remove('copied');
         if (button.dataset.label) button.querySelector('span').textContent = button.dataset.label;
+        if (button.dataset.icon) button.querySelector('i').className = button.dataset.icon;
     }
 
     function handleActionClick(e) {
