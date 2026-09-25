@@ -3217,3 +3217,38 @@ html[data-sidebar="compact"] .card-pin-btn {
     font-size: 1.05rem;
   }
 }
+
+/* ========== 深色模式下图片图标加浅色底板 ==========
+   很多站点的 favicon 是黑色 + 透明背景（GitHub、Grok、ChatGPT），
+   放在深色卡片上会看不见。统一垫一块浅色圆角底板，像 App 图标一样 */
+:root {
+  --icon-plate-color: #e8edf3;
+}
+
+[data-theme="dark"] .card-icon.with-img {
+  background: var(--icon-plate-color) !important;
+  padding: 0.25rem;
+}
+
+[data-theme="dark"] .card-icon.with-img img {
+  object-fit: contain;
+}
+
+/* 自适应 SVG（如 ChatGPT）会跟随系统深色模式变成白色，放在浅色底板上反而看不见；
+   强制按浅色方案渲染 */
+.card-icon.with-img img,
+.uploaded-image-preview img {
+  color-scheme: light;
+}
+
+[data-theme="dark"] .uploaded-image-preview img {
+  background: var(--icon-plate-color);
+  padding: 0.25rem;
+  border-radius: 0.5rem;
+}
+
+@media (max-width: 480px) {
+  [data-theme="dark"] .card-icon.with-img {
+    padding: 0.5rem;
+  }
+}
