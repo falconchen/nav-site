@@ -255,10 +255,10 @@ function createCardHTML(website) {
     let iconContent = '';
     if (website.imageData) {
         // 如果有图片数据，显示图片
-        iconContent = `<img src="${website.imageData}" alt="${website.title}">`;
+        iconContent = `<img src="${escapeHtml(website.imageData)}" alt="${escapeHtml(website.title)}">`;
     } else {
         // 否则显示图标
-        iconContent = `<i class="${website.icon || 'fas fa-globe'}"></i>`;
+        iconContent = `<i class="${escapeHtml(website.icon || 'fas fa-globe')}"></i>`;
     }
 
     return `
@@ -268,11 +268,11 @@ function createCardHTML(website) {
                     ${iconContent}
                 </div>
                 <div>
-                    <div class="card-title">${website.title}</div>
-                    <div class="card-url">${website.url}</div>
+                    <div class="card-title">${escapeHtml(website.title)}</div>
+                    <div class="card-url">${escapeHtml(website.url)}</div>
                 </div>
             </div>
-            <div class="card-description">${website.description}</div>
+            <div class="card-description">${escapeHtml(website.description)}</div>
             <div class="card-footer">
                 <button class="card-menu-btn" aria-label="菜单">
                     <i class="fas fa-minus"></i>

@@ -2,6 +2,16 @@
  * 通用工具类函数
  */
 
+// 转义 HTML，渲染来自外部（网页标题、API 写入）的文本时用
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 // 显示通知
 function showNotification(message, type = 'info') {
     // 创建通知元素
