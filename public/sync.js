@@ -103,8 +103,8 @@ async function loadUserData(forceLoad = false) {
 
     console.log('📥 Loading user data from server, forceLoad:', forceLoad);
 
-    const progress = showSaveProgress();
-    progress.update(10, '正在从云端下载...');
+    const progress = showHeaderProgress();
+    progress.update(10);
 
     try {
         const response = await fetch('/api/user-data/load', {
@@ -114,34 +114,28 @@ async function loadUserData(forceLoad = false) {
             }
         });
 
-        progress.update(40, '正在接收数据...');
+        progress.update(40);
 
         if (response.ok) {
             const responseData = await response.json();
             console.log('📥 Server data received (compressed)');
 
             if (responseData.data && responseData.lastUpdated) {
-                progress.update(60, '正在解压缩数据...');
+                progress.update(60);
 
                 // 解压缩数据
                 const data = await decompressData(responseData.data);
                 console.log('📥 Server data decompressed:', data);
 
-                progress.update(80, '正在更新本地数据...');
+                progress.update(80);
 
                 console.log('✅ Updating local data with server data');
                 await updateLocalData(data);
 
-                progress.update(100, '下载完成！');
-
-                if (forceLoad) {
-                    progress.complete(true, '数据已从云端覆盖本地');
-                } else {
-                    progress.complete(true, '数据已从云端加载');
-                }
+                progress.complete(true);
             } else if (!responseData.data || !responseData.lastUpdated) {
                 console.log('📊 No server data found, keeping local data');
-                progress.complete(true, '云端暂无数据');
+                progress.complete(true);
             }
         } else {
             let errorInfo;
@@ -156,17 +150,20 @@ async function loadUserData(forceLoad = false) {
             // 处理需要重新认证的情况
             if (errorInfo.needReauth) {
                 console.log('🔄 Token outdated, need to re-authenticate');
-                progress.complete(false, '登录状态已过期');
+                progress.complete(false);
+                showNotification('登录状态已过期，请重新登录', 'error');
                 setTimeout(() => {
                     logout();
                 }, 2000);
             } else {
-                progress.complete(false, '下载失败');
+                progress.complete(false);
+                showNotification('从云端下载数据失败', 'error');
             }
         }
     } catch (error) {
         console.error('❌ Error loading user data:', error);
-        progress.complete(false, '下载失败');
+        progress.complete(false);
+        showNotification('从云端下载数据失败', 'error');
     }
 }
 
