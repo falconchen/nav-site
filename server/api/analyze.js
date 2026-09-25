@@ -17,7 +17,7 @@ const ANALYZE_RATE_LIMIT_PER_MINUTE = 10;
 function describeFetchFailure({ failure, status }) {
   switch (failure) {
     case 'timeout': return '目标网站响应超时';
-    case 'blocked': return `目标网站拒绝了服务器的访问（HTTP ${status}），请手动填写`;
+    case 'blocked': return `目标网站拒绝了服务器的访问（HTTP ${status}）`;
     case 'http_error': return `目标网站返回错误（HTTP ${status}）`;
     case 'not_html': return '该网址不是网页';
     default: return '无法连接目标网站';
@@ -45,7 +45,8 @@ app.post('/analyze-website', async (c) => {
 
     const page = await fetchPage(url, c.env);
     if (!page.ok) {
-      return c.json({ error: describeFetchFailure(page) }, 502);
+      // fetchFailed 让前端改用同域名的已收录网址预填，而不是直接报错
+      return c.json({ error: describeFetchFailure(page), fetchFailed: true }, 502);
     }
 
     const info = extractPageInfo(page.html, page.finalUrl);

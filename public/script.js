@@ -2897,6 +2897,11 @@ function setupAIDetection() {
             if (!response.ok) {
                 // 服务端会在 error 字段里写明原因（抓取被拦截、限流等），拿不到再用通用提示
                 const errorData = await response.json().catch(() => null);
+                // 抓取被目标站拦截（如 Cloudflare 质询）时不算失败，按同域名历史预填能填的字段
+                if (errorData?.fetchFailed) {
+                    fillFormFromDomainHistory(url, errorData.error);
+                    return;
+                }
                 throw new Error(errorData?.error || `网站分析请求失败（HTTP ${response.status}）`);
             }
 
@@ -2915,6 +2920,54 @@ function setupAIDetection() {
             aiDetectBtn.innerHTML = '<i class="fas fa-robot"></i> AI识别';
         }
     });
+}
+
+function siteHostKey(value) {
+    try {
+        return new URL(value).host.toLowerCase().replace(/^www\./, '');
+    } catch (e) {
+        return '';
+    }
+}
+
+// 抓不到网页时的兜底：用已收录的同域名网址预填分类和图标，标题和描述留给用户填。
+// 分类规则与服务端 categoryByDomain() 一致（同 host 最多的分类），改一边要同步另一边
+function fillFormFromDomainHistory(url, reason) {
+    const host = siteHostKey(url);
+    const categorySelect = document.getElementById('websiteCategory');
+
+    let bestIndex = -1;
+    let bestSites = [];
+    for (let i = 0; i < categorySelect.options.length; i++) {
+        const categoryId = categorySelect.options[i].value;
+        if (!categoryId || ['pinned', 'recent', 'uncategorized'].includes(categoryId)) continue;
+
+        const sites = ((window.websites && window.websites[categoryId]) || [])
+            .filter(site => host && siteHostKey(site.url) === host);
+        if (sites.length > bestSites.length) {
+            bestIndex = i;
+            bestSites = sites;
+        }
+    }
+
+    if (bestIndex < 0) {
+        showNotification(`${reason}，请手动填写`, 'info');
+        return;
+    }
+
+    categorySelect.selectedIndex = bestIndex;
+    categorySelect.options[bestIndex].setAttribute('selected', 'selected');
+
+    // 图标取同分类里第一个有自定义图片的，没有就沿用 Font Awesome 图标
+    const withImage = bestSites.find(site => site.imageData);
+    if (withImage) {
+        applyUploadedIcon(withImage.imageData);
+    } else if (bestSites[0].icon) {
+        document.getElementById('websiteIcon').value = bestSites[0].icon;
+        setIconPreview(bestSites[0].icon);
+    }
+
+    showNotification(`${reason}，已按已收录的 ${host} 网址预填分类和图标`, 'info');
 }
 
 // 根据AI识别结果填充表单

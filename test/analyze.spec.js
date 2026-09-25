@@ -328,4 +328,23 @@ describe('描述生成', () => {
         // 原来的正则带 $ 锚点，切不开，四句会全留下
         expect((await res.json()).description).toBe('第一句。第二句。');
     });
+
+    it('目标站拦截抓取时返回 502 + fetchFailed，带上状态码，不调 AI', async () => {
+        fetchSpy.mockResolvedValue(new Response('Just a moment...', {
+            status: 403,
+            headers: { 'Content-Type': 'text/html', 'cf-mitigated': 'challenge' }
+        }));
+        const aiRun = vi.fn();
+        const res = await analyzeApi.request(
+            '/analyze-website',
+            analyzeRequest({ url: 'https://v2ex.com/t/1', categories: CATEGORIES }),
+            createEnv({ aiRun })
+        );
+
+        expect(res.status).toBe(502);
+        const body = await res.json();
+        expect(body.fetchFailed).toBe(true);
+        expect(body.error).toContain('HTTP 403');
+        expect(aiRun).not.toHaveBeenCalled();
+    });
 });
