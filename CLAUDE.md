@@ -29,10 +29,14 @@
 - `server/index.js` - 主 Hono 应用，路由所有 API 端点
 - `server/api/auth.js` - GitHub OAuth 认证流程
 - `server/api/user-data.js` - 用户数据存储和版本管理系统
+- `server/api/tokens.js` - 个人访问令牌的生成、列出、吊销（只接受网页登录 JWT）
+- `server/api/v1.js` - RESTful API v1，给浏览器扩展等第三方客户端读写网址（文档见 `doc/REST_API.md`）
 - `server/api/analyze.js` - AI 驱动的网站元数据提取（分类 + 描述生成）
 - `server/api/proxy-image.js` - 图片代理用于解决 CORS
 - `server/api/upload-image.js` - 图标上传中转到 cf-photos 图床，返回公开 URL
 - `server/lib/fetch-remote-image.js` - 带防盗链 Referer 的远程图片抓取（代理与转存共用）
+- `server/lib/session-auth.js` - 网页登录 JWT 校验（验签 + 核对 KV 会话），user-data 和 v1 共用
+- `server/lib/personal-tokens.js` - 个人令牌的存储与校验
 - `server/lib/rate-limit.js` - 按 IP 的固定窗口限流（图床上传与 AI 识别共用）
 
 **前端 (`public/`)：**
@@ -43,6 +47,7 @@
 - `public/auth.js` - 前端认证和会话管理
 - `public/sync.js` - 云端同步与版本历史（直接覆盖，不合并）
 - `public/session.js` - 本地会话管理
+- `public/api-tokens.js` - 「个人令牌」弹窗
 - `public/category-edit.js` - 分类编辑 UI 和逻辑
 - `public/icon-selector.js` - 图标选择模态框
 - `public/image-upload.js` - 图标压缩转 WebP 并上传图床
@@ -83,6 +88,20 @@ AIGC、id 仍是 `social`），让模型输出 id 会被这种语义错位带偏
 - 图床地址和 token 都在服务端（`CF_PHOTOS_ENDPOINT` / `CF_PHOTOS_TOKEN`），换图床不用改代码。
 - cf-photos 没有开 CORS，图床 token 也不能下发到前端，所以必须由 Worker 中转。上传端点不鉴权，靠 5MB 上限、MIME 白名单、按 IP 每分钟 20 次限流兜底。
 - 服务端 MIME 白名单**不含 SVG**（图床原样存储，SVG 可内嵌脚本）。前端的压缩步骤会把 SVG 光栅化成 WebP，所以 GitHub 这类只提供 SVG favicon 的站点也能正常入库。
+
+### 个人令牌与 REST API
+
+`/api/v1` 给 Chrome 扩展这类没法走 OAuth 弹窗的客户端用，接口说明见 `doc/REST_API.md`，测试方法和实测记录见 `doc/REST_API_TESTING.md`。
+
+- 令牌形如 `navpat_<43 位 base64url>`，靠前缀和 JWT 区分。KV 里只存 SHA-256 摘要（`pat_<hash>`），
+  明文只在生成时返回一次；每个用户的令牌列表在 `pat_list_<userId>`，最多 10 个
+- 最后使用时间单独存在 `pat_used_<hash>`，每小时最多写一次。不要回写到 `pat_<hash>`：
+  和吊销并发时会把刚删掉的令牌写回来
+- 令牌不过期，也不能调 `/api/tokens` 生成或吊销令牌，只能访问 `/api/v1`
+- 写接口是读-改-写整份云端数据，并照常生成版本快照（描述里带令牌名）。云端没有分类数据时拒绝写入：
+  否则网页端会把残缺数据当成更新下载，覆盖本地
+- 网址查重忽略协议、`www.`、`#hash` 和末尾斜杠
+- 卡片渲染（`createCardHTML`）对标题、网址、描述、图标做了 HTML 转义，扩展写入的网页标题不可信
 
 ### 数据同步系统
 
