@@ -685,10 +685,17 @@ html[data-sidebar="compact"] .cards-grid {
 }
 
 .card-tooltip-url {
+  display: block;
   margin-top: 0.2rem;
   font-size: 0.75rem;
   color: var(--primary-color);
+  text-decoration: none;
   word-break: break-all;
+}
+
+.card-tooltip-url:hover,
+.card-tooltip-url:focus-visible {
+  text-decoration: underline;
 }
 
 .card-tooltip-description {

@@ -1,6 +1,6 @@
 // 网址卡片悬浮提示：鼠标停留在卡片上时，在卡片旁显示完整标题、网址和描述
 // 卡片在多处渲染并会被整体重建，因此用 document 级事件委托，内容直接从卡片 DOM 读取
-// 离开卡片后留一段宽限期，鼠标移进提示框即可保持显示，在上面复制网址/Markdown 链接或打开链接
+// 离开卡片后留一段宽限期，鼠标移进提示框即可保持显示，在上面点网址打开或复制网址/Markdown 链接
 (function () {
     const SHOW_DELAY = 400;
     const HIDE_DELAY = 250;
@@ -25,10 +25,9 @@
         tooltip.setAttribute('role', 'tooltip');
         tooltip.innerHTML = `
             <div class="card-tooltip-title"></div>
-            <div class="card-tooltip-url"></div>
+            <a class="card-tooltip-url" target="_blank" rel="noopener noreferrer"></a>
             <div class="card-tooltip-description"></div>
             <div class="card-tooltip-actions">
-                <button type="button" data-action="open"><i class="fas fa-external-link-alt"></i><span>打开链接</span></button>
                 <button type="button" data-action="copy-url"><i class="fas fa-link"></i><span>复制网址</span></button>
                 <button type="button" data-action="copy-markdown"><i class="fab fa-markdown"></i><span>复制 Markdown</span></button>
             </div>
@@ -93,7 +92,9 @@
         ensureTooltip();
         cancelHide();
         tooltip.querySelector('.card-tooltip-title').textContent = title;
-        tooltip.querySelector('.card-tooltip-url').textContent = data.url;
+        const urlLink = tooltip.querySelector('.card-tooltip-url');
+        urlLink.textContent = data.url;
+        urlLink.href = toFullUrl(data.url);
         tooltip.querySelector('.card-tooltip-description').textContent = description;
         tooltip.querySelector('.card-tooltip-description').hidden = !description;
         tooltip.querySelectorAll('button.copied').forEach(resetCopiedButton);
@@ -183,14 +184,16 @@
     }
 
     function handleActionClick(e) {
+        // 网址本身是链接，交给浏览器在新标签页打开，这里只负责收起提示框
+        if (e.target.closest('.card-tooltip-url')) {
+            hide();
+            return;
+        }
+
         const button = e.target.closest('button[data-action]');
         if (!button) return;
 
         switch (button.dataset.action) {
-            case 'open':
-                window.open(toFullUrl(data.url), '_blank');
-                hide();
-                break;
             case 'copy-url':
             case 'copy-markdown': {
                 const text = button.dataset.action === 'copy-url'
