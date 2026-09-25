@@ -250,7 +250,7 @@ function createCardHTML(website) {
 
     return `
         <div class="website-card ${pinnedClass}" data-weight="${weight}">
-            <button class="card-pin-btn" title="取消特别收藏" aria-label="取消特别收藏"><i class="fas fa-star"></i></button>
+            <button class="card-pin-btn" title="取消特别关注" aria-label="取消特别关注"><i class="fas fa-star"></i></button>
             <div class="card-header">
                 <div class="card-icon ${withImgClass}">
                     ${iconContent}
@@ -303,7 +303,7 @@ function loadWebsitesFromData() {
         });
     });
 
-    // 渲染访问最多、特别收藏、最近添加三个视图
+    // 渲染访问最多、特别关注、最近添加三个视图
     renderVirtualViews();
 
     // 为所有卡片添加事件监听器
@@ -1313,7 +1313,7 @@ function createWebsiteCard(name, url, description, category, iconUrl, isPinned) 
 
     const cardHTML = `
         <div class="website-card ${pinnedClass}" style="animation: fadeIn 0.5s ease-out" data-weight="${weight}">
-            <button class="card-pin-btn" title="取消特别收藏" aria-label="取消特别收藏"><i class="fas fa-star"></i></button>
+            <button class="card-pin-btn" title="取消特别关注" aria-label="取消特别关注"><i class="fas fa-star"></i></button>
             <div class="card-header">
                 <div class="card-icon">
                     <i class="${iconUrl || 'fas fa-globe'}"></i>
@@ -1488,7 +1488,7 @@ function createContextMenu() {
         </div>
         <div class="context-menu-item" id="toggle-pin-btn">
             <i class="fas fa-star"></i>
-            <span id="pin-action-text">特别收藏</span>
+            <span id="pin-action-text">特别关注</span>
         </div>
         <div class="context-menu-item" id="remove-frequent-btn">
             <i class="fas fa-eye-slash"></i>
@@ -1715,7 +1715,7 @@ function showContextMenu(e, card) {
     // 根据卡片当前状态更新置顶/取消置顶菜单项
     const isPinned = card.classList.contains('pinned');
     const pinActionText = menu.querySelector('#pin-action-text');
-    pinActionText.textContent = isPinned ? '取消特别收藏' : '特别收藏';
+    pinActionText.textContent = isPinned ? '取消特别关注' : '特别关注';
 
     // 「从访问最多中移除」只在访问最多视图里出现
     const inFrequent = card.closest('.category-section')?.id === 'frequent';

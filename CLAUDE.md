@@ -54,28 +54,28 @@
 - `public/icon-selector.js` - 图标选择模态框
 - `public/image-upload.js` - 图标压缩转 WebP 并上传图床
 - `public/utils.js` - 共享工具函数
-- `public/view-tabs.js` - 顶部视图 tab（最近添加 / 访问最多 / 特别收藏 / 全部网站）切换与移动端左右滑动手势
+- `public/view-tabs.js` - 顶部视图 tab（最近添加 / 访问最多 / 特别关注 / 全部网站）切换与移动端左右滑动手势
 - `public/visit-stats.js` - 访问统计（只存本机），给「访问最多」排序
 
 ### 视图 tab
 
-页面顶部是四个横向 tab：最近添加、访问最多、特别收藏、全部网站，当前 tab 写在 `<html data-tab>` 上，
+页面顶部是四个横向 tab：最近添加、访问最多、特别关注、全部网站，当前 tab 写在 `<html data-tab>` 上，
 存 localStorage `activeTab`（内联脚本首屏前读取，防闪烁）。分类侧边栏只在「全部网站」下显示。
 
-- 「特别收藏」就是原来的「置顶」，只改了界面名称和图标（黄色星星）；数据字段、DOM id、`activeTab` 取值、API 参数仍叫 `pinned`
+- 「特别关注」就是原来的「置顶」（中间一度叫「特别收藏」），只改了界面名称和图标（黄色星星）；数据字段、DOM id、`activeTab` 取值、API 参数仍叫 `pinned`
 - 访问最多：点击卡片（含中键）时 `recordVisit()` 记一次，按 frecency 排序取前 60 个（`FREQUENT_LIMIT`）。
   得分 = 次数 × 最近 10 次访问的平均权重（≤4 天 100、≤14 天 70、≤31 天 50、≤90 天 30、更早 10）。
   数据**只存本机** IndexedDB（`navSiteVisits`，按与服务端 `urlKey()` 相同的规则归一化网址），不走 `saveNavData`：
   同步是整份覆盖，多设备次数会互相覆盖，且每次点击都会冲掉只保留 5 份的版本历史。
   点击后不立即重排，切到该 tab 或页面重新可见时再渲染；右键「从访问最多中移除」清掉该网址的记录
-- 特别收藏、最近添加、访问最多都**不是分类**，是从数据派生的视图：置顶取 `website.pinned === true`，
+- 特别关注、最近添加、访问最多都**不是分类**，是从数据派生的视图：置顶取 `website.pinned === true`，
   最近添加按 `addedTime` 倒序取前 60 个（`RECENT_LIMIT`，1～5 的最小公倍数，每行 3/4/5 张时最后一行都满）
 - 这些视图的 DOM 是 `<section class="category-section" id="frequent|pinned|recent">`，`isVirtualSection(id)` 判断；
   编辑、删除、切换收藏靠卡片上的 `data-original-category` 找回原分类。三个视图用 `renderVirtualViews()` 一起重渲染
 - 普通分类 section 渲染在 `#tab-all` 里；`showCategory()` 会先切到「全部网站」
 - 搜索始终搜全部网站：有关键词时加 `body.searching`，临时显示 `#tab-all`，清空后回到原 tab
 - 移动端左右滑动只在松手时判断一次（不跟手），每个 tab 各自记住滚动位置
-- 特别收藏卡片右上角的星星是真实按钮（`.card-pin-btn`，每张卡都渲染，靠 `.pinned` 类显示），点击取消收藏
+- 特别关注卡片右上角的星星是真实按钮（`.card-pin-btn`，每张卡都渲染，靠 `.pinned` 类显示），点击取消关注
 
 登录状态在页面启动时通过 `/api/auth/verify` 校验。只有明确收到 401 或 `valid: false` 才删除本地令牌；断网、请求异常及服务端临时故障会保留令牌，并在网络恢复或 15 秒后重试。校验未成功前不启动云端同步。修改此流程时需检查断网刷新后恢复、真正过期以及校验期间切换账号这三种情况。
 

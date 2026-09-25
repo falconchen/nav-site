@@ -34,7 +34,7 @@ Authorization: Bearer navpat_xxxxxxxx
 
 ### `GET /api/v1/categories`
 
-分类列表，不含「特别收藏」（旧称置顶）「最近添加」这两个视图。
+分类列表，不含「特别关注」（旧称置顶、特别收藏）「最近添加」这两个视图。
 
 ```json
 { "success": true, "categories": [{ "id": "tools", "name": "实用工具", "icon": "fas fa-tools", "order": 3, "count": 12 }] }
@@ -85,7 +85,7 @@ Authorization: Bearer navpat_xxxxxxxx
 | `description` | 可选，最长 1000 字，不传就自动补全 |
 | `icon` | 可选，Font Awesome 类名，缺省 `fas fa-globe` |
 | `imageData` | 可选，图片 URL 或 base64 data URL（png/jpeg/gif/webp/ico，≤256KB），不传就自动补全 |
-| `pinned` | 可选，是否加入特别收藏（网页端旧称置顶） |
+| `pinned` | 可选，是否加入特别关注（网页端旧称置顶、特别收藏） |
 | `hints` | 可选，扩展从当前页拿到的信息。扩展看到的是已登录、已过反爬的页面，服务端抓不到时靠它兜底。超长会被截断（标题 200、描述 1000、正文 3000 字），不合法的字段直接忽略 |
 
 - `201`：返回 `{ website, analysis, version }`

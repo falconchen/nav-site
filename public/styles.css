@@ -3127,7 +3127,7 @@ html:not([data-tab="all"]) body:not(.searching) #mobile-category-menu-wrapper {
   }
 }
 
-/* ========== 特别收藏卡片右上角的星星，点击取消收藏 ========== */
+/* ========== 特别关注卡片右上角的星星，点击取消关注 ========== */
 :root {
   --star-color: #f5b400;
 }
