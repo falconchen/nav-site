@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { analyzeWebsite, categoryByDomain } from '../server/lib/website-analyzer.js';
+import { analyzeWebsite, categoryByDomain, truncateDescription } from '../server/lib/website-analyzer.js';
 
 const PAGE_HTML = `
 <html>
@@ -273,5 +273,22 @@ describe('页面解析', () => {
         );
         expect(info.title).toBe('OpenAI | Research & Deployment — 中');
         expect(info.description).toBe('Tom\'s "site"');
+    });
+});
+
+describe('truncateDescription', () => {
+    const REAL = 'Token Unlimited 中转站已上线 GPT 6 Sol 和 Luna，提供全网独有的超低价 Azure OpenAI 渠道。该站点直接连接 Azure Foundry API，保证满血不降智，且提供高质量的 GPT Image 生成服务。';
+
+    it('上限内原样返回', () => {
+        expect(truncateDescription(REAL)).toBe(REAL);
+    });
+
+    it('超长时在最后一个标点处截断，不留半截词', () => {
+        const out = truncateDescription(REAL, 120);
+        expect(out).toBe('Token Unlimited 中转站已上线 GPT 6 Sol 和 Luna，提供全网独有的超低价 Azure OpenAI 渠道。该站点直接连接 Azure Foundry API，保证满血不降智');
+    });
+
+    it('找不到靠后的标点时硬截', () => {
+        expect(truncateDescription('啊'.repeat(300), 200)).toBe('啊'.repeat(200));
     });
 });

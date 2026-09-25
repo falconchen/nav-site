@@ -15,6 +15,8 @@ export const AI_MODEL = '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
 // 分类只需要判断「这是个什么站」，不需要全文；描述是摘要任务，需要更多正文
 const CONTENT_CHARS_FOR_CATEGORY = 800;
 const CONTENT_CHARS_FOR_DESCRIPTION = 3000;
+// AI 描述的长度上限。两句中文加英文专名常超过 120 字
+const MAX_DESCRIPTION_CHARS = 200;
 
 // 这些标签里的文本两份都不要
 const HARD_SKIP_TAGS = new Set(['script', 'style', 'noscript', 'svg', 'template']);
@@ -462,6 +464,21 @@ ${siteInfo}
 }
 
 /**
+ * 描述超长时在上限内最后一个标点处截断，避免把词切成半截（如「GPT Image 生」）。
+ * 上限内找不到合适标点才硬截
+ */
+export function truncateDescription(text, max = MAX_DESCRIPTION_CHARS) {
+    const chars = [...text];
+    if (chars.length <= max) return text;
+    const head = chars.slice(0, max).join('');
+    const cut = Math.max(...[...'。！？；，、.!?;,'].map(p => head.lastIndexOf(p)));
+    // 标点太靠前说明截掉的太多，宁可硬截
+    // 句中标点去掉，由调用方补句号
+    if (cut >= max / 2) return head.slice(0, cut + 1).replace(/[，、,；;]$/, '');
+    return head;
+}
+
+/**
  * AI 生成简洁中文描述。出错时抛异常，模型没返回内容时返回空串
  */
 export async function summarizeDescription(env, info) {
@@ -484,11 +501,10 @@ export async function summarizeDescription(env, info) {
         .split(/(?<=[。！？.!?])/)
         .map(p => p.trim())
         .filter(Boolean);
-    aiDesc = parts.slice(0, 2).join('');
+    aiDesc = truncateDescription(parts.slice(0, 2).join(''));
     if (aiDesc && !/[。！？.!?]$/.test(aiDesc)) {
         aiDesc += '。';
     }
-    aiDesc = aiDesc.substring(0, 120);
     console.log('AI描述输出:', aiDesc);
     if (DESCRIPTION_REFUSAL_PATTERN.test(aiDesc)) {
         console.log('AI 描述是拒答，丢弃');
