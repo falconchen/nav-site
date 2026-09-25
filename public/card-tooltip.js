@@ -117,9 +117,12 @@
         showTimer = null;
     }
 
+    // 宽限期结束只收起当前提示框，不能动排队中的 show：
+    // 从卡片 A 移到卡片 B 时两个计时器同时在跑，HIDE_DELAY 比 SHOW_DELAY 短，
+    // 若在这里取消 show，B 的提示就不会出现，要等鼠标在 B 里再移动才触发
     function scheduleHide() {
         clearTimeout(hideTimer);
-        hideTimer = setTimeout(hide, HIDE_DELAY);
+        hideTimer = setTimeout(dismiss, HIDE_DELAY);
     }
 
     function cancelHide() {
@@ -127,12 +130,17 @@
         hideTimer = null;
     }
 
-    function hide() {
-        cancelShow();
+    function dismiss() {
         cancelHide();
-        hoverCard = null;
         activeCard = null;
         if (tooltip) tooltip.classList.remove('visible');
+    }
+
+    // 点击、滚动等场景：连同排队中的 show 一起清掉
+    function hide() {
+        cancelShow();
+        hoverCard = null;
+        dismiss();
     }
 
     // ---- 提示框上的操作 ----
