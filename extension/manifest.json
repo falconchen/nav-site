@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "皮皮2047 收藏助手",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "把当前网页收藏到皮皮2047导航站，AI 自动补全标题、分类和描述。",
   "icons": {
     "16": "icons/icon-16.png",
