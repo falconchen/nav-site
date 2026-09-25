@@ -2895,7 +2895,9 @@ function setupAIDetection() {
             });
 
             if (!response.ok) {
-                throw new Error('网站分析请求失败');
+                // 服务端会在 error 字段里写明原因（抓取被拦截、限流等），拿不到再用通用提示
+                const errorData = await response.json().catch(() => null);
+                throw new Error(errorData?.error || `网站分析请求失败（HTTP ${response.status}）`);
             }
 
             const data = await response.json();

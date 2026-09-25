@@ -13,6 +13,17 @@ const app = new Hono();
 // 每次识别要跑两轮大模型，接口又不鉴权，限流兜底
 const ANALYZE_RATE_LIMIT_PER_MINUTE = 10;
 
+// 抓取失败的原因直接展示给用户，方便判断是目标站拦截还是网址有问题
+function describeFetchFailure({ failure, status }) {
+  switch (failure) {
+    case 'timeout': return '目标网站响应超时';
+    case 'blocked': return `目标网站拒绝了服务器的访问（HTTP ${status}），请手动填写`;
+    case 'http_error': return `目标网站返回错误（HTTP ${status}）`;
+    case 'not_html': return '该网址不是网页';
+    default: return '无法连接目标网站';
+  }
+}
+
 // 网站分析API（网页端「AI识别」按钮）
 // 抓取、解析、AI 的实现在 server/lib/website-analyzer.js，和 /api/v1 共用
 app.post('/analyze-website', async (c) => {
@@ -34,7 +45,7 @@ app.post('/analyze-website', async (c) => {
 
     const page = await fetchPage(url, c.env);
     if (!page.ok) {
-      return c.json({ error: '无法获取网页内容' }, 500);
+      return c.json({ error: describeFetchFailure(page) }, 502);
     }
 
     const info = extractPageInfo(page.html, page.finalUrl);

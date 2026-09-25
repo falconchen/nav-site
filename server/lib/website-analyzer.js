@@ -100,6 +100,7 @@ export async function fetchPage(url, env = {}, { timeoutMs = FETCH_TIMEOUT_MS } 
 
     if (!response.ok) {
         const blocked = [401, 403, 429, 503].includes(response.status) || response.headers.get('cf-mitigated');
+        console.log(`抓取失败 (HTTP ${response.status}${blocked ? '，疑似被拦截' : ''}):`, url);
         return { ok: false, finalUrl, status: response.status, failure: blocked ? 'blocked' : 'http_error' };
     }
 
@@ -107,6 +108,7 @@ export async function fetchPage(url, env = {}, { timeoutMs = FETCH_TIMEOUT_MS } 
     const contentType = (response.headers.get('content-type') || '').toLowerCase();
     if (/^(image|video|audio|font)\/|^application\/(pdf|zip|octet-stream)/.test(contentType)) {
         response.body?.cancel().catch(() => {});
+        console.log(`抓取失败 (不是网页: ${contentType}):`, url);
         return { ok: false, finalUrl, status: response.status, failure: 'not_html' };
     }
 
