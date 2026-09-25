@@ -155,6 +155,37 @@ function showSaveProgress() {
     };
 }
 
+// 在 header 底边显示细进度条（自动保存用，不打断操作）
+let headerProgressHideTimer = null;
+function showHeaderProgress() {
+    const header = document.querySelector('.header');
+    const setPercent = (percent) => header?.style.setProperty('--save-progress', `${percent}%`);
+
+    clearTimeout(headerProgressHideTimer);
+    if (header) {
+        header.classList.remove('save-failed');
+        header.classList.add('is-saving');
+    }
+    setPercent(0);
+
+    return {
+        update: (percent) => setPercent(percent),
+        complete: (success) => {
+            if (!header) return;
+            setPercent(100);
+            if (!success) header.classList.add('save-failed');
+            headerProgressHideTimer = setTimeout(() => {
+                header.classList.remove('is-saving');
+                // 等淡出结束再归零，避免进度条倒着缩回去
+                headerProgressHideTimer = setTimeout(() => {
+                    header.classList.remove('save-failed');
+                    setPercent(0);
+                }, 300);
+            }, success ? 400 : 1500);
+        }
+    };
+}
+
 // 解析用户代理字符串
 function parseUserAgent(userAgent) {
     const parser = {

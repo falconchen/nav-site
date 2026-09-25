@@ -81,6 +81,28 @@ body {
   transition: all 0.3s ease;
 }
 
+/* 自动保存进度：宽度由 --save-progress 百分比驱动 */
+.header::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -1px;
+  height: 2px;
+  width: var(--save-progress, 0%);
+  background: var(--primary-color);
+  opacity: 0;
+  pointer-events: none;
+  transition: width 0.3s ease, opacity 0.3s ease, background-color 0.3s ease;
+}
+
+.header.is-saving::after {
+  opacity: 1;
+}
+
+.header.save-failed::after {
+  background: #ef4444;
+}
+
 .header-container {
   max-width: 1200px;
   margin: 0 auto;

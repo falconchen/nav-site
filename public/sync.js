@@ -197,10 +197,10 @@ async function saveUserData() {
     window.isSavingToCloud = true;
     console.log('🏁 Setting isSavingToCloud = true, preventing version checks during save');
 
-    const progress = showSaveProgress();
+    const progress = showHeaderProgress();
 
     try {
-        progress.update(10, '正在收集数据...');
+        progress.update(10);
 
         const localData = {
             categories: categories || [],
@@ -219,12 +219,12 @@ async function saveUserData() {
             version: localData.version
         });
 
-        progress.update(30, '正在压缩数据...');
+        progress.update(30);
 
         // 压缩数据
         const compressedData = await compressData(localData);
 
-        progress.update(50, '正在上传...');
+        progress.update(50);
 
         const response = await fetch('/api/user-data/save', {
             method: 'POST',
@@ -238,16 +238,14 @@ async function saveUserData() {
         console.log('🌐 Response status:', response.status, response.statusText);
         console.log('🌐 Response headers:', Object.fromEntries(response.headers.entries()));
 
-        progress.update(80, '正在处理...');
+        progress.update(80);
 
         if (response.ok) {
             const responseData = await response.json();
             console.log('✅ Save response:', responseData);
             localStorage.setItem('dataVersion', localData.version.toString());
             console.log('✅ Data saved to cloud successfully, updated local version to:', localData.version);
-
-            progress.update(100, '保存完成');
-            progress.complete(true, '数据已自动保存');
+            progress.complete(true);
         } else {
             let errorInfo;
             try {
@@ -265,14 +263,15 @@ async function saveUserData() {
             // 处理需要重新认证的情况
             if (errorInfo.needReauth) {
                 console.log('🔄 Token outdated, need to re-authenticate');
-                progress.complete(false, '登录状态已过期');
+                progress.complete(false);
                 showNotification('登录状态已过期，请重新登录', 'error');
                 // 清除旧token并提示重新登录
                 setTimeout(() => {
                     logout();
                 }, 2000);
             } else {
-                progress.complete(false, '保存失败');
+                progress.complete(false);
+                showNotification('自动保存到云端失败', 'error');
             }
         }
     } catch (error) {
@@ -281,7 +280,8 @@ async function saveUserData() {
             message: error.message,
             stack: error.stack
         });
-        progress.complete(false, '保存失败');
+        progress.complete(false);
+        showNotification('自动保存到云端失败', 'error');
     } finally {
         // 清除正在保存的标志
         window.isSavingToCloud = false;
