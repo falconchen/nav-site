@@ -51,6 +51,14 @@ Authorization: Bearer navpat_xxxxxxxx
 
 ### `POST /api/v1/websites`
 
+最少只传 `url`，缺的标题、分类、描述、图标由服务端抓网页并用 AI 补全。
+
+```json
+{ "url": "https://github.com/anthropics/claude-code" }
+```
+
+完整字段：
+
 ```json
 {
   "url": "https://github.com",
@@ -59,25 +67,85 @@ Authorization: Bearer navpat_xxxxxxxx
   "description": "代码托管平台",
   "icon": "fab fa-github",
   "imageData": "https://example.com/favicon.png",
-  "pinned": false
+  "pinned": false,
+  "hints": {
+    "title": "标签页标题",
+    "description": "页面 meta 描述",
+    "content": "页面正文摘要",
+    "icon": "https://example.com/favicon.png"
+  }
 }
 ```
 
 | 字段 | 说明 |
 | --- | --- |
 | `url` | 必填，http(s) |
-| `category` | 必填，分类 id 或名称 |
-| `title` | 可选，缺省用域名 |
-| `description` | 可选，最长 1000 字 |
+| `category` | 可选，分类 id 或名称。不传就自动归类；传了但不存在返回 400，不会静默兜底 |
+| `title` | 可选，不传就自动补全 |
+| `description` | 可选，最长 1000 字，不传就自动补全 |
 | `icon` | 可选，Font Awesome 类名，缺省 `fas fa-globe` |
-| `imageData` | 可选，图片 URL 或 base64 data URL（png/jpeg/gif/webp/ico，≤256KB） |
+| `imageData` | 可选，图片 URL 或 base64 data URL（png/jpeg/gif/webp/ico，≤256KB），不传就自动补全 |
 | `pinned` | 可选，是否置顶 |
+| `hints` | 可选，扩展从当前页拿到的信息。扩展看到的是已登录、已过反爬的页面，服务端抓不到时靠它兜底。超长会被截断（标题 200、描述 1000、正文 3000 字），不合法的字段直接忽略 |
 
-- `201`：返回 `{ website, version }`
-- `409 DUPLICATE`：网址已存在，返回已有条目
+- `201`：返回 `{ website, analysis, version }`
+- `409 DUPLICATE`：网址已存在，返回已有条目。查重在抓网页和调 AI 之前，不会白花一次调用
 - `400`：参数错误；分类不存在时会附上可选分类列表
+- `429`：需要 AI 补全的请求（缺分类或缺描述）按用户限流 20 次/分钟
 
-如果需要自动生成描述和分类，可以先调 `POST /api/analyze-website`（不需要鉴权），再把结果传进来。
+#### 自动补全的兜底顺序
+
+补全失败不会导致保存失败，每个字段各自往下退：
+
+| 字段 | 兜底顺序 |
+| --- | --- |
+| 标题 | 请求里的 `title` → `hints.title` → 网页 `<title>` → `og:site_name` → 域名 |
+| 分类 | 请求里的 `category` → AI（置信度 high/medium）→ 同域名：已收录网址里同域名最多的分类 → 「未分类」（没有就取排在最前的分类） |
+| 描述 | 请求里的 `description` → AI 摘要 → 网页 meta 描述 → `hints.description` → 第一段正文 → 空 |
+| 图标 | 请求里的 `imageData` → `hints.icon` → 网页里的图标 → `/favicon.ico` → 不设（前端显示默认图标） |
+
+- 标题、分类、描述都给了就不抓网页；分类和描述都给了就不调 AI
+- 抓网页超时 6 秒，两轮 AI 并行、各 10 秒超时，最坏约 16 秒
+- AI 分类用的候选和样例由服务端从你的云端数据构造（每个分类按权重取前 12 个站点），调用方不用传
+
+#### `analysis`
+
+```json
+{
+  "sources": { "title": "page", "category": "domain", "description": "ai", "icon": "hint" },
+  "categoryConfidence": "domain",
+  "warnings": ["ai_category_low_confidence"]
+}
+```
+
+- `sources` 每个字段的来源：`provided`（请求里给的）、`hint`、`page`、`ai`、`domain`（同域名归类）、`fallback`（未分类）、`none`（空）
+- `categoryConfidence`：`provided`、`high`、`medium`、`domain`、`fallback`
+- `warnings`：发生了哪些降级
+
+| warning | 含义 |
+| --- | --- |
+| `fetch_timeout` | 抓网页超时 |
+| `fetch_blocked` | 被拦截：401/403/429/503，或返回的是反爬质询页 |
+| `fetch_failed` | 网络错误或其它 HTTP 错误 |
+| `not_html` | 网址指向的是图片、PDF 等文件 |
+| `content_thin` | 网页正文太少（SPA 空壳、登录墙），改用了 `hints.content` |
+| `ai_unavailable` | 没有 AI 绑定 |
+| `ai_category_failed` | AI 分类报错或超时 |
+| `ai_category_low_confidence` | AI 没把握，没采用 |
+| `ai_description_failed` | AI 描述报错、超时、返回空，或返回的是「无相关信息」之类的拒答 |
+| `ai_description_skipped` | 抓不到网页内容也没有 hints，不让 AI 凭空写描述（分类照跑，模型凭域名和标题也能判断知名站点） |
+
+扩展可以在 `sources.category` 为 `domain` 或 `fallback` 时提示「已放入 xx，可在网页端调整」。
+
+### `POST /api/v1/websites/analyze`
+
+入参和 `POST /websites` 相同，只返回补全结果，不保存，不生成版本快照。扩展弹窗打开时用它预填表单，用户确认后再 `POST /websites`。
+
+```json
+{ "success": true, "duplicate": null, "website": { "title": "...", "category": "dev", "...": "..." }, "analysis": { "...": "..." } }
+```
+
+网址已收藏时直接返回 `{ "success": true, "duplicate": { ...已有条目 } }`，不抓网页也不调 AI。
 
 ### `DELETE /api/v1/websites?url=<网址>[&category=<id|名称>]`
 
@@ -94,20 +162,44 @@ API 写入后云端 `version` 变大。已打开的网页在获得焦点或切�
 
 ## Chrome 扩展示例
 
-`manifest.json` 里给站点域名加 `host_permissions`，扩展请求就不受 CORS 限制：
+`manifest.json` 里给站点域名加 `host_permissions`，扩展请求就不受 CORS 限制。
+
+先用 content script（或 `chrome.scripting.executeScript`）从当前页取 hints：
+
+```js
+function collectHints() {
+  const meta = document.querySelector('meta[name="description"], meta[property="og:description"]');
+  return {
+    title: document.title,
+    description: meta?.content || '',
+    content: document.body.innerText.slice(0, 3000)
+  };
+}
+```
+
+一键保存，只传 url 和 hints：
 
 ```js
 const API = 'https://your-nav-site.example/api/v1';
 
-async function saveCurrentTab(token, category) {
+async function saveCurrentTab(token) {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  const [{ result: hints }] = await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: collectHints });
   const res = await fetch(`${API}/websites`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ url: tab.url, title: tab.title, category, imageData: tab.favIconUrl })
+    body: JSON.stringify({ url: tab.url, hints: { ...hints, icon: tab.favIconUrl } })
   });
-  if (res.status === 409) return (await res.json()).code; // DUPLICATE / NO_CLOUD_DATA
-  if (!res.ok) throw new Error((await res.json()).error);
-  return 'saved';
+  const body = await res.json();
+  if (res.status === 409) return body.code; // DUPLICATE / NO_CLOUD_DATA
+  if (!res.ok) throw new Error(body.error);
+  // 分类是兜底来的，提示用户去确认
+  if (['domain', 'fallback'].includes(body.analysis.sources.category)) {
+    console.log(`已放入「${body.website.category}」，AI 没能判断分类`);
+  }
+  return body.website;
 }
 ```
+
+带确认的保存：弹窗打开时调 `POST /websites/analyze` 预填表单，用户改完再把最终字段连同 `category`、`description` 一起
+`POST /websites`。这时两个字段都给了，不会再跑一次 AI。

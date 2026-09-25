@@ -58,6 +58,7 @@
 ### AI 网站识别
 
 「AI识别」按钮触发 `POST /api/analyze-website`，抓取目标网页后跑两轮模型：分类和描述生成。
+抓取、解析、两轮 AI 的实现在 `server/lib/website-analyzer.js`，网页端和 `/api/v1` 共用。
 
 **分类用编号制，不让模型输出分类 id。** 用户会改分类名而 id 不变（比如「社交媒体」改名成
 AIGC、id 仍是 `social`），让模型输出 id 会被这种语义错位带偏。现在 prompt 里给的是编号 +
@@ -77,6 +78,16 @@ AIGC、id 仍是 `social`），让模型输出 id 会被这种语义错位带偏
 - 没有 AI 绑定或调用失败 → 退回 `getCategoryByKeywords` 关键词规则，`categoryConfidence`
   标为 `fallback`（注意这条兜底命中率很低，多数会判成未分类）
 - 接口不鉴权，限流 10 次/分钟（`server/lib/rate-limit.js`，与图床上传共用）
+
+`/api/v1` 只传 url 时走 `analyzeWebsite()`，行为和网页端不同：
+- 补全失败不能导致保存失败。每个字段各有兜底链，分类是 AI → 同域名历史归类 → 「未分类」，不用关键词规则
+- 分类候选和样例由服务端从云端数据构造，规则与前端 `collectCategorySamples()` 一致，改一边要同步另一边
+- 两轮 AI 并行跑，各 10 秒超时；抓网页 6 秒超时、只读前 1MB，反爬质询页（状态码 200 但标题是 “Just a moment…” 之类）当作被拦截
+- 扩展传来的 `hints`（当前页标题、描述、正文）在抓取失败或正文太薄时顶上
+- 没有任何网页内容时不调 AI 写描述；AI 返回「无相关信息可供总结」这类拒答时丢弃（`DESCRIPTION_REFUSAL_PATTERN`），
+  实测抓取被拦截时模型真会把拒答当描述返回
+- 响应里的 `analysis` 写明每个字段的来源和降级原因（`warnings`），字段含义见 `doc/REST_API.md`
+- 本地 `npm run dev` 调 Workers AI 需要先 `npx wrangler login`，否则 AI 全部报 `Not logged in`，只能看到兜底结果
 
 ### 图标存储
 

@@ -15,6 +15,9 @@ npm test
 - 读取：分类不含虚拟分类；按网址查询忽略协议、`www.`、末尾斜杠；不返回 base64 图标
 - 添加：写入后版本号变大并生成版本快照；分类可用名称；置顶权重；重复返回 409；参数校验；云端无数据时拒绝写入
 - 删除：按网址删除；不存在返回 404
+- 自动补全（`test/website-analyzer.spec.js` 和 `api-v1.spec.js`）：抓取被拦截、超时、反爬质询页、正文太薄时用 hints；
+  AI 置信度低、报错、超时时按同域名归类，再退到「未分类」；给了分类和描述就不调 AI；重复网址不抓网页也不调 AI；
+  `/websites/analyze` 不写数据；两轮 AI 并行发出；需要 AI 的请求按用户限流
 
 ## 手工测试
 
@@ -153,6 +156,57 @@ HTTP 200
 
 - 网页端「版本历史」里能看到两条记录：`通过令牌「<令牌名>」添加：…` 和 `通过令牌「<令牌名>」删除：…`
 - 在「个人令牌」里吊销测试令牌
+
+### 自动补全（只传 url）
+
+2026-09-25 实测。预览接口不写数据：
+
+```bash
+curl -s -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"url":"https://hono.dev/docs/"}' $API/websites/analyze
+```
+
+本地调 Workers AI 需要先 `npx wrangler login`，否则 AI 全部报 `Not logged in`，只能看到兜底结果。
+
+**AI 正常时**（已登录）：
+
+| 网址 | 分类（置信度） | 描述（AI 生成，节选） | 耗时 |
+| --- | --- | --- | --- |
+| `github.com/anthropics/claude-code` | AIGC（high） | Claude Code 是一个智能编码工具，能够理解代码库…… | 约 6s |
+| `hono.dev/docs/` | 开发技术（high） | Hono是一个基于Web标准的快速、简单的Web框架…… | 3.4s |
+| `www.zhihu.com` | 新闻资讯（high） | 知乎是一个中文互联网高质量的问答社区…… | 约 3s |
+| `openai.com` | AIGC（high） | OpenAI致力于研究和部署人工智能技术…… | 约 4s |
+| `www.npmjs.com/package/hono` | 开发技术（high） | hono是一个小型、简单、超快的Web框架…… | 7.1s；带 hints 3.5s |
+
+**抓不到内容时**：`www.npmjs.com/package/zz-no-such-package-navpat-404`（404）
+
+```json
+{"title":"npmjs.com","category":"dev","description":"",
+ "analysis":{"sources":{"title":"domain","category":"ai","description":"none","icon":"none"},
+ "categoryConfidence":"high","warnings":["fetch_failed","ai_description_skipped"]}}
+```
+
+分类仍由 AI 凭域名判断，描述留空。修这个之前，npm 某次抓取被拦截，AI 只拿到网址，返回了「无相关信息可供总结。」
+并被当成描述；现在没有内容时不调 AI 写描述，拒答也会被丢弃。
+
+**AI 不可用时**（未登录）：同样几个网址分类全部进「未分类」（fallback），描述取网页 meta 描述，
+`warnings` 为 `["ai_category_failed", "ai_description_failed"]`；`www.npmjs.com/package/hono` 带 hints 时
+按同域名归到了「开发技术」（domain）。
+
+实测中还修了两个解析问题：知乎的 `<title data-rh="true">` 带属性，原来的正则匹配不到，标题退回了域名；
+OpenAI 的标题 `&amp;` 没解码。
+
+最坏情况，网页 404 且 AI 不可用，只传 url 也能保存：
+
+```json
+HTTP 201
+{"success":true,"website":{"title":"example.com","url":"https://example.com/navpat-autofill-test","description":"",
+ "category":"uncategorized", "...":"..."},
+ "analysis":{"sources":{"title":"domain","category":"fallback","description":"none","icon":"none"},
+ "categoryConfidence":"fallback","warnings":["fetch_failed","ai_category_failed","ai_description_failed"]}}
+```
+
+测完已删除，网址总数回到 248。
 
 ## 未覆盖
 
