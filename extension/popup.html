@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <title>收藏到皮皮2047</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <header class="bar">
+        <img src="icons/icon-32.png" alt="" width="20" height="20">
+        <span class="bar-title">收藏到皮皮2047</span>
+        <button type="button" class="icon-btn" id="openOptions" title="设置" aria-label="设置">
+            <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M19.4 13a7.6 7.6 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.5 7.5 0 0 0-1.7-1L15 3h-4l-.4 2.9a7.5 7.5 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.6 7.6 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7.5 7.5 0 0 0 1.7 1L11 21h4l.4-2.9a7.5 7.5 0 0 0 1.7-1l2.5 1 2-3.5ZM13 15.5A3.5 3.5 0 1 1 13 8.5a3.5 3.5 0 0 1 0 7Z"/></svg>
+        </button>
+    </header>
+
+    <!-- 各状态的视图，同一时间只显示一个 -->
+    <section class="view" id="viewLoading">
+        <div class="spinner" aria-hidden="true"></div>
+        <p class="muted" id="loadingText">AI 正在识别页面…</p>
+    </section>
+
+    <section class="view" id="viewMessage" hidden>
+        <p id="messageText"></p>
+        <div class="actions">
+            <button type="button" class="btn" id="messageAction" hidden></button>
+        </div>
+    </section>
+
+    <section class="view" id="viewDuplicate" hidden>
+        <p class="notice success">已收藏在「<strong id="dupCategory"></strong>」</p>
+        <div class="site">
+            <img class="site-icon" id="dupIcon" alt="" hidden>
+            <div class="site-text">
+                <div class="site-title" id="dupTitle"></div>
+                <div class="site-desc" id="dupDesc"></div>
+            </div>
+        </div>
+        <div class="actions">
+            <button type="button" class="btn danger" id="removeBtn">从导航站移除</button>
+        </div>
+    </section>
+
+    <form class="view" id="viewForm" hidden>
+        <p class="notice warn" id="categoryNotice" hidden></p>
+
+        <label class="field">
+            <span>名称</span>
+            <input type="text" id="title" maxlength="200" required>
+        </label>
+
+        <label class="field">
+            <span>分类</span>
+            <select id="category" required></select>
+        </label>
+
+        <label class="field">
+            <span>描述</span>
+            <textarea id="description" rows="3" maxlength="1000"></textarea>
+        </label>
+
+        <div class="row">
+            <label class="check">
+                <input type="checkbox" id="pinned">
+                <span>置顶</span>
+            </label>
+            <img class="site-icon" id="iconPreview" alt="" hidden>
+        </div>
+
+        <p class="warnings muted" id="warnings" hidden></p>
+
+        <div class="actions">
+            <button type="submit" class="btn primary" id="saveBtn">保存</button>
+        </div>
+    </form>
+
+    <script type="module" src="popup.js"></script>
+</body>
+</html>

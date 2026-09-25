@@ -1,0 +1,253 @@
+:root {
+    --bg: #ffffff;
+    --surface: #f8fafc;
+    --text: #1e293b;
+    --muted: #64748b;
+    --border: #e2e8f0;
+    --primary: #4f46e5;
+    --primary-hover: #4338ca;
+    --success-bg: #ecfdf5;
+    --success-text: #047857;
+    --warn-bg: #fffbeb;
+    --warn-text: #b45309;
+    --danger: #dc2626;
+    color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --bg: #0f172a;
+        --surface: #1e293b;
+        --text: #f1f5f9;
+        --muted: #94a3b8;
+        --border: #334155;
+        --primary: #6366f1;
+        --primary-hover: #818cf8;
+        --success-bg: rgba(16, 185, 129, 0.15);
+        --success-text: #34d399;
+        --warn-bg: rgba(245, 158, 11, 0.15);
+        --warn-text: #fbbf24;
+        --danger: #f87171;
+        color-scheme: dark;
+    }
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    width: 360px;
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 14px/1.5 -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+.bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+}
+
+.bar-title {
+    flex: 1;
+    font-weight: 600;
+}
+
+.icon-btn {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+}
+
+.icon-btn:hover {
+    background: var(--surface);
+    color: var(--text);
+}
+
+.view {
+    padding: 14px 12px;
+}
+
+.view[hidden] {
+    display: none;
+}
+
+#viewLoading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 28px 12px;
+}
+
+#viewLoading[hidden] {
+    display: none;
+}
+
+.spinner {
+    width: 24px;
+    height: 24px;
+    border: 3px solid var(--border);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.muted {
+    color: var(--muted);
+    margin: 0;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 10px;
+}
+
+.field > span {
+    font-size: 12px;
+    color: var(--muted);
+}
+
+input[type="text"],
+input[type="url"],
+input[type="password"],
+select,
+textarea {
+    width: 100%;
+    padding: 7px 9px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--text);
+    font: inherit;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    outline: 2px solid var(--primary);
+    outline-offset: -1px;
+}
+
+textarea {
+    resize: vertical;
+}
+
+.row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.check {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+}
+
+.site {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+}
+
+.site-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+.site-text {
+    min-width: 0;
+}
+
+.site-title {
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.site-desc {
+    font-size: 12px;
+    color: var(--muted);
+}
+
+.notice {
+    margin: 0 0 12px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-size: 13px;
+}
+
+.notice.success {
+    background: var(--success-bg);
+    color: var(--success-text);
+}
+
+.notice.warn {
+    background: var(--warn-bg);
+    color: var(--warn-text);
+}
+
+.warnings {
+    margin-top: 8px;
+    font-size: 12px;
+}
+
+.actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.btn {
+    padding: 7px 16px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--text);
+    font: inherit;
+    cursor: pointer;
+}
+
+.btn:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
+.btn.primary {
+    border-color: var(--primary);
+    background: var(--primary);
+    color: #fff;
+}
+
+.btn.primary:hover:not(:disabled) {
+    background: var(--primary-hover);
+}
+
+.btn.danger {
+    border-color: var(--danger);
+    background: transparent;
+    color: var(--danger);
+}

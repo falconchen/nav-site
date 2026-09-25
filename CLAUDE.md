@@ -7,6 +7,7 @@
 这是一个包含多个 HTML/CSS 项目的 monorepo：
 
 - **nav-site/**: 基于 Cloudflare Workers 的导航网站，支持用户认证和云端同步
+- **extension/**（在 nav-site 内）: Chrome 扩展「皮皮2047 收藏助手」，调用 `/api/v1` 收藏网页，见 `extension/README.md`
 - **dxy/**: 简单的 HTML 页面（遗留项目）
 - **sassy/**: CSS 样式项目（遗留项目）
 

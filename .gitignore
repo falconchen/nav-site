@@ -175,3 +175,6 @@ bak
 .cursor/
 .claude/
 *.json
+
+# Chrome 扩展打包产物
+nav-site-extension.zip

@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <title>皮皮2047 收藏助手 - 设置</title>
+    <link rel="stylesheet" href="popup.css">
+    <link rel="stylesheet" href="options.css">
+</head>
+<body class="options">
+    <header class="bar">
+        <img src="icons/icon-32.png" alt="" width="20" height="20">
+        <span class="bar-title">皮皮2047 收藏助手 · 设置</span>
+    </header>
+
+    <form class="view" id="settingsForm">
+        <label class="field">
+            <span>导航站地址</span>
+            <input type="text" id="serverUrl" placeholder="https://your-nav-site.example" required>
+        </label>
+
+        <label class="field">
+            <span>个人令牌</span>
+            <input type="password" id="token" placeholder="navpat_..." autocomplete="off" required>
+        </label>
+
+        <p class="muted hint">
+            在导航站网页端登录后，右上角用户菜单 →「个人令牌」生成。令牌只保存在这台电脑的浏览器里。
+        </p>
+
+        <p class="notice" id="status" hidden></p>
+
+        <div class="actions">
+            <button type="button" class="btn" id="testBtn">测试连接</button>
+            <button type="submit" class="btn primary" id="saveBtn">保存</button>
+        </div>
+    </form>
+
+    <section class="view tips">
+        <h2>用法</h2>
+        <ul>
+            <li>点工具栏图标或按 <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd>：AI 预填名称、分类、描述，确认后保存</li>
+            <li>网页或链接上点右键 →「一键收藏到皮皮2047」：直接保存，完成后弹出通知告诉你存进了哪个分类</li>
+        </ul>
+    </section>
+
+    <script type="module" src="options.js"></script>
+</body>
+</html>
