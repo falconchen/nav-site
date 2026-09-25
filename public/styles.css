@@ -751,6 +751,20 @@ html[data-sidebar="compact"] .cards-grid {
   text-underline-offset: 2px;
 }
 
+/* inline-block 让下划线不延伸到图标上 */
+.card-tooltip-url i {
+  display: inline-block;
+  margin-left: 0.3rem;
+  font-size: 0.65rem;
+  opacity: 0.7;
+  vertical-align: 0.05em;
+}
+
+.card-tooltip-url:hover i,
+.card-tooltip-url:focus-visible i {
+  opacity: 1;
+}
+
 .card-tooltip-description {
   margin-top: 0.5rem;
   font-size: 0.8125rem;

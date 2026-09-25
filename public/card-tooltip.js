@@ -28,7 +28,7 @@
         tooltip.innerHTML = `
             <div class="card-tooltip-body">
                 <div class="card-tooltip-title"></div>
-                <a class="card-tooltip-url" target="_blank" rel="noopener noreferrer"></a>
+                <a class="card-tooltip-url" target="_blank" rel="noopener noreferrer"><span class="card-tooltip-url-text"></span><i class="fas fa-external-link-alt" aria-hidden="true"></i></a>
                 <div class="card-tooltip-description"></div>
             </div>
             <div class="card-tooltip-actions">
@@ -103,7 +103,7 @@
         cancelHide();
         tooltip.querySelector('.card-tooltip-title').textContent = title;
         const urlLink = tooltip.querySelector('.card-tooltip-url');
-        urlLink.textContent = data.url;
+        urlLink.querySelector('.card-tooltip-url-text').textContent = data.url;
         urlLink.href = toFullUrl(data.url);
         tooltip.querySelector('.card-tooltip-description').textContent = description;
         tooltip.querySelector('.card-tooltip-description').hidden = !description;
