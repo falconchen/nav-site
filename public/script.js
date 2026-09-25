@@ -255,6 +255,7 @@ function createCardHTML(website) {
 
     return `
         <div class="website-card ${pinnedClass}" data-weight="${weight}">
+            <button class="card-pin-btn" title="取消置顶" aria-label="取消置顶"><i class="fas fa-thumbtack"></i></button>
             <div class="card-header">
                 <div class="card-icon ${withImgClass}">
                     ${iconContent}
@@ -1304,6 +1305,7 @@ function createWebsiteCard(name, url, description, category, iconUrl, isPinned) 
 
     const cardHTML = `
         <div class="website-card ${pinnedClass}" style="animation: fadeIn 0.5s ease-out" data-weight="${weight}">
+            <button class="card-pin-btn" title="取消置顶" aria-label="取消置顶"><i class="fas fa-thumbtack"></i></button>
             <div class="card-header">
                 <div class="card-icon">
                     <i class="${iconUrl || 'fas fa-globe'}"></i>
@@ -1818,12 +1820,25 @@ function addCardEventListeners(card) {
     // 左键点击（访问网站）
     card.addEventListener('click', handleCardClick);
 
+    // 右上角图钉：点击取消置顶（只有置顶卡片显示）
+    const pinBtn = card.querySelector('.card-pin-btn');
+    if (pinBtn) {
+        pinBtn.removeEventListener('click', handlePinBtnClick);
+        pinBtn.addEventListener('click', handlePinBtnClick);
+    }
+
     // 菜单按钮点击（移动设备）
     const menuBtn = card.querySelector('.card-menu-btn');
     if (menuBtn) {
         menuBtn.removeEventListener('click', handleMenuBtnClick);
         menuBtn.addEventListener('click', handleMenuBtnClick);
     }
+}
+
+// 处理卡片图钉点击
+function handlePinBtnClick(e) {
+    e.stopPropagation();
+    togglePinStatus(this.closest('.website-card'));
 }
 
 // 处理卡片右键菜单事件
@@ -1858,7 +1873,7 @@ function handleMenuBtnClick(e) {
 // 处理卡片点击事件
 function handleCardClick(e) {
     // 如果点击了菜单按钮或context菜单，不执行卡片点击
-    if (e.target.closest('.context-menu') || e.target.closest('.card-menu-btn')) return;
+    if (e.target.closest('.context-menu') || e.target.closest('.card-menu-btn') || e.target.closest('.card-pin-btn')) return;
 
     // 如果按住Ctrl键点击，则编辑网站
     if (e.ctrlKey) {

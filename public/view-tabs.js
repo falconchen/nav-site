@@ -1,7 +1,7 @@
-// 视图 tab：置顶 / 最近添加 / 全部网站
+// 视图 tab：最近添加 / 置顶 / 全部网站
 // 当前 tab 写在 <html data-tab>，index.html 的内联脚本在首屏前就设好了，CSS 按它切换面板
 
-const VIEW_TABS = ['pinned', 'recent', 'all'];
+const VIEW_TABS = ['recent', 'pinned', 'all'];
 // 每个 tab 各自记住滚动位置，来回切换时不用重新往下翻
 const tabScrollPositions = {};
 

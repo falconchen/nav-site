@@ -107,11 +107,11 @@
     <!-- 视图 tab：置顶 / 最近添加 / 全部网站 -->
     <nav class="view-tabs" role="tablist" aria-label="视图">
         <div class="view-tabs-inner">
-            <button type="button" class="view-tab" role="tab" data-tab="pinned" aria-controls="tab-pinned">
-                <i class="fas fa-thumbtack"></i><span>置顶</span>
-            </button>
             <button type="button" class="view-tab" role="tab" data-tab="recent" aria-controls="tab-recent">
                 <i class="fas fa-clock"></i><span>最近添加</span>
+            </button>
+            <button type="button" class="view-tab" role="tab" data-tab="pinned" aria-controls="tab-pinned">
+                <i class="fas fa-thumbtack"></i><span>置顶</span>
             </button>
             <button type="button" class="view-tab" role="tab" data-tab="all" aria-controls="tab-all">
                 <i class="fas fa-layer-group"></i><span>全部网站</span>
@@ -144,16 +144,16 @@
 
         <!-- 网址卡片区域 -->
         <div class="content-area">
-            <div class="tab-panel" id="tab-pinned" role="tabpanel">
-                <section class="category-section" id="pinned">
-                    <div class="cards-grid" id="pinned-cards"></div>
-                    <p class="tab-empty">还没有置顶的网站。在卡片菜单里点「置顶」，常用的网站就会出现在这里。</p>
-                </section>
-            </div>
             <div class="tab-panel" id="tab-recent" role="tabpanel">
                 <section class="category-section" id="recent">
                     <div class="cards-grid" id="recent-cards"></div>
                     <p class="tab-empty">还没有添加过网站。</p>
+                </section>
+            </div>
+            <div class="tab-panel" id="tab-pinned" role="tabpanel">
+                <section class="category-section" id="pinned">
+                    <div class="cards-grid" id="pinned-cards"></div>
+                    <p class="tab-empty">还没有置顶的网站。在卡片菜单里点「置顶」，常用的网站就会出现在这里。</p>
                 </section>
             </div>
             <div class="tab-panel" id="tab-all" role="tabpanel">
