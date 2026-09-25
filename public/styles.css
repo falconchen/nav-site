@@ -3125,7 +3125,15 @@ html:not([data-tab="all"]) body:not(.searching) #mobile-category-menu-wrapper {
   }
 }
 
-/* ========== 置顶卡片右上角的图钉，点击取消置顶 ========== */
+/* ========== 特别收藏卡片右上角的星星，点击取消收藏 ========== */
+:root {
+  --star-color: #f5b400;
+}
+
+[data-theme="dark"] {
+  --star-color: #fbbf24;
+}
+
 .website-card {
   position: relative;
 }
@@ -3144,14 +3152,23 @@ html:not([data-tab="all"]) body:not(.searching) #mobile-category-menu-wrapper {
   border: none;
   border-radius: 50%;
   background: none;
-  color: var(--primary-color);
-  font-size: 0.8rem;
+  color: var(--star-color);
+  font-size: 0.85rem;
   cursor: pointer;
-  transition: background-color 0.2s ease, transform 0.2s ease;
+  transition: background-color 0.15s ease;
 }
 
 .card-pin-btn i {
-  transform: rotate(45deg);
+  /* 白底上黄色偏淡，加一圈很淡的描边 */
+  filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.25));
+  transition: transform 0.15s ease;
+}
+
+/* 扩大点击区域，视觉大小不变 */
+.card-pin-btn::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
 }
 
 .website-card.pinned .card-pin-btn {
@@ -3159,18 +3176,34 @@ html:not([data-tab="all"]) body:not(.searching) #mobile-category-menu-wrapper {
 }
 
 .card-pin-btn:hover {
-  background-color: rgba(var(--primary-color-rgb), 0.12);
+  background-color: rgba(245, 180, 0, 0.15);
+}
+
+.card-pin-btn:hover i {
+  transform: scale(1.1);
 }
 
 .card-pin-btn:focus-visible {
-  outline: 2px solid var(--primary-color);
+  outline: 2px solid var(--star-color);
   outline-offset: 1px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-pin-btn:hover i {
+    transform: none;
+  }
+}
+
+/* 编辑弹窗和右键菜单里的星星也用黄色 */
+.checkbox-label .fa-star,
+#toggle-pin-btn .fa-star {
+  color: var(--star-color);
 }
 
 html[data-sidebar="compact"] .card-pin-btn {
   top: 0.1rem;
   right: 0.1rem;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
 }
 
 /* 手机小卡只有 60px 的图标块，图钉挂在图标块右上角 */

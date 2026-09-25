@@ -54,21 +54,22 @@
 - `public/icon-selector.js` - 图标选择模态框
 - `public/image-upload.js` - 图标压缩转 WebP 并上传图床
 - `public/utils.js` - 共享工具函数
-- `public/view-tabs.js` - 顶部视图 tab（最近添加 / 置顶 / 全部网站）切换与移动端左右滑动手势
+- `public/view-tabs.js` - 顶部视图 tab（最近添加 / 特别收藏 / 全部网站）切换与移动端左右滑动手势
 
 ### 视图 tab
 
-页面顶部是三个横向 tab：最近添加、置顶、全部网站，当前 tab 写在 `<html data-tab>` 上，
+页面顶部是三个横向 tab：最近添加、特别收藏、全部网站，当前 tab 写在 `<html data-tab>` 上，
 存 localStorage `activeTab`（内联脚本首屏前读取，防闪烁）。分类侧边栏只在「全部网站」下显示。
 
-- 置顶和最近添加**不是分类**，是从数据派生的视图：置顶取 `website.pinned === true`，
+- 「特别收藏」就是原来的「置顶」，只改了界面名称和图标（黄色星星）；数据字段、DOM id、`activeTab` 取值、API 参数仍叫 `pinned`
+- 特别收藏和最近添加**不是分类**，是从数据派生的视图：置顶取 `website.pinned === true`，
   最近添加按 `addedTime` 倒序取前 24 个（`RECENT_LIMIT`）
 - 两个视图的 DOM 仍是 `<section class="category-section" id="pinned|recent">`，编辑、删除、切换置顶
   靠 `closest('.category-section').id` 和卡片上的 `data-original-category` 找回原分类
 - 普通分类 section 渲染在 `#tab-all` 里；`showCategory()` 会先切到「全部网站」
 - 搜索始终搜全部网站：有关键词时加 `body.searching`，临时显示 `#tab-all`，清空后回到原 tab
 - 移动端左右滑动只在松手时判断一次（不跟手），每个 tab 各自记住滚动位置
-- 置顶卡片右上角的图钉是真实按钮（`.card-pin-btn`，每张卡都渲染，靠 `.pinned` 类显示），点击取消置顶
+- 特别收藏卡片右上角的星星是真实按钮（`.card-pin-btn`，每张卡都渲染，靠 `.pinned` 类显示），点击取消收藏
 
 登录状态在页面启动时通过 `/api/auth/verify` 校验。只有明确收到 401 或 `valid: false` 才删除本地令牌；断网、请求异常及服务端临时故障会保留令牌，并在网络恢复或 15 秒后重试。校验未成功前不启动云端同步。修改此流程时需检查断网刷新后恢复、真正过期以及校验期间切换账号这三种情况。
 

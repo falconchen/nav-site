@@ -255,7 +255,7 @@ function createCardHTML(website) {
 
     return `
         <div class="website-card ${pinnedClass}" data-weight="${weight}">
-            <button class="card-pin-btn" title="取消置顶" aria-label="取消置顶"><i class="fas fa-thumbtack"></i></button>
+            <button class="card-pin-btn" title="取消特别收藏" aria-label="取消特别收藏"><i class="fas fa-star"></i></button>
             <div class="card-header">
                 <div class="card-icon ${withImgClass}">
                     ${iconContent}
@@ -1305,7 +1305,7 @@ function createWebsiteCard(name, url, description, category, iconUrl, isPinned) 
 
     const cardHTML = `
         <div class="website-card ${pinnedClass}" style="animation: fadeIn 0.5s ease-out" data-weight="${weight}">
-            <button class="card-pin-btn" title="取消置顶" aria-label="取消置顶"><i class="fas fa-thumbtack"></i></button>
+            <button class="card-pin-btn" title="取消特别收藏" aria-label="取消特别收藏"><i class="fas fa-star"></i></button>
             <div class="card-header">
                 <div class="card-icon">
                     <i class="${iconUrl || 'fas fa-globe'}"></i>
@@ -1479,8 +1479,8 @@ function createContextMenu() {
             <span>编辑网站</span>
         </div>
         <div class="context-menu-item" id="toggle-pin-btn">
-            <i class="fas fa-thumbtack"></i>
-            <span id="pin-action-text">置顶网站</span>
+            <i class="fas fa-star"></i>
+            <span id="pin-action-text">特别收藏</span>
         </div>
         <div class="context-menu-item danger" id="delete-website-btn">
             <i class="fas fa-trash"></i>
@@ -1699,10 +1699,10 @@ function showContextMenu(e, card) {
     const pinIcon = menu.querySelector('#toggle-pin-btn i');
 
     if (isPinned) {
-        pinActionText.textContent = '取消置顶';
+        pinActionText.textContent = '取消特别收藏';
         pinIcon.style.transform = 'rotate(45deg)';
     } else {
-        pinActionText.textContent = '置顶网站';
+        pinActionText.textContent = '特别收藏';
         pinIcon.style.transform = 'rotate(0deg)';
     }
 
