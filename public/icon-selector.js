@@ -297,7 +297,7 @@ function renderIconGrid(icons) {
     `).join('');
 
     if (icons.length === 0) {
-        html = '<div style="text-align: center; padding: 0.5rem; color: var(--text-muted);">没有找到匹配的图标</div>';
+        html = '<div class="icon-grid-empty">没有找到匹配的图标</div>';
     }
 
     iconGrid.innerHTML = html;

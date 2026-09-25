@@ -1789,6 +1789,15 @@ html[data-sidebar="compact"] .cards-grid {
   gap: 0.3rem;
 }
 
+/* 「没有找到匹配的图标」这类提示也是网格项，不跨列的话会被塞进
+   一个 2rem 宽的格子里，文字就变成一字一行的竖排 */
+.icon-grid-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 0.5rem;
+  color: var(--text-muted);
+}
+
 .icon-item {
   display: flex;
   align-items: center;
