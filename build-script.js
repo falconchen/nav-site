@@ -27,7 +27,8 @@ async function buildProject() {
                 'public/image-upload.js',
                 'public/script.js',
                 'public/category-edit.js',
-                'public/icon-selector.js'
+                'public/icon-selector.js',
+                'public/card-tooltip.js'
             ],
             minify: true,
             outdir: 'dist'

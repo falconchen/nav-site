@@ -647,6 +647,104 @@ html[data-sidebar="compact"] .cards-grid {
   max-height: 2.8em;
 }
 
+/* 卡片悬浮提示：显示完整标题、网址和描述 */
+.card-tooltip {
+  position: fixed;
+  top: 0;
+  left: -9999px;
+  z-index: 995;
+  width: max-content;
+  max-width: min(320px, calc(100vw - 16px));
+  padding: 0.75rem 0.9rem;
+  background-color: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 0.6rem;
+  box-shadow: var(--shadow-large);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.card-tooltip[data-side="left"] {
+  transform: translateX(4px);
+}
+
+.card-tooltip.visible {
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+.card-tooltip-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.card-tooltip-url {
+  margin-top: 0.2rem;
+  font-size: 0.75rem;
+  color: var(--primary-color);
+  word-break: break-all;
+}
+
+.card-tooltip-description {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border-color);
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  white-space: pre-line;
+  word-break: break-word;
+}
+
+.card-tooltip-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.65rem;
+}
+
+.card-tooltip-actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.6rem;
+  font: inherit;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  background-color: var(--background-color);
+  border: 1px solid var(--border-color);
+  border-radius: 0.4rem;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.card-tooltip-actions button[hidden] {
+  display: none;
+}
+
+.card-tooltip-actions button:hover,
+.card-tooltip-actions button:focus-visible {
+  color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.card-tooltip-actions button.copied {
+  color: var(--secondary-color);
+  border-color: var(--secondary-color);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-tooltip {
+    transition: none;
+  }
+}
+
 /* 底部信息栏 */
 .footer {
   background-color: var(--surface-color);
