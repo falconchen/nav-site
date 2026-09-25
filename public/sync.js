@@ -8,14 +8,8 @@ let lastSyncCheck = 0;
 const SYNC_CHECK_INTERVAL = 900000; // 15分钟检查一次
 const MIN_CHECK_INTERVAL = 10000; // 最小检查间隔10秒
 
-// 全局变量控制是否进行定时同步检测，默认为true
-let enableTimerSync = true;
-
 // 初始化保存状态标志
 window.isSavingToCloud = false;
-
-// 标记是否是首次同步检查（页面初始化或刚登录）
-let isFirstSyncCheck = true;
 
 // 同步用户数据（直接覆盖到云端）
 async function syncUserData() {
@@ -626,11 +620,11 @@ function stopSyncDetection() {
 
 // 检查云端更新
 async function checkForCloudUpdates() {
-    if (!authToken || !enableTimerSync) return;
+    if (!authToken) return;
 
-    // 如果正在保存到云端，跳过版本检查避免冲突
-    if (window.isSavingToCloud) {
-        console.log('🔍 Skipping sync check - currently saving to cloud (isSavingToCloud = true)');
+    // 如果正在保存或有待保存的本地改动，跳过版本检查，避免云端数据覆盖还没上传的修改
+    if (window.isSavingToCloud || window.saveTimeout) {
+        console.log('🔍 Skipping sync check - local changes are being saved');
         return;
     }
 
@@ -662,28 +656,21 @@ async function checkForCloudUpdates() {
                 cloud: cloudVersion,
                 hasCloudData: data.hasData,
                 lastUpdated: data.lastUpdated,
-                isSavingToCloud: window.isSavingToCloud,
-                isFirstSyncCheck: isFirstSyncCheck
+                isSavingToCloud: window.isSavingToCloud
             });
 
             if (data.hasData && cloudVersion > localVersion) {
                 console.log('🆕 New cloud data detected!');
 
-                // 如果是首次检查（刚登录或首次打开页面），直接自动同步
-                if (isFirstSyncCheck) {
-                    console.log('⚡ First sync check detected, auto-syncing without notification');
-                    isFirstSyncCheck = false; // 标记已进行过首次检查
-                    await syncNow();
-                } else {
-                    // 之后的检查才显示弹窗让用户选择
-                    showSyncUpdateNotification(cloudVersion, localVersion);
+                // 检查请求期间用户可能又改了数据，再确认一次
+                if (window.isSavingToCloud || window.saveTimeout) {
+                    console.log('🔍 Skipping cloud update - local changes are being saved');
+                    return;
                 }
+
+                await loadUserData(true); // 直接从云端加载覆盖本地
             } else {
                 console.log('📊 Local data is up to date');
-                // 即使没有更新，首次检查也要标记为已完成
-                if (isFirstSyncCheck) {
-                    isFirstSyncCheck = false;
-                }
             }
         } else {
             let errorInfo;
@@ -706,105 +693,6 @@ async function checkForCloudUpdates() {
     } catch (error) {
         console.error('❌ Error checking cloud updates:', error);
     }
-}
-
-// 显示同步更新通知
-function showSyncUpdateNotification(cloudVersion, localVersion) {
-    // 移除已存在的通知
-    const existingNotification = document.querySelector('.sync-notification');
-    if (existingNotification) {
-        existingNotification.remove();
-    }
-
-    const notification = document.createElement('div');
-    notification.className = 'sync-notification';
-    notification.style.cssText = `
-        position: fixed;
-        top: 80px;
-        right: 20px;
-        background: var(--primary-color);
-        color: white;
-        padding: 1rem 1.5rem;
-        border-radius: 0.5rem;
-        box-shadow: var(--shadow-large);
-        z-index: 1001;
-        max-width: 350px;
-        transform: translateX(100%);
-        transition: transform 0.3s ease;
-        border-left: 4px solid var(--secondary-color);
-    `;
-
-    notification.innerHTML = `
-        <div style="margin-bottom: 0.5rem;">
-            <strong>🆕 发现云端更新</strong>
-        </div>
-        <div style="font-size: 0.875rem; margin-bottom: 1rem; opacity: 0.9;">
-            有其他设备更新了数据 (版本 ${localVersion} → ${cloudVersion})
-        </div>
-        <div style="display: flex; gap: 0.5rem;">
-            <button onclick="syncNow()" style="
-                background: white;
-                color: var(--primary-color);
-                border: none;
-                padding: 0.5rem 1rem;
-                border-radius: 0.25rem;
-                cursor: pointer;
-                font-size: 0.875rem;
-                font-weight: 500;
-            ">
-                立即更新
-            </button>
-            <button onclick="dismissSyncNotificationAndDisableTimer()" style="
-                background: transparent;
-                color: white;
-                border: 1px solid rgba(255,255,255,0.3);
-                padding: 0.5rem 1rem;
-                border-radius: 0.25rem;
-                cursor: pointer;
-                font-size: 0.875rem;
-            ">
-                稍后
-            </button>
-        </div>
-    `;
-
-    document.body.appendChild(notification);
-
-    // 显示动画
-    setTimeout(() => {
-        notification.style.transform = 'translateX(0)';
-    }, 100);
-
-    // 30秒后自动消失
-    setTimeout(() => {
-        dismissSyncNotification();
-    }, 30000);
-}
-
-// 立即更新（从云端加载数据覆盖本地）
-async function syncNow() {
-    dismissSyncNotification();
-    await loadUserData(true); // 直接从云端加载覆盖本地
-}
-
-// 关闭同步通知
-function dismissSyncNotification() {
-    const notification = document.querySelector('.sync-notification');
-    if (notification) {
-        notification.style.transform = 'translateX(100%)';
-        setTimeout(() => {
-            if (notification.parentNode) {
-                notification.parentNode.removeChild(notification);
-            }
-        }, 300);
-    }
-}
-
-// 关闭同步通知并禁用定时同步
-function dismissSyncNotificationAndDisableTimer() {
-    enableTimerSync = false;
-    console.log('🔕 Timer sync disabled by user');
-    dismissSyncNotification();
 }
 
 // 处理窗口获得焦点
@@ -830,7 +718,10 @@ document.addEventListener('dataChanged', function () {
         console.log('🔍 Current isSavingToCloud status:', window.isSavingToCloud);
         // 延迟保存，避免频繁请求
         clearTimeout(window.saveTimeout);
-        window.saveTimeout = setTimeout(saveUserData, 2000);
+        window.saveTimeout = setTimeout(() => {
+            window.saveTimeout = null;
+            saveUserData();
+        }, 2000);
     } else {
         console.log('📝 Data changed event triggered, but no auth token available');
     }
