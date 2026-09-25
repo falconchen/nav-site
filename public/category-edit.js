@@ -327,7 +327,7 @@ function addNewCategory() {
 
 // 创建新分类的内容区域
 function createCategoryContentSection(categoryId) {
-    const contentArea = document.querySelector('.content-area');
+    const contentArea = document.getElementById('tab-all');
     if (!contentArea) return;
     
     const sectionHTML = `

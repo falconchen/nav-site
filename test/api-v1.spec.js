@@ -175,11 +175,31 @@ describe('个人令牌 + REST API v1', () => {
     });
 
     describe('读取', () => {
-        it('分类列表不含虚拟分类，带网站数量', async () => {
+        it('分类列表不含旧数据里的虚拟分类，带网站数量', async () => {
             const { token } = await createPat();
             const { categories } = await (await call('/api/v1/categories', { token })).json();
             expect(categories.map((c) => c.id)).toEqual(['social', 'tools']);
             expect(categories[0]).toMatchObject({ name: 'AIGC', count: 1 });
+        });
+
+        it('新格式数据（categories 里没有置顶/最近添加）照常读写', async () => {
+            await seedUserData(redisStore, {
+                ...SAMPLE_DATA,
+                categories: SAMPLE_DATA.categories.filter((c) => c.id !== 'pinned' && c.id !== 'recent')
+            });
+            const { token } = await createPat();
+            const { categories } = await (await call('/api/v1/categories', { token })).json();
+            expect(categories.map((c) => c.id)).toEqual(['social', 'tools']);
+
+            const res = await call('/api/v1/websites', {
+                method: 'POST', token,
+                body: { url: 'https://github.com/', title: 'GitHub', category: 'tools' }
+            });
+            expect(res.status).toBe(201);
+            const saved = await readUserData(redisStore);
+            expect(saved.categories.map((c) => c.id)).toEqual(['social', 'tools']);
+            expect(saved.websites).not.toHaveProperty('pinned');
+            expect(saved.websites).not.toHaveProperty('recent');
         });
 
         it('按网址查询时忽略协议、www 和末尾斜杠，且不返回 base64 图标', async () => {

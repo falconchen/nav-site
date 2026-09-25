@@ -23,7 +23,7 @@ import {
 
 const app = new Hono();
 
-// 这两个是前端虚拟出来的分类，网站不直接存在里面
+// 旧版本前端把「置顶」「最近添加」当分类存进数据，现在已不再写入；云端旧数据里仍可能有，读取时过滤掉
 const VIRTUAL_CATEGORY_IDS = new Set(['pinned', 'recent']);
 const WRITE_RATE_LIMIT = 30;
 // 会调用 AI 的请求按用户限流，抓网页加两轮模型成本比普通写入高得多

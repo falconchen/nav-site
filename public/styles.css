@@ -1631,47 +1631,6 @@ html[data-sidebar="compact"] .cards-grid {
   display: none;
 }
 
-/* 展开更多按钮样式 */
-.expand-button {
-  display: flex;
-  justify-content: center;
-  margin: 0.5rem 0 1.5rem;
-  width: 100%;
-}
-
-.btn-expand {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  background-color: transparent;
-  color: var(--text-secondary);
-  border: none;
-  border-radius: 2rem;
-  padding: 0.3rem 1rem;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.btn-expand:hover {
-  color: var(--primary-color);
-}
-
-.btn-expand i {
-  transition: transform 0.3s ease;
-}
-
-/* 隐藏卡片容器样式 */
-.hidden-cards-container {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 1rem;
-  width: 100%;
-  margin-top: 1.5rem;
-  margin-bottom: 1rem;
-}
-
 /* 图标选择器样式 */
 .icon-selector-container {
   position: relative;
@@ -3081,4 +3040,161 @@ html[data-sidebar="compact"] .website-card:hover {
 .api-token-revoke:disabled {
   opacity: 0.6;
   cursor: default;
+}
+
+/* ========== 视图 tab：置顶 / 最近添加 / 全部网站 ========== */
+.view-tabs {
+  position: sticky;
+  /* --header-h 由 view-tabs.js 按头部实际高度写入，移动端头部是两行 */
+  top: var(--header-h, 4rem);
+  z-index: 90;
+  background-color: var(--background-color);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.view-tabs-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.view-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.85rem 1.1rem 0.75rem;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.view-tab:hover {
+  color: var(--text-primary);
+}
+
+.view-tab.active {
+  color: var(--primary-color);
+  border-bottom-color: var(--primary-color);
+}
+
+.view-tab:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: -2px;
+  border-radius: 0.25rem;
+}
+
+/* 搜索时显示的是全部网站的结果，不高亮任何 tab */
+body.searching .view-tab.active {
+  color: var(--text-secondary);
+  border-bottom-color: transparent;
+}
+
+/* 面板切换 */
+.tab-panel {
+  display: none;
+}
+
+html[data-tab="pinned"] #tab-pinned,
+html[data-tab="recent"] #tab-recent,
+html[data-tab="all"] #tab-all,
+body.searching #tab-all {
+  display: block;
+}
+
+body.searching #tab-pinned,
+body.searching #tab-recent {
+  display: none;
+}
+
+/* 分类侧边栏只在「全部网站」下出现（搜索结果按分类分组，也保留侧边栏） */
+html:not([data-tab="all"]) body:not(.searching) .categories-sidebar {
+  display: none;
+}
+
+html:not([data-tab="all"]) body:not(.searching) .main-container,
+html:not([data-tab="all"]) body:not(.searching) .main-container.compact-mode,
+html:not([data-tab="all"]) body:not(.searching) .main-container.editing-categories {
+  grid-template-columns: 1fr;
+}
+
+html:not([data-tab="all"]) body:not(.searching) .content-area {
+  padding-left: 0;
+}
+
+/* 移动端的分类菜单按钮同理 */
+html:not([data-tab="all"]) body:not(.searching) #mobile-category-menu-wrapper {
+  display: none;
+}
+
+.categories-sidebar {
+  top: calc(var(--header-h, 4rem) + 3rem + 1.5rem);
+}
+
+#tab-all .category-section {
+  scroll-margin-top: calc(var(--header-h, 4rem) + 3.5rem);
+}
+
+/* 置顶 / 最近添加空状态 */
+.tab-empty {
+  display: none;
+  padding: 4rem 1rem;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.category-section.is-empty .tab-empty {
+  display: block;
+}
+
+.category-section.is-empty .cards-grid {
+  display: none;
+}
+
+/* 手势切换的滑入动画 */
+@keyframes tab-slide-in-right {
+  from { opacity: 0; transform: translateX(24px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes tab-slide-in-left {
+  from { opacity: 0; transform: translateX(-24px); }
+  to { opacity: 1; transform: none; }
+}
+
+.tab-panel.slide-in-right {
+  animation: tab-slide-in-right 0.2s ease-out;
+}
+
+.tab-panel.slide-in-left {
+  animation: tab-slide-in-left 0.2s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab-panel.slide-in-right,
+  .tab-panel.slide-in-left {
+    animation: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .view-tabs-inner {
+    padding: 0;
+    gap: 0;
+  }
+
+  .view-tab {
+    flex: 1;
+    justify-content: center;
+    padding: 0.7rem 0.25rem 0.6rem;
+    font-size: 0.9rem;
+    gap: 0.35rem;
+  }
 }

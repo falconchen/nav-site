@@ -10,20 +10,6 @@ window.dataLoaded = null; // 将在 loadData 开始时被赋值为 Promise
 // 默认网站数据
 const defaultCategories = [
   {
-    id: "pinned",
-    name: "置顶",
-    icon: "fas fa-thumbtack",
-    order: 0,
-    fixed: true
-  },
-  {
-    id: "recent",
-    name: "最近添加",
-    icon: "fas fa-clock",
-    order: 1,
-    fixed: true
-  },
-  {
     id: "social",
     name: "社交媒体",
     icon: "fab fa-twitter",
@@ -69,8 +55,6 @@ const defaultCategories = [
 ];
 
 const defaultWebsites = {
-  pinned: [],
-  recent: [],
   social: [
     {
       title: "微博",
@@ -277,20 +261,8 @@ async function loadData() {
       window.websites = websites;
       window.categories = categories;
 
-      // 确保固定分类存在且位置正确
+      // 确保固定分类存在，并剥掉旧数据里的虚拟分类
       ensureFixedCategories();
-
-      // 清空虚拟分类中的数据
-      if (websites['pinned']) {
-        websites['pinned'] = [];
-      }
-      if (websites['recent']) {
-        websites['recent'] = [];
-      }
-
-      // 再次同步到全局变量
-      window.websites = websites;
-      window.categories = categories;
 
       console.log('✅ loadData completed');
 
@@ -318,52 +290,13 @@ async function loadData() {
   return window.dataLoaded;
 }
 
-// 确保置顶分类存在且位于第一位
-function ensurePinnedCategory() {
-  // 查找置顶分类
-  const pinnedIndex = categories.findIndex(cat => cat.id === 'pinned');
+// 旧版本把「置顶」「最近添加」当成分类存在数据里，现在它们是由 website.pinned /
+// website.addedTime 派生出来的视图，不再是分类
+const LEGACY_VIRTUAL_CATEGORY_IDS = ['pinned', 'recent'];
 
-  if (pinnedIndex < 0) {
-    // 如果不存在，则添加置顶分类
-    categories.unshift({
-      id: "pinned",
-      name: "置顶",
-      icon: "fas fa-thumbtack",
-      order: 0,
-      fixed: true
-    });
-
-    // 更新其他分类的order
-    categories.forEach((cat, index) => {
-      if (cat.id !== 'pinned') {
-        cat.order = index;
-      }
-    });
-  } else if (pinnedIndex > 0) {
-    // 如果存在但不在第一位，移动到第一位
-    const pinnedCategory = categories.splice(pinnedIndex, 1)[0];
-    pinnedCategory.order = 0;
-    categories.unshift(pinnedCategory);
-
-    // 更新其他分类的order
-    categories.forEach((cat, index) => {
-      if (cat.id !== 'pinned') {
-        cat.order = index;
-      }
-    });
-  }
-
-  // 确保置顶分类是固定的
-  const pinnedCategory = categories.find(cat => cat.id === 'pinned');
-  if (pinnedCategory) {
-    pinnedCategory.fixed = true;
-  }
-
-  // 确保置顶分类数据是空的
-  websites['pinned'] = [];
-}
-
-// 确保固定分类存在且位置正确
+// 规范化分类数据：剥掉旧数据里的虚拟分类，确保「未分类」存在且排在最后。
+// 本地加载、导入、云端下载都要经过这里。原地修改数组，因为 categories 这个
+// 全局绑定被其它脚本直接引用
 function ensureFixedCategories() {
   // 检查分类对象是否已经初始化
   if (!window.categories || !Array.isArray(window.categories)) {
@@ -371,73 +304,29 @@ function ensureFixedCategories() {
     return;
   }
 
-  // 查找置顶分类、最近添加分类以及未分类分类
-  let pinnedCategory = window.categories.find(cat => cat.id === 'pinned');
-  let recentCategory = window.categories.find(cat => cat.id === 'recent');
+  for (let i = window.categories.length - 1; i >= 0; i--) {
+    if (LEGACY_VIRTUAL_CATEGORY_IDS.includes(window.categories[i].id)) {
+      window.categories.splice(i, 1);
+    }
+  }
+  if (window.websites) {
+    LEGACY_VIRTUAL_CATEGORY_IDS.forEach(id => delete window.websites[id]);
+  }
+
   let uncategorizedCategory = window.categories.find(cat => cat.id === 'uncategorized');
-
-  // 如果置顶分类不存在，添加它
-  if (!pinnedCategory) {
-    pinnedCategory = {
-      id: "pinned",
-      name: "置顶",
-      icon: "fas fa-thumbtack",
-      order: -3, // 使用负数确保始终排在最前面
-      fixed: true
-    };
-    window.categories.push(pinnedCategory);
-  }
-
-  // 如果最近添加分类不存在，添加它
-  if (!recentCategory) {
-    recentCategory = {
-      id: "recent",
-      name: "最近添加",
-      icon: "fas fa-clock",
-      order: -2, // 使用负数确保始终排在第二位
-      fixed: true
-    };
-    window.categories.push(recentCategory);
-  }
-
-  // 如果未分类分类不存在，添加它
   if (!uncategorizedCategory) {
     uncategorizedCategory = {
       id: "uncategorized",
       name: "未分类",
       icon: "fas fa-folder",
-      order: 1000, // 使用很大的数字确保始终排在最后
       fixed: true
     };
     window.categories.push(uncategorizedCategory);
   }
-
-  // 确保固定分类的属性和顺序正确，无论其他分类的order值如何
-  pinnedCategory.order = -3; // 使用负数确保始终排在最前面
-  pinnedCategory.fixed = true;
-
-  recentCategory.order = -2; // 使用负数确保始终排在第二位
-  recentCategory.fixed = true;
-
   uncategorizedCategory.order = 1000; // 使用很大的数字确保始终排在最后
   uncategorizedCategory.fixed = true;
 
-  // 自定义排序函数，优先考虑固定分类的特殊位置
-  window.categories.sort((a, b) => {
-
-
-    // 对于其他分类，按照order值排序
-    return a.order - b.order;
-  });
-
-  // 确保网站数据对象中包含置顶、最近添加和未分类的键
-  if (!window.websites.pinned) {
-    window.websites.pinned = [];
-  }
-
-  if (!window.websites.recent) {
-    window.websites.recent = [];
-  }
+  window.categories.sort((a, b) => a.order - b.order);
 
   if (!window.websites.uncategorized) {
     window.websites.uncategorized = [];
@@ -453,13 +342,6 @@ function renderCategoryList() {
 
   // 使用与ensureFixedCategories相同的排序逻辑
   const sortedCategories = [...categories].sort((a, b) => {
-    // 如果是固定分类，按照特殊顺序排序
-    if (a.id === 'pinned') return -1; // 置顶分类始终排在最前面
-    if (b.id === 'pinned') return 1;
-
-    if (a.id === 'recent') return -1; // 最近添加分类排在第二位
-    if (b.id === 'recent') return 1;
-
     if (a.id === 'uncategorized') return 1; // 未分类分类始终排在最后
     if (b.id === 'uncategorized') return -1;
 

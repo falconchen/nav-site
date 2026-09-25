@@ -292,8 +292,6 @@ async function updateLocalData(cloudData) {
         console.log('📂 Updating categories:', cloudData.categories.length, 'items');
         categories = cloudData.categories;
         window.categories = categories; // 确保全局变量同步
-        // 优先保存到 IndexedDB
-        await dbStorage.setItem('navSiteCategories', categories);
     }
 
     // 更新网站数据
@@ -301,7 +299,14 @@ async function updateLocalData(cloudData) {
         console.log('🌐 Updating websites:', Object.keys(cloudData.websites).length, 'categories');
         websites = cloudData.websites;
         window.websites = websites; // 确保全局变量同步
-        // 优先保存到 IndexedDB
+    }
+
+    if (cloudData.categories || cloudData.websites) {
+        // 旧版本页面上传的数据里还带着「置顶」「最近添加」两个虚拟分类
+        if (typeof ensureFixedCategories === 'function') {
+            ensureFixedCategories();
+        }
+        await dbStorage.setItem('navSiteCategories', categories);
         await dbStorage.setItem('navSiteWebsites', websites);
     }
 
