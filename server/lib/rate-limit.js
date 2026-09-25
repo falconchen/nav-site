@@ -23,25 +23,26 @@ export function getClientIp(c) {
  * @param {Object} options
  * @param {string} options.scope 限流维度名，不同接口用不同 scope 各算各的
  * @param {number} options.limit 每分钟允许次数
+ * @param {string} [options.key] 计数对象，默认按客户端 IP；已鉴权的接口可以传 userId 按用户计
  * @returns {Promise<boolean>} true 表示超限，应当拒绝
  */
-export async function isRateLimited(c, { scope, limit }) {
+export async function isRateLimited(c, { scope, limit, key }) {
     if (!c.env.USER_SESSIONS) {
         console.log(`⚠️ KV namespace not available, skipping ${scope} rate limit`);
         return false;
     }
 
-    const ip = getClientIp(c);
+    const subject = key || getClientIp(c);
     const bucket = Math.floor(Date.now() / 60000);
-    const key = `rl_${scope}_${ip}_${bucket}`;
+    const counterKey = `rl_${scope}_${subject}_${bucket}`;
 
     try {
-        const current = parseInt(await c.env.USER_SESSIONS.get(key) || '0', 10);
+        const current = parseInt(await c.env.USER_SESSIONS.get(counterKey) || '0', 10);
         if (current >= limit) {
             return true;
         }
         // KV 的 TTL 最小值是 60 秒
-        await c.env.USER_SESSIONS.put(key, String(current + 1), { expirationTtl: 60 });
+        await c.env.USER_SESSIONS.put(counterKey, String(current + 1), { expirationTtl: 60 });
         return false;
     } catch (error) {
         console.error(`限流检查失败，放行 (${scope}):`, error);

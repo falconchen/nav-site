@@ -16,12 +16,14 @@ function createKvStub() {
     };
 }
 
-// 只实现 user-data.js 用到的 Upstash REST 子集：get / set / del
+// 只实现 user-data.js 用到的 Upstash REST 子集：get / set / del。
+// 其它地址（抓网页）交给 pageFetch，默认当成网络错误
 function mockRedis(fetchSpy) {
     const store = new Map();
+    store.pageFetch = vi.fn(async (url) => { throw new Error(`unexpected fetch ${url}`); });
     fetchSpy.mockImplementation(async (input, init = {}) => {
         const url = typeof input === 'string' ? input : input.url;
-        if (!url.startsWith(REDIS_URL)) throw new Error(`unexpected fetch ${url}`);
+        if (!url.startsWith(REDIS_URL)) return store.pageFetch(url, init);
         const [, op, ...rest] = url.slice(REDIS_URL.length).split('/');
         const key = decodeURIComponent(rest.join('/'));
         if (op === 'get') return Response.json({ result: store.has(key) ? store.get(key) : null });
@@ -267,6 +269,114 @@ describe('个人令牌 + REST API v1', () => {
             const { token } = await createPat();
             const res = await call(`/api/v1/websites?url=${encodeURIComponent('https://none.example')}`, { method: 'DELETE', token });
             expect(res.status).toBe(404);
+        });
+    });
+    describe('只传 url 自动补全', () => {
+        const PAGE = '<html><head><title>Claude Code</title><meta name="description" content="meta 描述"></head><body><p>正文</p></body></html>';
+
+        function stubAi(categoryIndex = 2) {
+            return vi.fn(async (_model, options) => options.response_format
+                ? { response: JSON.stringify({ category_index: categoryIndex, confidence: 'high' }) }
+                : { response: 'AI 描述。' });
+        }
+
+        beforeEach(() => {
+            redisStore.pageFetch.mockImplementation(async () => new Response(PAGE, {
+                status: 200, headers: { 'Content-Type': 'text/html' }
+            }));
+        });
+
+        it('AI 补全标题、分类、描述并保存，响应带 analysis', async () => {
+            env.AI = { run: stubAi(2) };
+            const { token } = await createPat();
+            const res = await call('/api/v1/websites', { method: 'POST', token, body: { url: 'https://code.claude.com/' } });
+
+            expect(res.status).toBe(201);
+            const body = await res.json();
+            // 候选按 categories 数组顺序编号，2 号是 tools（实用工具）
+            expect(body.website).toMatchObject({ title: 'Claude Code', description: 'AI 描述。', category: 'tools' });
+            expect(body.analysis.sources).toMatchObject({ title: 'page', category: 'ai', description: 'ai' });
+
+            const saved = await readUserData(redisStore);
+            expect(saved.websites.tools.map((s) => s.title)).toContain('Claude Code');
+        });
+
+        it('AI 判断不出时按同域名归类，版本描述里注明', async () => {
+            env.AI = { run: vi.fn(async () => { throw new Error('boom'); }) };
+            const { token } = await createPat();
+            const res = await call('/api/v1/websites', { method: 'POST', token, body: { url: 'https://chatgpt.com/g/some-gpt' } });
+
+            expect(res.status).toBe(201);
+            const body = await res.json();
+            expect(body.website.category).toBe('social');
+            expect(body.analysis.warnings).toEqual(['content_thin', 'ai_category_failed', 'ai_description_failed']);
+
+            const versions = JSON.parse(redisStore.get(`userdata_versions:${USER_ID}`));
+            expect(versions[0].description).toBe('通过令牌「Chrome 扩展」添加：Claude Code（自动归类：AIGC，同域名）');
+        });
+
+        it('网页抓不到时用 hints，仍然能保存', async () => {
+            redisStore.pageFetch.mockImplementation(async () => new Response('Forbidden', { status: 403 }));
+            env.AI = { run: stubAi(1) };
+            const { token } = await createPat();
+            const res = await call('/api/v1/websites', {
+                method: 'POST', token,
+                body: { url: 'https://blocked.example/', hints: { title: '标签页标题', icon: 'https://blocked.example/i.png' } }
+            });
+
+            expect(res.status).toBe(201);
+            const body = await res.json();
+            expect(body.website).toMatchObject({ title: '标签页标题', imageData: 'https://blocked.example/i.png' });
+            expect(body.analysis.warnings).toContain('fetch_blocked');
+        });
+
+        it('重复网址在抓网页和调 AI 之前就返回 409', async () => {
+            env.AI = { run: stubAi() };
+            const { token } = await createPat();
+            const res = await call('/api/v1/websites', { method: 'POST', token, body: { url: 'https://chatgpt.com' } });
+
+            expect(res.status).toBe(409);
+            expect(redisStore.pageFetch).not.toHaveBeenCalled();
+            expect(env.AI.run).not.toHaveBeenCalled();
+        });
+
+        it('/websites/analyze 只返回建议，不写数据', async () => {
+            env.AI = { run: stubAi(2) };
+            const before = redisStore.get(`userdata:${USER_ID}`);
+            const { token } = await createPat();
+            const res = await call('/api/v1/websites/analyze', { method: 'POST', token, body: { url: 'https://code.claude.com/' } });
+
+            expect(res.status).toBe(200);
+            const body = await res.json();
+            expect(body).toMatchObject({ duplicate: null, website: { title: 'Claude Code', category: 'tools' } });
+            expect(redisStore.get(`userdata:${USER_ID}`)).toBe(before);
+            expect(redisStore.has(`userdata_versions:${USER_ID}`)).toBe(false);
+        });
+
+        it('/websites/analyze 遇到已收藏的网址直接返回 duplicate', async () => {
+            env.AI = { run: stubAi() };
+            const { token } = await createPat();
+            const res = await call('/api/v1/websites/analyze', { method: 'POST', token, body: { url: 'https://chatgpt.com/' } });
+
+            const body = await res.json();
+            expect(body.duplicate).toMatchObject({ title: 'ChatGPT', category: 'social' });
+            expect(env.AI.run).not.toHaveBeenCalled();
+        });
+
+        it('需要 AI 的请求按用户限流', async () => {
+            env.AI = { run: stubAi() };
+            const bucket = Math.floor(Date.now() / 60000);
+            await env.USER_SESSIONS.put(`rl_api_v1_ai_${USER_ID}_${bucket}`, '20');
+            const { token } = await createPat();
+
+            const limited = await call('/api/v1/websites/analyze', { method: 'POST', token, body: { url: 'https://code.claude.com/' } });
+            expect(limited.status).toBe(429);
+
+            // 分类和描述都给了就不跑 AI，不受这个限流影响
+            const ok = await call('/api/v1/websites', {
+                method: 'POST', token, body: { url: 'https://code.claude.com/', category: 'tools', description: 'd' }
+            });
+            expect(ok.status).toBe(201);
         });
     });
 });

@@ -12,6 +12,7 @@ import { Hono } from 'hono';
 import { getBearerToken, verifySessionToken } from '../lib/session-auth.js';
 import { isPersonalToken, verifyPersonalToken } from '../lib/personal-tokens.js';
 import { isRateLimited, getClientIp } from '../lib/rate-limit.js';
+import { analyzeWebsite } from '../lib/website-analyzer.js';
 import { getUserFromRedis } from './auth.js';
 import {
     loadDataFromRedis,
@@ -25,6 +26,8 @@ const app = new Hono();
 // 这两个是前端虚拟出来的分类，网站不直接存在里面
 const VIRTUAL_CATEGORY_IDS = new Set(['pinned', 'recent']);
 const WRITE_RATE_LIMIT = 30;
+// 会调用 AI 的请求按用户限流，抓网页加两轮模型成本比普通写入高得多
+const AI_RATE_LIMIT = 20;
 const MAX_TITLE_LENGTH = 200;
 const MAX_DESCRIPTION_LENGTH = 1000;
 const MAX_IMAGE_DATA_LENGTH = 256 * 1024;
@@ -245,103 +248,198 @@ app.get('/v1/websites', async (c) => {
     return c.json({ success: true, websites: result });
 });
 
-app.post('/v1/websites', limitWrites, async (c) => {
+const HINT_LIMITS = { title: MAX_TITLE_LENGTH, description: MAX_DESCRIPTION_LENGTH, content: 3000 };
+
+function trimString(value, max) {
+    return typeof value === 'string' ? value.trim().slice(0, max) : '';
+}
+
+// 图片只收 http(s) URL 或常见位图的 base64；存规范化后的 href：引号、尖括号会被百分号编码，不会破坏前端拼出的 <img src="">
+function normalizeImageData(value) {
+    if (typeof value !== 'string' || !value || value.length > MAX_IMAGE_DATA_LENGTH) return null;
+    const href = parseHttpUrl(value);
+    if (href) return href;
+    return /^data:image\/(png|jpeg|gif|webp|x-icon|vnd\.microsoft\.icon);base64,/i.test(value) ? value : null;
+}
+
+// 扩展传来的当前页信息，只做截断和过滤，不合法的字段直接丢掉而不是报错
+function parseHints(raw) {
+    if (!raw || typeof raw !== 'object') return {};
+    const hints = {};
+    for (const [field, max] of Object.entries(HINT_LIMITS)) {
+        const value = trimString(raw[field], max);
+        if (value) hints[field] = value;
+    }
+    const icon = normalizeImageData(raw.icon);
+    if (icon) hints.icon = icon;
+    return hints;
+}
+
+/**
+ * POST /websites 和 /websites/analyze 共用：校验请求、读云端数据、查重、按需跑 AI 补全
+ *
+ * @returns {Promise<{response: Response} | {data, site, analysis, duplicate}>}
+ */
+async function prepareWebsite(c) {
     const auth = c.get('auth');
 
     let body;
     try {
         body = await c.req.json();
     } catch {
-        return c.json({ error: 'Invalid JSON body' }, 400);
+        return { response: c.json({ error: 'Invalid JSON body' }, 400) };
     }
     if (!body || typeof body !== 'object') {
-        return c.json({ error: 'Invalid JSON body' }, 400);
+        return { response: c.json({ error: 'Invalid JSON body' }, 400) };
     }
 
     const url = parseHttpUrl(body.url);
     if (!url) {
-        return c.json({ error: 'Field "url" must be an http(s) URL' }, 400);
+        return { response: c.json({ error: 'Field "url" must be an http(s) URL' }, 400) };
     }
-
-    const title = (typeof body.title === 'string' ? body.title.trim() : '').slice(0, MAX_TITLE_LENGTH)
-        || new URL(url).hostname;
-    const description = (typeof body.description === 'string' ? body.description.trim() : '')
-        .slice(0, MAX_DESCRIPTION_LENGTH);
 
     // 前端把 icon 拼进 class 属性，只放行 Font Awesome 类名这类安全字符
     let icon = DEFAULT_ICON;
     if (body.icon !== undefined) {
         if (typeof body.icon !== 'string' || !/^[a-z0-9 -]{1,60}$/i.test(body.icon)) {
-            return c.json({ error: 'Field "icon" must be a Font Awesome class name' }, 400);
+            return { response: c.json({ error: 'Field "icon" must be a Font Awesome class name' }, 400) };
         }
         icon = body.icon;
     }
 
     let imageData;
     if (body.imageData !== undefined && body.imageData !== null && body.imageData !== '') {
-        const value = body.imageData;
-        const ok = typeof value === 'string' && value.length <= MAX_IMAGE_DATA_LENGTH &&
-            (parseHttpUrl(value) || /^data:image\/(png|jpeg|gif|webp|x-icon|vnd\.microsoft\.icon);base64,/i.test(value));
-        if (!ok) {
-            return c.json({ error: 'Field "imageData" must be an http(s) URL or a base64 image data URL (≤256KB)' }, 400);
+        imageData = normalizeImageData(body.imageData);
+        if (!imageData) {
+            return { response: c.json({ error: 'Field "imageData" must be an http(s) URL or a base64 image data URL (≤256KB)' }, 400) };
         }
-        // 存规范化后的 href：引号、尖括号会被百分号编码，不会破坏前端拼出的 <img src="">
-        imageData = parseHttpUrl(value) || value;
     }
 
     const data = await loadUserData(c, auth.userId);
     if (!data) {
-        return c.json(NO_CLOUD_DATA, 409);
+        return { response: c.json(NO_CLOUD_DATA, 409) };
     }
 
-    const category = findCategory(data, body.category);
-    if (!category) {
-        return c.json({
-            error: 'Field "category" must be an existing category id or name',
-            categories: realCategories(data).map((cat) => ({ id: cat.id, name: cat.name }))
-        }, 400);
-    }
-
-    const websites = { ...(data.websites || {}) };
-    const key = urlKey(url);
-    for (const [catId, sites] of Object.entries(websites)) {
-        const existing = (sites || []).find((site) => urlKey(site.url) === key);
-        if (existing) {
-            return c.json({
-                error: 'Website already exists',
-                code: 'DUPLICATE',
-                website: siteView(existing, catId)
-            }, 409);
+    // 传了分类但找不到是调用方写错了，报错而不是静默兜底
+    let category = null;
+    if (body.category !== undefined && body.category !== null && body.category !== '') {
+        category = findCategory(data, body.category);
+        if (!category) {
+            return {
+                response: c.json({
+                    error: 'Field "category" must be an existing category id or name',
+                    categories: realCategories(data).map((cat) => ({ id: cat.id, name: cat.name }))
+                }, 400)
+            };
         }
     }
 
+    // 查重放在 AI 之前，重复的网址不白花一次抓取和两轮模型
+    const key = urlKey(url);
+    for (const [catId, sites] of Object.entries(data.websites || {})) {
+        const existing = (sites || []).find((site) => urlKey(site.url) === key);
+        if (existing) {
+            return { data, duplicate: siteView(existing, catId) };
+        }
+    }
+
+    const provided = {
+        title: trimString(body.title, MAX_TITLE_LENGTH),
+        description: trimString(body.description, MAX_DESCRIPTION_LENGTH),
+        category: category?.id || '',
+        imageData
+    };
+
+    // 分类或描述缺一个就要跑 AI，按用户限流
+    const needsAi = !provided.category || !provided.description;
+    if (needsAi && await isRateLimited(c, { scope: 'api_v1_ai', limit: AI_RATE_LIMIT, key: auth.userId })) {
+        return { response: c.json({ error: 'Too many analyze requests, please try again later' }, 429) };
+    }
+
+    const cats = realCategories(data);
+    const result = await analyzeWebsite(c.env, {
+        url,
+        provided,
+        hints: parseHints(body.hints),
+        categories: cats,
+        sitesByCategory: data.websites || {}
+    });
+
+    // 补全出来的字段同样过一遍长度和图片校验
+    const resolvedImage = result.icon ? normalizeImageData(result.icon) : null;
+    if (result.icon && !resolvedImage) result.analysis.sources.icon = 'none';
+
+    return {
+        data,
+        analysis: result.analysis,
+        site: {
+            title: trimString(result.title, MAX_TITLE_LENGTH) || new URL(url).hostname,
+            url,
+            description: trimString(result.description, MAX_DESCRIPTION_LENGTH),
+            icon,
+            imageData: resolvedImage || undefined,
+            pinned: body.pinned === true,
+            category: result.category
+        }
+    };
+}
+
+const CATEGORY_SOURCE_LABELS = { domain: '同域名', fallback: '未能判断' };
+
+app.post('/v1/websites', limitWrites, async (c) => {
+    const auth = c.get('auth');
+    const prepared = await prepareWebsite(c);
+    if (prepared.response) return prepared.response;
+
+    if (prepared.duplicate) {
+        return c.json({ error: 'Website already exists', code: 'DUPLICATE', website: prepared.duplicate }, 409);
+    }
+
+    const { data, site: { category: categoryId, ...fields }, analysis } = prepared;
+    if (!categoryId) {
+        // 只有用户一个真实分类都没有时才会到这里，loadUserData 已经挡掉了
+        return c.json(NO_CLOUD_DATA, 409);
+    }
+
+    const websites = { ...(data.websites || {}) };
+
     // 权重规则与网页端一致：置顶取全局最大 +10，否则取所在分类最大 +10
-    const pinned = body.pinned === true;
-    const weight = pinned
+    const weight = fields.pinned
         ? Math.max(100, ...Object.values(websites).map(maxWeight)) + 10
-        : maxWeight(websites[category.id]) + (websites[category.id]?.length ? 10 : 0);
+        : maxWeight(websites[categoryId]) + (websites[categoryId]?.length ? 10 : 0);
 
     const now = Date.now();
-    const site = {
-        title,
-        url,
-        description,
-        icon,
-        imageData,
-        weight,
-        pinned,
-        addedTime: now,
-        editedTime: now
-    };
-    websites[category.id] = [...(websites[category.id] || []), site];
+    const site = { ...fields, weight, addedTime: now, editedTime: now };
+    websites[categoryId] = [...(websites[categoryId] || []), site];
 
     const via = auth.via === 'token' ? `令牌「${auth.tokenName}」` : 'API';
-    const saved = await persist(c, auth.userId, { ...data, websites }, `通过${via}添加：${title}`);
+    const categoryName = realCategories(data).find((cat) => cat.id === categoryId)?.name || categoryId;
+    const sourceLabel = CATEGORY_SOURCE_LABELS[analysis.sources.category];
+    const note = sourceLabel ? `（自动归类：${categoryName}，${sourceLabel}）` : '';
+    const saved = await persist(c, auth.userId, { ...data, websites }, `通过${via}添加：${site.title}${note}`);
     if (!saved) {
         return c.json({ error: 'Failed to save data' }, 500);
     }
 
-    return c.json({ success: true, website: siteView(site, category.id), version: saved.version }, 201);
+    return c.json({ success: true, website: siteView(site, categoryId), analysis, version: saved.version }, 201);
+});
+
+// 只分析、不保存：扩展弹窗打开时先预填，用户确认后再 POST /websites
+app.post('/v1/websites/analyze', async (c) => {
+    const prepared = await prepareWebsite(c);
+    if (prepared.response) return prepared.response;
+
+    if (prepared.duplicate) {
+        return c.json({ success: true, duplicate: prepared.duplicate });
+    }
+
+    const { site, analysis } = prepared;
+    return c.json({
+        success: true,
+        duplicate: null,
+        website: { ...site, imageData: site.imageData || null },
+        analysis
+    });
 });
 
 // 按网址删除：DELETE /api/v1/websites?url=<网址>[&category=<id|名称>]
