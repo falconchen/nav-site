@@ -61,6 +61,9 @@
 
             <div class="header-right">
 
+                <button class="theme-toggle header-mode-toggle" onclick="toggleCategoriesMode()" title="切换显示模式" aria-label="切换显示模式">
+                    <i class="fa-solid fa-down-left-and-up-right-to-center categories-mode-icon"></i>
+                </button>
                 <button class="theme-toggle" onclick="toggleTheme()">
                     <i class="fas fa-moon" id="theme-icon"></i>
                 </button>
@@ -125,7 +128,7 @@
         <aside class="categories-sidebar">
             <div class="categories-title-container">
                 <button id="categories-toggle-btn" title="切换显示模式" onclick="toggleCategoriesMode()">
-                    <i class="fa-solid fa-down-left-and-up-right-to-center" id="toggle-icon"></i>
+                    <i class="fa-solid fa-down-left-and-up-right-to-center categories-mode-icon" id="toggle-icon"></i>
                 </button>
                 <h3 class="categories-title">网站分类</h3>
                 <button id="category-edit-btn" title="编辑分类" onclick="enterCategoryEditMode()">

@@ -63,7 +63,7 @@
 
 - 「特别收藏」就是原来的「置顶」，只改了界面名称和图标（黄色星星）；数据字段、DOM id、`activeTab` 取值、API 参数仍叫 `pinned`
 - 特别收藏和最近添加**不是分类**，是从数据派生的视图：置顶取 `website.pinned === true`，
-  最近添加按 `addedTime` 倒序取前 24 个（`RECENT_LIMIT`）
+  最近添加按 `addedTime` 倒序取前 60 个（`RECENT_LIMIT`，1～5 的最小公倍数，每行 3/4/5 张时最后一行都满）
 - 两个视图的 DOM 仍是 `<section class="category-section" id="pinned|recent">`，编辑、删除、切换置顶
   靠 `closest('.category-section').id` 和卡片上的 `data-original-category` 找回原分类
 - 普通分类 section 渲染在 `#tab-all` 里；`showCategory()` 会先切到「全部网站」

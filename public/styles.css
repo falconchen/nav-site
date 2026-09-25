@@ -3252,3 +3252,10 @@ html[data-sidebar="compact"] .card-pin-btn {
     padding: 0.5rem;
   }
 }
+
+/* 手机小屏卡片固定是图标宫格，显示模式没有可见差别，页眉也放不下，隐藏页眉上的切换按钮 */
+@media (max-width: 480px) {
+  .header-mode-toggle {
+    display: none;
+  }
+}

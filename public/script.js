@@ -104,7 +104,6 @@ function toggleCategoriesMode() {
     const mainContainer = document.querySelector('.main-container');
     const sidebar = document.querySelector('.categories-sidebar');
     const contentArea = document.querySelector('.content-area');
-    const toggleIcon = document.getElementById('toggle-icon');
     const html = document.documentElement;
 
     // 检查当前是否处于编辑模式，如果是则不允许切换
@@ -125,18 +124,22 @@ function toggleCategoriesMode() {
     // 保存当前模式到本地存储，以便下次访问时保持相同模式
     localStorage.setItem('categoriesCompactMode', isCompactMode);
 
-    // 切换图标
-    if (isCompactMode) {
-        toggleIcon.className = 'fa-solid fa-up-right-and-down-left-from-center';
-    } else {
-        toggleIcon.className = 'fa-solid fa-down-left-and-up-right-to-center';
-    }
+    syncCategoriesModeIcons(isCompactMode);
+}
+
+// 同步侧边栏和页眉两个「切换显示模式」按钮的图标
+function syncCategoriesModeIcons(isCompactMode) {
+    const iconClass = isCompactMode
+        ? 'fa-solid fa-up-right-and-down-left-from-center'
+        : 'fa-solid fa-down-left-and-up-right-to-center';
+    document.querySelectorAll('.categories-mode-icon').forEach(icon => {
+        icon.className = `${iconClass} categories-mode-icon`;
+    });
 }
 
 // 加载压缩模式设置
 function loadCategoriesMode() {
     const isCompactMode = localStorage.getItem('categoriesCompactMode') === 'true';
-    const toggleIcon = document.getElementById('toggle-icon');
 
     if (isCompactMode) {
         const mainContainer = document.querySelector('.main-container');
@@ -146,17 +149,9 @@ function loadCategoriesMode() {
         sidebar.classList.add('compact-mode');
         mainContainer.classList.add('compact-mode');
         contentArea.classList.add('compact-mode');
-
-        // 设置压缩模式图标
-        if (toggleIcon) {
-            toggleIcon.className = 'fa-solid fa-up-right-and-down-left-from-center';
-        }
-    } else {
-        // 设置正常模式图标
-        if (toggleIcon) {
-            toggleIcon.className = 'fa-solid fa-down-left-and-up-right-to-center';
-        }
     }
+
+    syncCategoriesModeIcons(isCompactMode);
 }
 
 // 模态框管理
@@ -1231,8 +1226,9 @@ function sortAndRefreshCategory(categoryId) {
     refreshCategoryUI(categoryId);
 }
 
-// 「最近添加」tab 展示的网站数量
-const RECENT_LIMIT = 24;
+// 「最近添加」tab 展示的网站数量。60 是 1～5 的最小公倍数，
+// 每行 3/4/5 张（普通、压缩、手机宫格）时最后一行都是满的
+const RECENT_LIMIT = 60;
 
 // 收集所有分类下的网站，带上原始分类，供置顶和最近添加两个视图使用
 function collectAllWebsites() {
