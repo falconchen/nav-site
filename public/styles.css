@@ -3200,10 +3200,14 @@ html:not([data-tab="all"]) body:not(.searching) #mobile-category-menu-wrapper {
   color: var(--star-color);
 }
 
-html[data-sidebar="compact"] .card-pin-btn {
-  top: 0.1rem;
-  right: 0.1rem;
-  font-size: 0.75rem;
+/* 压缩模式的位置只用于桌面卡片；手机宫格下由下面的小屏规则决定，
+   否则这条选择器优先级更高，会把小屏的位置盖掉 */
+@media (min-width: 481px) {
+  html[data-sidebar="compact"] .card-pin-btn {
+    top: 0.1rem;
+    right: 0.1rem;
+    font-size: 0.75rem;
+  }
 }
 
 /* 手机小卡只有 60px 的图标块，图钉挂在图标块右上角 */
