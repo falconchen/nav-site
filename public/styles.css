@@ -3387,6 +3387,20 @@ html:not([data-tab="all"]) body:not(.searching) #mobile-category-menu-wrapper {
   justify-content: center;
 }
 
+/* 私密卡片的图标、标题、网址默认模糊，第一次点击卡片变清晰（.revealed），离开分区后恢复 */
+.private-card .card-icon,
+.private-card .card-title,
+.private-card .card-url {
+  transition: filter 0.2s ease;
+}
+
+.private-card:not(.revealed) .card-icon,
+.private-card:not(.revealed) .card-title,
+.private-card:not(.revealed) .card-url {
+  filter: blur(6px);
+  user-select: none;
+}
+
 /* 私密卡片的描述默认是占位符，点击才显示 */
 .card-description.card-secret {
   cursor: pointer;

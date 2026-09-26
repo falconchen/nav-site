@@ -96,6 +96,8 @@
 
         const title = textOf(card, '.card-title');
         if (!title) return;
+        // 模糊着的私密卡片不显示提示，否则标题和网址会从提示里露出来
+        if (card.classList.contains('private-card') && !card.classList.contains('revealed')) return;
         // 私密卡片的描述点开前在提示里也只显示掩码
         const masked = card.classList.contains('private-card') && !card.querySelector('.card-secret.revealed');
         const description = masked ? '••••••' : textOf(card, '.card-description');
@@ -280,8 +282,8 @@
     document.addEventListener('contextmenu', (e) => {
         if (!contains(tooltip, e.target)) hide();
     }, true);
-    // 私密卡片点开或收起描述时，点击已经把提示收掉了，鼠标还在卡片上就按新状态重新显示
-    document.addEventListener('private-description-toggle', (e) => {
+    // 私密卡片变清晰、点开或收起描述时，点击已经把提示收掉了，鼠标还在卡片上就按新状态重新显示
+    document.addEventListener('private-card-change', (e) => {
         const card = e.target;
         if (!canHover.matches || !card.matches(':hover')) return;
         hoverCard = card;

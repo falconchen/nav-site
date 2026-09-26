@@ -252,7 +252,7 @@ function createCardHTML(website) {
     return `
         <div class="website-card ${pinnedClass} ${privateClass}" data-weight="${weight}">
             <button class="card-pin-btn" title="取消特别关注" aria-label="取消特别关注"><i class="fas fa-star"></i></button>
-            <div class="card-header">
+            <div class="card-header"${website.private ? ' title="点击显示"' : ''}>
                 <div class="card-icon ${withImgClass}">
                     ${iconContent}
                 </div>
@@ -284,8 +284,31 @@ function togglePrivateDescription(card) {
     description.textContent = revealed
         ? (privateDescriptions.get(card) || '（无描述）')
         : PRIVATE_DESCRIPTION_MASK;
-    // 鼠标一直停在卡片上不会再触发 mouseover，通知悬浮提示按新状态显示或收起
-    card.dispatchEvent(new CustomEvent('private-description-toggle', { bubbles: true, detail: { revealed } }));
+    notifyPrivateCardChange(card);
+}
+
+// 鼠标一直停在卡片上不会再触发 mouseover，通知悬浮提示按新状态显示或收起
+function notifyPrivateCardChange(card) {
+    card.dispatchEvent(new CustomEvent('private-card-change', { bubbles: true }));
+}
+
+// 私密卡片的图标、标题、网址默认模糊（CSS 按 .revealed 切换），第一次点击卡片先变清晰，再点才打开网站
+function revealPrivateCard(card) {
+    card.classList.add('revealed');
+    card.querySelector('.card-header')?.removeAttribute('title');
+    notifyPrivateCardChange(card);
+}
+
+// 离开私密收藏分区时恢复模糊，描述也收起；重新渲染出来的卡片本来就是模糊的
+function reblurPrivateCards() {
+    document.querySelectorAll('.private-card.revealed').forEach(card => {
+        card.classList.remove('revealed');
+        card.querySelector('.card-header')?.setAttribute('title', '点击显示');
+    });
+    document.querySelectorAll('.private-card .card-secret.revealed').forEach(description => {
+        description.classList.remove('revealed');
+        description.textContent = PRIVATE_DESCRIPTION_MASK;
+    });
 }
 
 // 分类 section 不渲染私密网站，DOM 下标要跳过它们才能对上 websites[categoryId] 里的下标
@@ -1979,6 +2002,12 @@ function handleCardClick(e) {
         editWebsite(this);
         return;
 
+    }
+
+    // 模糊着的私密卡片先变清晰，不打开网站（中键也一样）
+    if (this.classList.contains('private-card') && !this.classList.contains('revealed')) {
+        revealPrivateCard(this);
+        return;
     }
 
     const url = this.querySelector('.card-url').textContent;
