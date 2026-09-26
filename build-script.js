@@ -43,25 +43,29 @@ async function buildProject() {
             fs.cpSync('public/img', 'dist/img', { recursive: true });
         }
 
-        // 4. 压缩 HTML 文件
-        console.log('📄 压缩 HTML 文件...');
-        execSync(`npx html-minifier-terser --collapse-whitespace --remove-comments --remove-redundant-attributes --remove-script-type-attributes --remove-tag-whitespace --use-short-doctype --minify-css true --minify-js true -o dist/index.html public/index.html`);
+        // 4. 压缩 public/ 下所有 HTML 文件（index、about、privacy、terms 等，新增页面自动包含）
+        const htmlFiles = fs.readdirSync('public').filter(name => name.endsWith('.html'));
+        console.log(`📄 压缩 HTML 文件: ${htmlFiles.join(', ')}`);
+        for (const name of htmlFiles) {
+            execSync(`npx html-minifier-terser --collapse-whitespace --remove-comments --remove-redundant-attributes --remove-script-type-attributes --remove-tag-whitespace --use-short-doctype --minify-css true --minify-js true -o ${path.join('dist', name)} ${path.join('public', name)}`);
+        }
 
         // 5. 更新版本号和构建时间
         console.log('🕒 更新版本号和构建时间...');
         const buildTime = execSync(`TZ='Asia/Shanghai' date '+%y%m%d%H%M'`, { encoding: 'utf8' }).trim();
 
-        // 读取生成的 HTML 文件
-        let htmlContent = fs.readFileSync('dist/index.html', 'utf8');
+        for (const name of htmlFiles) {
+            const file = path.join('dist', name);
+            let htmlContent = fs.readFileSync(file, 'utf8');
 
-        // 替换版本号
-        htmlContent = htmlContent.replace(/id="version">[^<]*/, `id="version">${buildTime}`);
+            // 替换版本号（只有带 id="version" 的页面会命中）
+            htmlContent = htmlContent.replace(/id="version">[^<]*/, `id="version">${buildTime}`);
 
-        // 添加构建时间注释
-        htmlContent += `\n<!-- build time: ${buildTime} -->`;
+            // 添加构建时间注释
+            htmlContent += `\n<!-- build time: ${buildTime} -->`;
 
-        // 写回文件
-        fs.writeFileSync('dist/index.html', htmlContent);
+            fs.writeFileSync(file, htmlContent);
+        }
 
         console.log(`✅ 构建完成! 版本: ${buildTime}`);
         console.log('📂 输出目录: dist/');
