@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>隐私权政策 - 皮皮2047</title>
+    <title>隐私政策 - 皮皮2047</title>
     <link rel="icon" href="img/compass-solid.svg" type="image/svg+xml">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha384-iw3OoTErCYJJB9mCa8LNS2hbsQ7M3C0EpIsO/H5+EGAkPGc6rk+V8i04oW/K5xq0" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.snrat.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha384-iw3OoTErCYJJB9mCa8LNS2hbsQ7M3C0EpIsO/H5+EGAkPGc6rk+V8i04oW/K5xq0" crossorigin="anonymous">
     <link rel="stylesheet" href="styles.css">
     <script>
     (function() {
@@ -16,6 +16,10 @@
         var theme = localStorage.getItem('theme');
         if (theme === 'dark' || theme === 'light') {
           document.documentElement.setAttribute('data-theme', theme);
+        }
+        var accent = localStorage.getItem('accent');
+        if (accent) {
+          document.documentElement.setAttribute('data-accent', accent);
         }
       } catch(e) {}
     })();
@@ -106,12 +110,10 @@
     <header class="header">
         <div class="header-container">
             <div class="header-left">
-                <div class="logo">
-                    <a href="/" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 0.5rem;">
-                        <i class="fas fa-compass"></i>
-                        <span>皮皮2047</span>
-                    </a>
-                </div>
+                <a href="/" class="logo" style="text-decoration: none;">
+                    <span class="accent-swatch"><i class="fas fa-compass"></i></span>
+                    <span>皮皮2047</span>
+                </a>
             </div>
         </div>
     </header>
@@ -123,71 +125,82 @@
         </a>
 
         <div class="legal-header">
-            <h1>隐私权政策</h1>
+            <h1>隐私政策</h1>
             <p>我们重视您的隐私保护</p>
         </div>
 
         <div class="legal-content">
-            <p>皮皮2047（以下简称「我们」或「本应用」）非常重视用户的隐私权。本隐私权政策说明了我们在您使用本应用时如何收集、使用、存储和保护您的个人信息。</p>
+            <p>皮皮2047（以下简称「我们」或「本应用」）重视您的隐私。本政策说明您在使用本应用网站、浏览器扩展「皮皮2047 收藏助手」和 REST API 时，我们会处理哪些信息、存在哪里、怎么使用。</p>
 
-            <h2>一、信息收集</h2>
-            <p>我们可能收集以下类型的信息：</p>
+            <h2>一、不登录时</h2>
+            <p>不登录也能使用全部基础功能，您的收藏数据只保存在当前浏览器里（localStorage），不会上传到我们的服务器。清除浏览器数据会一并删除它们，建议定期导出备份。</p>
+
+            <h2>二、我们收集的信息</h2>
             <ul>
-                <li><strong>账户信息：</strong>当您通过第三方平台（GitHub、Google）登录时，我们会获取您的基本资料，包括姓名、邮箱地址和头像URL。</li>
-                <li><strong>使用数据：</strong>我们可能收集您使用本应用的方式数据，例如访问时间、交互行为等。</li>
-                <li><strong>本地存储：</strong>您的网站收藏数据会存储在本地设备上，您可以随时清除或导出。</li>
+                <li><strong>账户信息：</strong>通过 GitHub 或 Google 登录时，我们会获取并保存您的邮箱、用户名、昵称、头像地址和第三方账号 ID，以及账户创建时间和最近登录时间。我们不会获取您的第三方账号密码。</li>
+                <li><strong>收藏数据：</strong>登录后，您的分类、网址、标题、描述、图标等数据会同步保存到云端，并保留最近 5 个历史版本（历史版本 30 天后自动过期）。</li>
+                <li><strong>登录会话：</strong>每次登录会记录一条会话，包含浏览器的 User-Agent、创建时间和最近使用时间，用于在「管理设备」中展示已登录的设备并支持远程注销。会话到期后自动删除。</li>
+                <li><strong>个人令牌：</strong>如果您生成了 API 个人令牌，我们只保存令牌的 SHA-256 摘要、名称、创建时间和最近使用时间，不保存令牌明文。</li>
+                <li><strong>上传的图标：</strong>您上传或 AI 识别得到的网站图标会压缩后存到图床，并生成一个公开地址。知道该地址的任何人都能访问这张图片。</li>
+                <li><strong>IP 地址：</strong>为防止接口被滥用，上传图标和 AI 识别会按 IP 地址限制请求频率，相关计数 60 秒后自动删除。</li>
             </ul>
 
-            <h2>二、信息使用</h2>
-            <p>我们收集的信息将用于：</p>
+            <h2>三、只保存在您设备上的信息</h2>
             <ul>
-                <li>提供核心功能：实现用户登录、数据同步和云端备份。</li>
-                <li>改进服务：分析使用情况以优化用户体验。</li>
-                <li>安全防护：检测和防止欺诈、滥用行为。</li>
+                <li><strong>访问统计：</strong>「访问最多」用到的点击次数和访问时间只保存在本机浏览器（IndexedDB），不会上传，也不会跨设备同步。</li>
+                <li><strong>界面偏好：</strong>主题、配色、上次停留的 tab 等设置保存在 localStorage。</li>
+            </ul>
+            <p>本应用不使用 Cookie，不投放广告，也没有接入任何第三方统计分析工具。</p>
+
+            <h2>四、私密收藏</h2>
+            <p>「私密收藏」只是在界面上把网站隐藏起来并遮住描述，<strong>并没有加密</strong>。这些网站和其它收藏一样，以明文形式保存在本地、云端、历史版本、导出文件中，也能通过 API 读取。请不要把私密收藏当作保存敏感信息的地方。</p>
+
+            <h2>五、AI 识别与网页抓取</h2>
+            <p>使用「AI 识别」或通过扩展、API 只提交网址来添加网站时：</p>
+            <ul>
+                <li>我们的服务器会访问该网址，读取网页标题、描述、正文片段和图标。</li>
+                <li>网页内容、您的分类名称以及每个分类下部分已收录网站的标题和域名，会发给 Cloudflare Workers AI 用于推荐分类和生成描述。这些内容不会用于其它目的。</li>
+                <li>如果目标网站拦截了我们的访问，该网址可能会转交给 Jina Reader 代为读取。</li>
+                <li>使用浏览器扩展收藏时，扩展会把当前网页的标题、描述和部分正文一起提交，用于在网页无法抓取时补全信息。</li>
+            </ul>
+            <p>请避免对需要登录才能访问、或网址中包含个人信息的页面使用 AI 识别。</p>
+
+            <h2>六、浏览器扩展</h2>
+            <ul>
+                <li>扩展只在您打开扩展弹窗或使用右键菜单收藏时，读取当前标签页的网址、标题和页面内容，不会在后台读取您的浏览记录。</li>
+                <li>您的个人令牌和设置保存在扩展自己的存储空间中。</li>
+                <li>扩展会把新标签页和浏览器首页设为皮皮2047 导航站，可以在浏览器设置中改回。</li>
             </ul>
 
-            <h2>三、数据存储与安全</h2>
-            <p>您的数据安全是我们首要考虑的事项：</p>
+            <h2>七、第三方服务</h2>
+            <p>本应用依赖以下第三方服务，它们会按各自的隐私政策处理相应数据：</p>
             <ul>
-                <li>所有数据传输均采用加密协议（TLS）。</li>
-                <li>敏感信息（如邮箱）仅用于身份验证，不会用于广告推送。</li>
-                <li>我们采用行业标准的安全措施保护您的数据。</li>
+                <li><strong>GitHub、Google：</strong>账号登录认证。</li>
+                <li><strong>Cloudflare：</strong>网站托管、Workers AI、登录会话存储。</li>
+                <li><strong>Upstash：</strong>收藏数据和历史版本的存储。</li>
+                <li><strong>Jina AI：</strong>网页被拦截时代为读取网页内容。</li>
+                <li><strong>字体和图标 CDN：</strong>页面会从 Google Fonts 和 Font Awesome CDN 加载字体与图标，这些服务可以看到您的 IP 地址。</li>
+            </ul>
+            <p>我们不会出售您的个人信息，也不会将其提供给上述服务以外的任何第三方，法律要求的情况除外。</p>
+
+            <h2>八、您的权利</h2>
+            <ul>
+                <li><strong>导出：</strong>随时通过页脚的「导出数据」下载完整的收藏数据。</li>
+                <li><strong>注销会话与吊销令牌：</strong>可以在用户菜单的「管理设备」中注销任意设备，在「个人令牌」中吊销任意令牌。</li>
+                <li><strong>删除：</strong>如需删除账户及云端数据，请发邮件联系我们，我们会在核实身份后处理。</li>
             </ul>
 
-            <h2>四、第三方服务</h2>
-            <p>本应用可能包含第三方服务链接或使用第三方服务：</p>
-            <ul>
-                <li><strong>GitHub OAuth：</strong>用于用户登录认证。</li>
-                <li><strong>Google OAuth：</strong>用于用户登录认证。</li>
-                <li><strong>Cloudflare：</strong>提供基础设施和安全防护。</li>
-                <li><strong>Upstash：</strong>提供数据存储服务。</li>
-            </ul>
-            <p>我们建议您阅读这些第三方的隐私政策。</p>
+            <h2>九、未成年人</h2>
+            <p>我们不会有意收集未成年人的个人信息。如果您是未成年人，请在家长或监护人同意后使用本应用。</p>
 
-            <h2>五、用户权利</h2>
-            <p>根据适用法律，您享有以下权利：</p>
-            <ul>
-                <li><strong>访问权：</strong>您可以请求获取我们持有的关于您的个人信息。</li>
-                <li><strong>删除权：</strong>您可以请求删除您的账户及相关个人数据。</li>
-                <li><strong>导出权：</strong>您可以随时导出您的数据。</li>
-                <li><strong>撤回同意：</strong>您可以撤回对数据处理的同意。</li>
-            </ul>
+            <h2>十、政策更新</h2>
+            <p>本政策可能随功能变化而更新，更新后会修改本页的「最后更新日期」。重大变更会在网站上提示。</p>
 
-            <h2>六、Cookies</h2>
-            <p>本应用可能使用 Cookies 来改善用户体验。如果您拒绝 Cookies，可能影响部分功能的正常使用。</p>
-
-            <h2>七、未成年人隐私</h2>
-            <p>我们不会故意收集未成年人的个人信息。如果您是未成年人，请在使用本应用前获得家长或监护人的同意。</p>
-
-            <h2>八、政策的更新</h2>
-            <p>我们可能会不时更新本隐私权政策。重大变更将通过应用内通知或网站公告告知您。建议您定期查阅最新版本。</p>
-
-            <h2>九、联系我们</h2>
-            <p>如果您对本隐私权政策有任何疑问，或希望行使您的权利，请通过以下方式联系我们：</p>
-            <p>电子邮件：<a href="mailto:support@pipi2047.eu.org">support@pipi2047.eu.org</a></p>
+            <h2>十一、联系我们</h2>
+            <p>如对本政策有疑问，或希望行使上述权利，请联系：<a href="mailto:support@pipi2047.eu.org">support@pipi2047.eu.org</a></p>
 
             <div class="update-date">
-                最后更新日期：2026年3月17日
+                最后更新日期：2026年9月26日
             </div>
         </div>
     </main>

@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha384-iw3OoTErCYJJB9mCa8LNS2hbsQ7M3C0EpIsO/H5+EGAkPGc6rk+V8i04oW/K5xq0" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.snrat.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha384-iw3OoTErCYJJB9mCa8LNS2hbsQ7M3C0EpIsO/H5+EGAkPGc6rk+V8i04oW/K5xq0" crossorigin="anonymous">
     <link rel="stylesheet" href="styles.css">
     <script>
     (function() {
@@ -16,6 +16,10 @@
         var theme = localStorage.getItem('theme');
         if (theme === 'dark' || theme === 'light') {
           document.documentElement.setAttribute('data-theme', theme);
+        }
+        var accent = localStorage.getItem('accent');
+        if (accent) {
+          document.documentElement.setAttribute('data-accent', accent);
         }
       } catch(e) {}
     })();
@@ -151,12 +155,10 @@
     <header class="header">
         <div class="header-container">
             <div class="header-left">
-                <div class="logo">
-                    <a href="/" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 0.5rem;">
-                        <i class="fas fa-compass"></i>
-                        <span>皮皮2047</span>
-                    </a>
-                </div>
+                <a href="/" class="logo" style="text-decoration: none;">
+                    <span class="accent-swatch"><i class="fas fa-compass"></i></span>
+                    <span>皮皮2047</span>
+                </a>
             </div>
         </div>
     </header>
@@ -176,73 +178,86 @@
         </div>
 
         <div class="about-content">
-            <h2>关于我们</h2>
-            <p>皮皮2047是一款专注于提升网络浏览效率的导航助手。我们致力于帮助用户更好地组织和管理日常访问的网站，让数字生活更加便捷有序。</p>
+            <h2>关于皮皮2047</h2>
+            <p>皮皮2047 是一个个人网址导航站：把常用网站分门别类放在一页里，打开就能找到。数据默认保存在浏览器本地，不登录也能完整使用；登录后可以在多台设备间同步。</p>
 
             <h2>核心功能</h2>
             <div class="feature-grid">
                 <div class="feature-card">
+                    <i class="fas fa-layer-group"></i>
+                    <h3>多视图浏览</h3>
+                    <p>最近添加、访问最多、特别关注、全部网站四个视图，手机上左右滑动切换</p>
+                </div>
+                <div class="feature-card">
                     <i class="fas fa-folder-tree"></i>
-                    <h3>智能分类</h3>
-                    <p>自定义网站分类，个性化整理您的网络资源</p>
+                    <h3>自定义分类</h3>
+                    <p>分类名称、图标、顺序都能自己改，367 个图标可选</p>
                 </div>
                 <div class="feature-card">
-                    <i class="fas fa-cloud"></i>
+                    <i class="fas fa-wand-magic-sparkles"></i>
+                    <h3>AI 识别</h3>
+                    <p>输入网址，自动补全标题、描述、图标，并参考你已有的收藏推荐分类</p>
+                </div>
+                <div class="feature-card">
+                    <i class="fas fa-cloud-arrow-up"></i>
                     <h3>云端同步</h3>
-                    <p>多设备数据同步，随时随地访问您的收藏</p>
+                    <p>改动后自动保存到云端，保留最近 5 个历史版本，可随时回退</p>
                 </div>
                 <div class="feature-card">
-                    <i class="fas fa-robot"></i>
-                    <h3>AI 智能分析</h3>
-                    <p>自动提取网站信息，智能推荐相关资源</p>
+                    <i class="fas fa-puzzle-piece"></i>
+                    <h3>浏览器扩展</h3>
+                    <p>「皮皮2047 收藏助手」支持 Chrome 和 Firefox，一键收藏当前网页</p>
                 </div>
                 <div class="feature-card">
-                    <i class="fas fa-moon"></i>
-                    <h3>主题定制</h3>
-                    <p>多种主题模式，适配您的视觉偏好</p>
+                    <i class="fas fa-user-lock"></i>
+                    <h3>私密收藏</h3>
+                    <p>单独的私密 tab，默认锁定，描述打码，不出现在其它视图和搜索里</p>
                 </div>
             </div>
 
-            <h2>技术栈</h2>
-            <p>本应用采用现代化的技术架构构建：</p>
+            <h2>更多功能</h2>
             <ul>
-                <li><strong>前端：</strong>原生 JavaScript、HTML5、CSS3</li>
-                <li><strong>后端：</strong>Cloudflare Workers + Hono 框架</li>
-                <li><strong>存储：</strong>Cloudflare KV + Upstash Redis</li>
-                <li><strong>AI：</strong>Cloudflare AI (Llama 3.3)</li>
+                <li><strong>访问最多：</strong>按访问次数和最近访问时间综合排序，统计只保存在本机，不上传</li>
+                <li><strong>网址详情：</strong>鼠标悬停卡片可查看完整描述，一键复制网址或 Markdown 链接</li>
+                <li><strong>个性化外观：</strong>浅色 / 深色主题、多种配色、紧凑侧边栏</li>
+                <li><strong>导入导出：</strong>数据可随时导出为文件备份，也能从文件导入</li>
+                <li><strong>REST API：</strong>生成个人令牌后，可以用脚本或第三方工具读写自己的收藏</li>
             </ul>
 
             <h2>登录方式</h2>
-            <p>我们支持多种便捷的登录方式：</p>
+            <p>支持 GitHub 和 Google 账号登录。两个账号邮箱相同时会自动合并为同一个用户，数据共用。</p>
+
+            <h2>技术实现</h2>
             <ul>
-                <li><i class="fab fa-github"></i> GitHub 账号登录</li>
-                <li><i class="fab fa-google"></i> Google 账号登录</li>
+                <li><strong>前端：</strong>原生 JavaScript、HTML5、CSS3，没有使用框架</li>
+                <li><strong>后端：</strong>Cloudflare Workers + Hono</li>
+                <li><strong>存储：</strong>Upstash Redis 保存收藏数据和历史版本，Cloudflare KV 保存登录会话</li>
+                <li><strong>AI：</strong>Cloudflare Workers AI（Llama 3.3 70B）</li>
+                <li><strong>源代码：</strong><a href="https://github.com/falconchen/nav-site" target="_blank" rel="noopener">github.com/falconchen/nav-site</a></li>
+            </ul>
+
+            <h2>隐私说明</h2>
+            <ul>
+                <li>不投放广告，也不接入任何第三方统计分析</li>
+                <li>私密收藏只是在界面上隐藏，云端和导出文件里并没有加密</li>
+                <li>完整说明请参阅 <a href="/privacy.html">隐私政策</a> 和 <a href="/terms.html">使用条款</a></li>
             </ul>
 
             <h2>联系我们</h2>
-            <p>如果您有任何问题、建议或合作意向，欢迎通过以下方式联系我们：</p>
+            <p>有问题、建议或发现 Bug，欢迎通过以下方式联系：</p>
             <div class="contact-methods">
                 <a href="mailto:support@pipi2047.eu.org" class="contact-method">
                     <i class="fas fa-envelope"></i>
                     发送邮件
                 </a>
-                <a href="https://github.com" target="_blank" class="contact-method">
+                <a href="https://github.com/falconchen/nav-site/issues" target="_blank" rel="noopener" class="contact-method">
                     <i class="fab fa-github"></i>
-                    GitHub
+                    GitHub Issues
                 </a>
             </div>
 
-            <h2>隐私与安全</h2>
-            <p>我们高度重视用户隐私和数据安全：</p>
-            <ul>
-                <li>所有数据传输采用加密协议（TLS）</li>
-                <li>用户数据存储在安全的云服务中</li>
-                <li>我们不会出售或共享您的个人信息</li>
-                <li>详细的隐私政策请参阅 <a href="/privacy.html">隐私权政策</a></li>
-            </ul>
-
             <p style="margin-top: 2rem; text-align: center; color: var(--text-muted);">
-                © 2026 皮皮2047 - 让网络浏览更高效
+                © 2026 皮皮2047 - 次世代网络导航助手
             </p>
         </div>
     </main>
