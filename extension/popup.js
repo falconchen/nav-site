@@ -60,7 +60,8 @@ function setIcon(img, src) {
 function renderDuplicate(site) {
     $('dupCategory').textContent = categoryName(site.category);
     $('dupTitle').textContent = site.title;
-    $('dupDesc').textContent = site.description || '';
+    // 私密收藏的描述可能带密钥，弹窗里也不直接显示
+    $('dupDesc').textContent = site.private ? '私密收藏，描述已隐藏' : site.description || '';
     setIcon($('dupIcon'), site.imageData);
     show('viewDuplicate');
 }
@@ -73,6 +74,8 @@ function renderForm({ website, analysis }) {
     $('title').value = website.title;
     $('description').value = website.description;
     $('pinned').checked = false;
+    $('private').checked = false;
+    syncPrivate();
     setIcon($('iconPreview'), website.imageData);
 
     // 分类不是 AI 有把握给出的，提醒用户确认
@@ -106,9 +109,11 @@ async function save(event) {
             category: $('category').value,
             description: $('description').value.trim(),
             imageData: suggestion.website.imageData || undefined,
-            pinned: $('pinned').checked
+            pinned: $('pinned').checked,
+            private: $('private').checked
         });
-        showMessage(`已保存到「${categoryName(website.category)}」`);
+        const note = website.private ? '，只在私密收藏中显示' : '';
+        showMessage(`已保存到「${categoryName(website.category)}」${note}`);
         setTimeout(() => window.close(), DONE_CLOSE_DELAY_MS);
     } catch (error) {
         if (error.code === 'DUPLICATE') {
@@ -120,6 +125,13 @@ async function save(event) {
         button.disabled = false;
         button.textContent = '保存';
     }
+}
+
+// 私密收藏不进特别关注，与网页端一致
+function syncPrivate() {
+    const isPrivate = $('private').checked;
+    $('pinned').disabled = isPrivate;
+    if (isPrivate) $('pinned').checked = false;
 }
 
 async function remove() {
@@ -145,6 +157,7 @@ async function init() {
     $('openOptions').addEventListener('click', openOptions);
     $('viewForm').addEventListener('submit', save);
     $('removeBtn').addEventListener('click', remove);
+    $('private').addEventListener('change', syncPrivate);
 
     const settings = await loadSettings();
     if (!settings.serverUrl || !settings.token) {

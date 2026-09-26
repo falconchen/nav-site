@@ -69,6 +69,7 @@ Authorization: Bearer navpat_xxxxxxxx
   "icon": "fab fa-github",
   "imageData": "https://example.com/favicon.png",
   "pinned": false,
+  "private": false,
   "hints": {
     "title": "标签页标题",
     "description": "页面 meta 描述",
@@ -87,6 +88,7 @@ Authorization: Bearer navpat_xxxxxxxx
 | `icon` | 可选，Font Awesome 类名，缺省 `fas fa-globe` |
 | `imageData` | 可选，图片 URL 或 base64 data URL（png/jpeg/gif/webp/ico，≤256KB），不传就自动补全 |
 | `pinned` | 可选，是否加入特别关注（网页端旧称置顶、特别收藏） |
+| `private` | 可选，是否放进私密收藏。为 `true` 时忽略 `pinned`。只是界面上的隐藏标记，数据仍是明文 |
 | `hints` | 可选，扩展从当前页拿到的信息。扩展看到的是已登录、已过反爬的页面，服务端抓不到时靠它兜底。超长会被截断（标题 200、描述 1000、正文 3000 字），不合法的字段直接忽略 |
 
 - `201`：返回 `{ website, analysis, version }`

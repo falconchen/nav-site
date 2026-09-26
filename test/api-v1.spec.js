@@ -242,6 +242,19 @@ describe('个人令牌 + REST API v1', () => {
             expect((await res.json()).website).toMatchObject({ category: 'social', weight: 130, pinned: true });
         });
 
+        it('private 为 true 时存为私密收藏，并忽略 pinned', async () => {
+            const { token } = await createPat();
+            const res = await call('/api/v1/websites', {
+                method: 'POST', token,
+                body: { url: 'https://secret.example.com', title: 'Secret', category: 'tools', pinned: true, private: true }
+            });
+            expect(res.status).toBe(201);
+            expect((await res.json()).website).toMatchObject({ private: true, pinned: false, weight: 110 });
+
+            const saved = await readUserData(redisStore);
+            expect(saved.websites.tools.find((s) => s.title === 'Secret')).toMatchObject({ private: true, pinned: false });
+        });
+
         it('重复网址返回 409 和已有条目', async () => {
             const { token } = await createPat();
             const res = await call('/api/v1/websites', {

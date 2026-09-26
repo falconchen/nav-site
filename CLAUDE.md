@@ -82,6 +82,7 @@
   **这只是界面隐藏**：localStorage、云端 KV、版本历史、导出文件、`/api/v1` 里都是明文。其它规则：
   - 默认锁定、不渲染卡片 DOM；点「显示」后写 sessionStorage `privateRevealed`，本次会话有效。`activeTab` 不记 `private`，左右滑动也滑不进去
   - 描述只渲染占位符，真实文本存在 `privateDescriptions`（WeakMap），点击描述才填进 DOM；悬浮提示照常显示，但描述点开前只显示 `••••••`；点击不记访问次数
+  - `/api/v1` 的 `POST /websites` 接受 `private`，扩展弹窗有「私密收藏」勾选框；右键一键收藏不设私密
   - 分类 section 跳过私密网站后 DOM 下标和数据下标对不上，按卡片找数据一律用 `siteIndexOfCard()`，不要再写 `children.indexOf(card)`
 
 登录状态在页面启动时通过 `/api/auth/verify` 校验。只有明确收到 401 或 `valid: false` 才删除本地令牌；断网、请求异常及服务端临时故障会保留令牌，并在网络恢复或 15 秒后重试。校验未成功前不启动云端同步。修改此流程时需检查断网刷新后恢复、真正过期以及校验期间切换账号这三种情况。

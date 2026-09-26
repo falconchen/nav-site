@@ -162,6 +162,17 @@ textarea {
     cursor: pointer;
 }
 
+.checks {
+    display: flex;
+    gap: 14px;
+}
+
+/* 勾了私密收藏后特别关注不可选 */
+.check:has(input:disabled) {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 .site {
     display: flex;
     gap: 10px;

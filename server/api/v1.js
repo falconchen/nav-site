@@ -379,7 +379,9 @@ async function prepareWebsite(c) {
             description: trimString(result.description, MAX_DESCRIPTION_LENGTH),
             icon,
             imageData: resolvedImage || undefined,
-            pinned: body.pinned === true,
+            // 私密优先于特别关注，与网页端一致
+            pinned: body.pinned === true && body.private !== true,
+            private: body.private === true,
             category: result.category
         }
     };
