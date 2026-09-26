@@ -40,13 +40,8 @@ function switchTab(tab, options = {}) {
     }
 
     tabScrollPositions[current] = window.scrollY;
+    // 不记忆当前 tab：每次打开都停在第一个分区（index.html 的内联脚本）
     document.documentElement.setAttribute('data-tab', tab);
-    try {
-        // 私密收藏不记忆，刷新后回到上一个普通 tab
-        if (tab !== 'private') localStorage.setItem('activeTab', tab);
-    } catch (e) {
-        // 隐私模式下写不进去，不影响本次切换
-    }
     updateTabButtons();
 
     window.scrollTo({ top: tabScrollPositions[tab] || 0 });

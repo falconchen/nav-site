@@ -918,7 +918,7 @@ function submitWebsiteForm() {
         newWeight = getMaxWeight(category);
     }
 
-    // 记录分类是否变更，以便决定是否需要滚动到新分类
+    // 记录分类是否变更，「全部网站」下据此滚动到新分类
     let categoryChanged = false;
     // 记录置顶状态是否变更
     let pinnedChanged = false;
@@ -926,7 +926,6 @@ function submitWebsiteForm() {
     let weightChanged = false;
     // 记录私密状态是否变更
     let privateChanged = false;
-    const isNewWebsite = !currentEditingCard;
     // 当前时间戳，用于记录添加/编辑时间
     const currentTime = Date.now();
 
@@ -1138,100 +1137,35 @@ function submitWebsiteForm() {
 
     closeModal('websiteModal');
 
-    // 延迟一点时间后滚动到目标分类，确保DOM更新完成
+    // 保存后留在当前分区，不跳到别的 tab；只在「全部网站」下分类变了时滚到新分类。
+    // 延迟一点等 DOM 更新完，再高亮当前分区里刚保存的卡片（不在当前分区里就不高亮）
+    const activeTab = document.documentElement.getAttribute('data-tab') || 'all';
     setTimeout(() => {
-        // 定位逻辑：新加或刚设为私密的去私密收藏；置顶状态变更显示置顶分类；否则，如果分类变更，显示新分类
-        if (isPrivate && (isNewWebsite || privateChanged)) {
-            switchTab('private');
-        } else if (pinnedChanged && isPinned) {
-            // 优先显示置顶分类
-            switchTab('pinned');
-
-            // 在置顶分类中找到并高亮刚编辑的网站卡片
-            const pinnedSection = document.getElementById('pinned');
-            if (pinnedSection) {
-                const pinnedCards = pinnedSection.querySelectorAll('.cards-grid .website-card');
-                pinnedCards.forEach(card => {
-                    const cardTitle = card.querySelector('.card-title').textContent;
-                    const cardUrl = card.querySelector('.card-url').textContent;
-
-                    if (cardTitle === name && cardUrl === url) {
-                        // 添加临时高亮效果
-                        card.classList.add('simple-highlight');
-                        // 1秒后移除高亮
-                        setTimeout(() => {
-                            card.classList.remove('simple-highlight');
-                        }, 1000);
-                    }
-                });
-            }
-        } else if (!currentEditingCard) {
-            // 如果是新添加的网站（非编辑状态），根据是否置顶决定跳转位置
-            if (isPinned) {
-                // 如果置顶，显示置顶分类
-                switchTab('pinned');
-                // 高亮显示新添加的卡片
-                const pinnedSection = document.getElementById('pinned');
-                if (pinnedSection) {
-                    const pinnedCards = pinnedSection.querySelectorAll('.cards-grid .website-card');
-                    pinnedCards.forEach(card => {
-                        const cardTitle = card.querySelector('.card-title').textContent;
-                        const cardUrl = card.querySelector('.card-url').textContent;
-
-                        if (cardTitle === name && cardUrl === url) {
-                            card.classList.add('simple-highlight');
-                            setTimeout(() => {
-                                card.classList.remove('simple-highlight');
-                            }, 1000);
-                        }
-                    });
-                }
-            } else {
-                // 没有置顶就去「最近添加」，新网站排在第一个
-                switchTab('recent');
-                // 高亮显示新添加的卡片
-                const categorySection = document.getElementById('recent');
-                if (categorySection) {
-
-                    const categoryCards = categorySection.querySelectorAll('.cards-grid .website-card');
-                    categoryCards.forEach(card => {
-                        const cardTitle = card.querySelector('.card-title').textContent;
-                        const cardUrl = card.querySelector('.card-url').textContent;
-
-                        if (cardTitle === name && cardUrl === url) {
-                            card.classList.add('simple-highlight');
-                            setTimeout(() => {
-                                card.classList.remove('simple-highlight');
-                            }, 1000);
-                        }
-
-                    });
-                }
-            }
-        } else if (categoryChanged && document.documentElement.getAttribute('data-tab') === 'all') {
-            // 其次是显示变更的分类（只在「全部网站」下跟过去，别把用户从置顶/最近添加拽走）
-            showCategory(category);
-
-            // 找到新添加的卡片并添加闪烁效果
-            const categorySection = document.getElementById(category);
-            if (categorySection) {
-
-                const categoryCards = categorySection.querySelectorAll('.cards-grid .website-card');
-                categoryCards.forEach(card => {
-                    const cardTitle = card.querySelector('.card-title').textContent;
-                    const cardUrl = card.querySelector('.card-url').textContent;
-
-                    if (cardTitle === name && cardUrl === url) {
-                        card.classList.add('simple-highlight');
-                        setTimeout(() => {
-                            card.classList.remove('simple-highlight');
-                        }, 1000);
-                    }
-
-                });
-            }
+        let section;
+        if (activeTab === 'all') {
+            // 私密网站不在「全部网站」里显示，没有卡片可跟过去
+            if (categoryChanged && !isPrivate) showCategory(category);
+            section = document.getElementById(category);
+        } else {
+            section = document.getElementById(activeTab);
         }
+        highlightSavedCard(section, name, url);
     }, 100);
+}
+
+// 给刚保存的卡片加一下闪烁高亮
+function highlightSavedCard(section, name, url) {
+    if (!section) return;
+    section.querySelectorAll('.cards-grid .website-card').forEach(card => {
+        const cardTitle = card.querySelector('.card-title').textContent;
+        const cardUrl = card.querySelector('.card-url').textContent;
+        if (cardTitle === name && cardUrl === url) {
+            card.classList.add('simple-highlight');
+            setTimeout(() => {
+                card.classList.remove('simple-highlight');
+            }, 1000);
+        }
+    });
 }
 
 // 对分类进行排序并刷新UI
@@ -2669,6 +2603,12 @@ function setupAIDetection() {
         const url = urlInput.value.trim();
         if (!url) return;
 
+        // 名称、描述、分类、图片都填好了就没什么可补的，不白跑一次抓取和 AI
+        if (!Object.values(getAIFillNeeds()).some(Boolean)) {
+            showNotification('名称、描述、分类和图片都已填写，AI 识别只会补全空着的项', 'info');
+            return;
+        }
+
         // 显示加载状态
         aiDetectBtn.disabled = true;
         aiDetectBtn.classList.add('loading');
@@ -2744,6 +2684,18 @@ function siteHostKey(value) {
     }
 }
 
+// AI 识别只补用户没填的项：名称、描述是空的，分类是「未分类」或没选，还没有图片。
+// 在拿到结果时再判断一次，识别期间用户手动填的也不覆盖
+function getAIFillNeeds() {
+    const categoryValue = document.getElementById('websiteCategory').value;
+    return {
+        title: !document.getElementById('websiteName').value.trim(),
+        description: !document.getElementById('websiteDescription').value.trim(),
+        category: !categoryValue || categoryValue === 'uncategorized',
+        icon: !document.getElementById('websiteIcon').dataset.imageData
+    };
+}
+
 // 抓不到网页时的兜底：用已收录的同域名网址预填分类和图标，标题和描述留给用户填。
 // 分类规则与服务端 categoryByDomain() 一致（同 host 最多的分类），改一边要同步另一边
 function fillFormFromDomainHistory(url, reason) {
@@ -2764,35 +2716,46 @@ function fillFormFromDomainHistory(url, reason) {
         }
     }
 
-    if (bestIndex < 0) {
+    const needs = getAIFillNeeds();
+    const filled = [];
+    if (bestIndex >= 0 && needs.category) {
+        categorySelect.selectedIndex = bestIndex;
+        categorySelect.options[bestIndex].setAttribute('selected', 'selected');
+        filled.push('分类');
+    }
+
+    // 图标取同分类里第一个有自定义图片的，没有就沿用 Font Awesome 图标
+    if (bestIndex >= 0 && needs.icon) {
+        const withImage = bestSites.find(site => site.imageData);
+        if (withImage) {
+            applyUploadedIcon(withImage.imageData);
+            filled.push('图标');
+        } else if (bestSites[0].icon) {
+            document.getElementById('websiteIcon').value = bestSites[0].icon;
+            setIconPreview(bestSites[0].icon);
+            filled.push('图标');
+        }
+    }
+
+    if (filled.length === 0) {
         showNotification(`${reason}，请手动填写`, 'info');
         return;
     }
-
-    categorySelect.selectedIndex = bestIndex;
-    categorySelect.options[bestIndex].setAttribute('selected', 'selected');
-
-    // 图标取同分类里第一个有自定义图片的，没有就沿用 Font Awesome 图标
-    const withImage = bestSites.find(site => site.imageData);
-    if (withImage) {
-        applyUploadedIcon(withImage.imageData);
-    } else if (bestSites[0].icon) {
-        document.getElementById('websiteIcon').value = bestSites[0].icon;
-        setIconPreview(bestSites[0].icon);
-    }
-
-    showNotification(`${reason}，已按已收录的 ${host} 网址预填分类和图标`, 'info');
+    showNotification(`${reason}，已按已收录的 ${host} 网址预填${filled.join('和')}`, 'info');
 }
 
 // 根据AI识别结果填充表单
 function fillFormWithAIData(data) {
+    // 用户已经填了的不覆盖
+    const needs = getAIFillNeeds();
+
     // 填充网站名称
-    if (data.title) {
+    if (data.title && needs.title) {
         document.getElementById('websiteName').value = data.title;
     }
 
     // 填充描述
-    if (data.description) {
+    if (data.description && needs.description) {
         document.getElementById('websiteDescription').value = data.description;
     }
 
@@ -2800,7 +2763,9 @@ function fillFormWithAIData(data) {
     // 服务端保证返回的要么是候选列表里的合法分类 id，要么是空串，
     // 所以这里只需要一次精确匹配，不用再做模糊兜底
     const categorySelect = document.getElementById('websiteCategory');
-    if (data.category) {
+    if (!needs.category) {
+        // 用户已经选了分类，不动
+    } else if (data.category) {
         const matched = Array.from(categorySelect.options)
             .findIndex(option => option.value === data.category);
 
@@ -2816,8 +2781,8 @@ function fillFormWithAIData(data) {
         showNotification('AI 没能判断分类，请手动选择', 'info');
     }
 
-    // 设置图标
-    if (data.icon) {
+    // 设置图标：已经有图片（手动上传或原来就有）就不重新抓取上传
+    if (data.icon && needs.icon) {
         // 如果是图片URL
         if (data.icon.startsWith('http')) {
             // 由 Worker 直接抓取并转存到图床，图片不经过浏览器，imageData 只存 URL

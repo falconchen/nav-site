@@ -61,10 +61,12 @@
 
 ### 视图 tab
 
-页面顶部是五个横向 tab，默认顺序：全部网站、最近添加、访问最多、特别关注、私密收藏（`VIEW_TABS`）。新用户首次打开停在「全部网站」。当前 tab 写在 `<html data-tab>` 上，
-存 localStorage `activeTab`（内联脚本首屏前读取，防闪烁）。分类侧边栏只在「全部网站」下显示。
+页面顶部是五个横向 tab，默认顺序：全部网站、最近添加、访问最多、特别关注、私密收藏（`VIEW_TABS`）。当前 tab 写在 `<html data-tab>` 上。
+**不记忆上次停留的 tab**：每次打开都停在第一个分区，按用户调整过的顺序（`tabOrder`）算、跳过私密收藏，
+由 `index.html` 头部内联脚本在首屏前设好（防闪烁），旧版本留下的 localStorage `activeTab` 会被顺手删掉。
+添加、编辑网站后也留在当前 tab，不跳到别的分区。分类侧边栏只在「全部网站」下显示。
 
-- 「特别关注」就是原来的「置顶」（中间一度叫「特别收藏」），只改了界面名称和图标（黄色星星）；数据字段、DOM id、`activeTab` 取值、API 参数仍叫 `pinned`
+- 「特别关注」就是原来的「置顶」（中间一度叫「特别收藏」），只改了界面名称和图标（黄色星星）；数据字段、DOM id、`data-tab` 取值、API 参数仍叫 `pinned`
 - 访问最多：点击卡片（含中键）时 `recordVisit()` 记一次，按 frecency 排序取前 60 个（`FREQUENT_LIMIT`）。
   得分 = 次数 × 最近 10 次访问的平均权重（≤4 天 100、≤14 天 70、≤31 天 50、≤90 天 30、更早 10）。
   数据**只存本机** IndexedDB（`navSiteVisits`，按与服务端 `urlKey()` 相同的规则归一化网址），不走 `saveNavData`：
@@ -84,7 +86,7 @@
 - 第五个 tab「私密收藏」（`data-tab="private"`）放 `website.private === true` 的网站，它们不进分类 section、最近添加、
   访问最多、特别关注和搜索（`collectAllWebsites()` 默认排除，要取私密网站得传 `{ onlyPrivate: true }`）。私密优先于特别关注。
   **这只是界面隐藏**：localStorage、云端 KV、版本历史、导出文件、`/api/v1` 里都是明文。其它规则：
-  - 默认锁定、不渲染卡片 DOM；点「显示」后写 sessionStorage `privateRevealed`，本次会话有效。`activeTab` 不记 `private`，左右滑动也滑不进去
+  - 默认锁定、不渲染卡片 DOM；点「显示」后写 sessionStorage `privateRevealed`，本次会话有效。打开时不会停在私密收藏，左右滑动也滑不进去
   - 描述只渲染占位符，真实文本存在 `privateDescriptions`（WeakMap），点击描述才填进 DOM；悬浮提示照常显示，但描述点开前只显示 `••••••`；点击不记访问次数
   - `/api/v1` 的 `POST /websites` 接受 `private`，扩展弹窗有「私密收藏」勾选框；右键一键收藏不设私密
   - 分类 section 跳过私密网站后 DOM 下标和数据下标对不上，按卡片找数据一律用 `siteIndexOfCard()`，不要再写 `children.indexOf(card)`

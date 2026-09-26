@@ -27,10 +27,22 @@
           document.documentElement.setAttribute('data-sidebar', 'normal');
         }
 
-        // 读取并应用上次停留的视图 tab，避免刷新时闪到别的 tab
-        var tab = localStorage.getItem('activeTab');
-        // 私密收藏不记忆，刷新后不会直接停在那里
-        if (tab !== 'frequent' && tab !== 'recent' && tab !== 'pinned') tab = 'all';
+        // 打开时一律停在第一个分区，不记忆上次停留的分区。
+        // 第一个按用户调整过的顺序（tabOrder）算，跳过私密收藏；这时 tab 栏还没渲染，只能读 localStorage
+        var tab = 'all';
+        try {
+          var tabOrder = JSON.parse(localStorage.getItem('tabOrder'));
+          if (Array.isArray(tabOrder)) {
+            for (var i = 0; i < tabOrder.length; i++) {
+              if (['all', 'recent', 'frequent', 'pinned'].indexOf(tabOrder[i]) >= 0) {
+                tab = tabOrder[i];
+                break;
+              }
+            }
+          }
+          // 旧版本记忆上次停留分区用的，已不再使用
+          localStorage.removeItem('activeTab');
+        } catch (e) {}
         document.documentElement.setAttribute('data-tab', tab);
 
         // 读取并应用强调色（accent）
