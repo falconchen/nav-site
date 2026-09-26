@@ -2,6 +2,8 @@
  * 从当前标签页拿收藏需要的信息
  */
 
+import { ext } from './ext.js';
+
 // 注入到网页里执行，只能用网页自己的 DOM，不能引用外部变量
 function collectHints() {
     const meta = document.querySelector('meta[name="description"], meta[property="og:description"]');
@@ -23,7 +25,7 @@ export function isSavableUrl(url) {
 export async function getPageHints(tab) {
     const hints = { title: tab.title || '', icon: tab.favIconUrl || '' };
     try {
-        const [injection] = await chrome.scripting.executeScript({
+        const [injection] = await ext.scripting.executeScript({
             target: { tabId: tab.id },
             func: collectHints
         });

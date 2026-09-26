@@ -4,13 +4,15 @@
  * 服务端开了 CORS，带 Authorization 头的跨域请求能直接发，扩展不需要申请主机权限。
  */
 
+import { ext } from './ext.js';
+
 const SETTINGS_KEYS = ['serverUrl', 'token', 'newTab'];
 
 // manifest.json 里的首页（chrome_settings_overrides.homepage）写死的也是这个地址，改的话两处一起改
 export const DEFAULT_SERVER_URL = 'https://pipi2047.eu.org';
 
 export async function loadSettings() {
-    const settings = await chrome.storage.local.get(SETTINGS_KEYS);
+    const settings = await ext.storage.local.get(SETTINGS_KEYS);
     return {
         serverUrl: normalizeServerUrl(settings.serverUrl || DEFAULT_SERVER_URL),
         token: settings.token || '',
@@ -20,11 +22,11 @@ export async function loadSettings() {
 }
 
 export async function saveNewTabEnabled(enabled) {
-    await chrome.storage.local.set({ newTab: Boolean(enabled) });
+    await ext.storage.local.set({ newTab: Boolean(enabled) });
 }
 
 export async function saveSettings({ serverUrl, token }) {
-    await chrome.storage.local.set({ serverUrl: normalizeServerUrl(serverUrl), token: token.trim() });
+    await ext.storage.local.set({ serverUrl: normalizeServerUrl(serverUrl), token: token.trim() });
 }
 
 // 只填域名时补协议：本机地址补 http（本地开发服务器没有 https），其它补 https。去掉末尾斜杠

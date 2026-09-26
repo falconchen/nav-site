@@ -1,3 +1,4 @@
+import { ext, isFirefox } from './lib/ext.js';
 import {
     createClient,
     DEFAULT_SERVER_URL,
@@ -48,7 +49,8 @@ async function init() {
     $('serverUrl').value = settings.serverUrl;
     $('token').value = settings.token;
     $('newTab').checked = settings.newTab;
-    $('homepageUrl').textContent = DEFAULT_SERVER_URL;
+    document.documentElement.dataset.browser = isFirefox ? 'firefox' : 'chrome';
+    for (const code of document.querySelectorAll('.homepage-url')) code.textContent = DEFAULT_SERVER_URL;
 
     // 开关不用验证令牌，改了立刻生效
     $('newTab').addEventListener('change', async (event) => {
@@ -61,7 +63,7 @@ async function init() {
     // 扩展页面里的 chrome:// 链接点了没反应，要用 tabs API 打开
     $('openAppearance').addEventListener('click', (event) => {
         event.preventDefault();
-        chrome.tabs.create({ url: 'chrome://settings/appearance' });
+        ext.tabs.create({ url: 'chrome://settings/appearance' });
     });
 
     $('testBtn').addEventListener('click', testConnection);

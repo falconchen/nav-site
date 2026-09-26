@@ -1,4 +1,4 @@
-# 皮皮2047 收藏助手（Chrome 扩展）
+# 皮皮2047 收藏助手（Chrome / Firefox 扩展）
 
 把当前网页收藏到导航站，AI 自动补全名称、分类和描述。调用的是导航站的 REST API v1，接口说明见 [../doc/REST_API.md](../doc/REST_API.md)。
 
@@ -12,6 +12,29 @@
    - 点「保存」时会先调 `/api/v1/me` 验证，验证通过才保存
 
 改了代码后在 `chrome://extensions` 里点扩展卡片上的刷新按钮即可。
+
+## Firefox
+
+Firefox 版和 Chrome 版共用这个目录的代码，只有 manifest 不同，由构建脚本生成，不要另外改一份：
+
+```bash
+npm run build:firefox   # 在 nav-site/ 下执行，生成 extension-firefox/（已 gitignore）
+```
+
+脚本把 Chrome 的 manifest 改成 Firefox 能用的：后台从 service worker 改成事件页（`background.scripts`）、
+`options_page` 改成 `options_ui`，并加上扩展 id 和最低版本 140（ESR）。版本号直接沿用 Chrome 的。
+
+- **临时加载**：Firefox 打开 `about:debugging#/runtime/this-firefox` →「临时载入附加组件」，选 `extension-firefox/manifest.json`。重启浏览器后失效
+- **长期安装**：正式版 Firefox 只装签过名的扩展。用 `npx web-ext sign --channel=unlisted --source-dir extension-firefox`
+  配 AMO 的 API 密钥签名（不上架，只给自己装），得到的 `.xpi` 拖进 Firefox 安装
+- **校验**：`npx web-ext lint --source-dir extension-firefox`。唯一的警告是 Firefox for Android 不支持 140 的
+  `data_collection_permissions`，这个扩展不面向 Android（Android 不能接管新标签页），可以忽略
+
+和 Chrome 版的区别：
+
+- 代码里调扩展 API 统一用 `lib/ext.js` 导出的 `ext`（Firefox 下是 `browser`，Chrome 下是 `chrome`），不要直接写 `chrome.*`
+- 新标签页没有开关、永远跳导航站：Firefox 不让扩展跳到自带的 `about:newtab`，但它自己的设置里（`about:preferences#home`）
+  本来就能选新标签页和首页用谁。设置页按浏览器显示不同的说明（`.only-chrome` / `.only-firefox`）
 
 ## 用法
 
@@ -30,6 +53,7 @@
 | 文件 | 内容 |
 | --- | --- |
 | `manifest.json` | Manifest V3 |
+| `lib/ext.js` | 扩展 API 入口，抹平 Chrome / Firefox 的命名空间差异 |
 | `lib/api.js` | API 客户端、设置读写、错误文案 |
 | `lib/page.js` | 从当前标签页取 hints（标题、meta 描述、正文前 3000 字） |
 | `popup.*` | 工具栏弹窗 |

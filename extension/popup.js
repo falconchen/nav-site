@@ -1,3 +1,4 @@
+import { ext } from './lib/ext.js';
 import { createClient, describeError, loadSettings } from './lib/api.js';
 import { getPageHints, isSavableUrl } from './lib/page.js';
 
@@ -40,7 +41,7 @@ function showMessage(text, action) {
     show('viewMessage');
 }
 
-const openOptions = () => chrome.runtime.openOptionsPage();
+const openOptions = () => ext.runtime.openOptionsPage();
 
 function showError(error) {
     const needsSettings = error?.status === 401;
@@ -152,7 +153,7 @@ async function init() {
     }
     client = createClient(settings);
 
-    [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    [tab] = await ext.tabs.query({ active: true, currentWindow: true });
     if (!tab || !isSavableUrl(tab.url)) {
         showMessage('只能收藏 http/https 网页。');
         return;

@@ -65,3 +65,9 @@ kbd {
         border-radius: 0;
     }
 }
+
+/* 按浏览器显示的说明，options.js 在 <html> 上写 data-browser */
+:root:not([data-browser="chrome"]) .only-chrome,
+:root:not([data-browser="firefox"]) .only-firefox {
+    display: none;
+}

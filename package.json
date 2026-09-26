@@ -4,6 +4,7 @@
 	"private": true,
 	"scripts": {
 		"build": "node build-script.js",
+		"build:firefox": "node build-firefox-extension.js",
 		"dev": "wrangler dev",
 		"start": "wrangler dev",
 		"test": "vitest",
