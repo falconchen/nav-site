@@ -108,7 +108,7 @@
         </div>
     </header>
 
-    <!-- 视图 tab：最近添加 / 访问最多 / 特别关注 / 全部网站 / 私密收藏 -->
+    <!-- 视图 tab：最近添加 / 访问最多 / 特别关注 / 全部网站 / 私密收藏。右键或长按可调整顺序 -->
     <nav class="view-tabs" role="tablist" aria-label="视图">
         <div class="view-tabs-inner">
             <button type="button" class="view-tab" role="tab" data-tab="recent" aria-controls="tab-recent" aria-label="最近添加">
@@ -128,6 +128,20 @@
             </button>
         </div>
     </nav>
+    <script>
+      // 按用户调整过的顺序排 tab。紧跟在 tab 栏后面同步执行，首屏就是调整后的顺序，不会闪
+      (function () {
+        try {
+          var order = JSON.parse(localStorage.getItem('tabOrder'));
+          var inner = document.querySelector('.view-tabs-inner');
+          if (!Array.isArray(order) || !inner) return;
+          order.forEach(function (tab) {
+            var btn = inner.querySelector('.view-tab[data-tab="' + tab + '"]');
+            if (btn) inner.appendChild(btn);
+          });
+        } catch (e) {}
+      })();
+    </script>
 
     <!-- 主内容区域 -->
     <main class="main-container">
@@ -334,6 +348,25 @@
                     </button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- 调整分区顺序 -->
+    <div class="modal-overlay" id="tabOrderModal">
+        <div class="modal" style="max-width: 360px;">
+            <div class="modal-header">
+                <h3 class="modal-title">调整分区顺序</h3>
+                <button class="modal-close" onclick="closeModal('tabOrderModal')" aria-label="关闭">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <ul class="tab-order-list" id="tabOrderList"></ul>
+            <div class="form-buttons">
+                <button type="button" class="btn btn-secondary" id="tabOrderReset">
+                    <i class="fas fa-rotate-left"></i> 恢复默认
+                </button>
+                <button type="button" class="btn btn-primary" onclick="closeModal('tabOrderModal')">完成</button>
+            </div>
         </div>
     </div>
 

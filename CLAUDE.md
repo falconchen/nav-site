@@ -77,6 +77,8 @@
 - 普通分类 section 渲染在 `#tab-all` 里；`showCategory()` 会先切到「全部网站」
 - 搜索始终搜全部网站：有关键词时加 `body.searching`，临时显示 `#tab-all`，清空后回到原 tab
 - 移动端左右滑动只在松手时判断一次（不跟手），每个 tab 各自记住滚动位置
+- tab 顺序可调：tab 栏右键或长按打开「调整分区顺序」弹窗，顺序只存本机 localStorage `tabOrder`（和默认顺序相同时删掉）。
+  `index.html` 紧跟 tab 栏的内联脚本在首屏前重排 DOM，所以 JS 里当前顺序一律用 `getTabOrder()` 读 DOM，滑动顺序跟着变，不要再按 `VIEW_TABS` 的下标算
 - 小屏（≤768px）五个 tab 等宽，显示两字简称（最近 / 常用 / 关注 / 全部 / 私密，`.tab-label-short`），桌面端显示全称（`.tab-label`）
 - 特别关注卡片右上角的星星是真实按钮（`.card-pin-btn`，每张卡都渲染，靠 `.pinned` 类显示），点击取消关注
 - 第五个 tab「私密收藏」（`data-tab="private"`）放 `website.private === true` 的网站，它们不进分类 section、最近添加、

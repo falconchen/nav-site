@@ -3023,6 +3023,63 @@ body.searching .view-tab.active {
   border-bottom-color: transparent;
 }
 
+/* 长按 tab 调整顺序时，不要弹出系统的文字选择和链接菜单 */
+.view-tab {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* 调整分区顺序弹窗 */
+.tab-order-list {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+}
+
+.tab-order-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.25rem;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.tab-order-item:last-child {
+  border-bottom: none;
+}
+
+.tab-order-item > i {
+  width: 1.25rem;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.tab-order-item > span {
+  flex: 1;
+}
+
+.tab-order-move {
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  background: var(--background-color);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.tab-order-move:hover:not(:disabled) {
+  color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.tab-order-move:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
 /* 小屏才用的简称 */
 .view-tab .tab-label-short {
   display: none;
