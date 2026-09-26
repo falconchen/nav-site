@@ -26,6 +26,22 @@ body.options {
     padding-left: 18px;
 }
 
+.tips .hint {
+    margin-top: 6px;
+}
+
+.tips .notice {
+    margin: 8px 0 0;
+}
+
+code {
+    font: 12px ui-monospace, monospace;
+}
+
+a {
+    color: var(--primary);
+}
+
 .tips li + li {
     margin-top: 4px;
 }

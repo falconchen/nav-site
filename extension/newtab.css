@@ -1,0 +1,31 @@
+/* 跳转前会闪一下这个页面，底色和导航站的主题保持一致，免得白屏一闪 */
+:root {
+    color-scheme: light dark;
+}
+
+body {
+    margin: 0;
+    background: #f8fafc;
+    color: #64748b;
+    font: 14px/1.5 -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+    body {
+        background: #0f172a;
+        color: #94a3b8;
+    }
+}
+
+main {
+    padding: 40vh 16px 0;
+    text-align: center;
+}
+
+main[hidden] {
+    display: none;
+}
+
+a {
+    color: inherit;
+}

@@ -1,4 +1,12 @@
-import { createClient, describeError, loadSettings, normalizeServerUrl, saveSettings } from './lib/api.js';
+import {
+    createClient,
+    DEFAULT_SERVER_URL,
+    describeError,
+    loadSettings,
+    normalizeServerUrl,
+    saveNewTabEnabled,
+    saveSettings
+} from './lib/api.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -39,6 +47,22 @@ async function init() {
     const settings = await loadSettings();
     $('serverUrl').value = settings.serverUrl;
     $('token').value = settings.token;
+    $('newTab').checked = settings.newTab;
+    $('homepageUrl').textContent = DEFAULT_SERVER_URL;
+
+    // 开关不用验证令牌，改了立刻生效
+    $('newTab').addEventListener('change', async (event) => {
+        await saveNewTabEnabled(event.target.checked);
+        const status = $('newTabStatus');
+        status.hidden = false;
+        status.className = 'notice success';
+        status.textContent = event.target.checked ? '已开启，新开的标签页会打开导航站' : '已关闭，新标签页恢复为 Chrome 自带的';
+    });
+    // 扩展页面里的 chrome:// 链接点了没反应，要用 tabs API 打开
+    $('openAppearance').addEventListener('click', (event) => {
+        event.preventDefault();
+        chrome.tabs.create({ url: 'chrome://settings/appearance' });
+    });
 
     $('testBtn').addEventListener('click', testConnection);
     $('settingsForm').addEventListener('submit', async (event) => {

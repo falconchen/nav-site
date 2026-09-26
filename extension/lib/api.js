@@ -4,14 +4,23 @@
  * 服务端开了 CORS，带 Authorization 头的跨域请求能直接发，扩展不需要申请主机权限。
  */
 
-const SETTINGS_KEYS = ['serverUrl', 'token'];
+const SETTINGS_KEYS = ['serverUrl', 'token', 'newTab'];
+
+// manifest.json 里的首页（chrome_settings_overrides.homepage）写死的也是这个地址，改的话两处一起改
+export const DEFAULT_SERVER_URL = 'https://pipi2047.eu.org';
 
 export async function loadSettings() {
     const settings = await chrome.storage.local.get(SETTINGS_KEYS);
     return {
-        serverUrl: normalizeServerUrl(settings.serverUrl || ''),
-        token: settings.token || ''
+        serverUrl: normalizeServerUrl(settings.serverUrl || DEFAULT_SERVER_URL),
+        token: settings.token || '',
+        // 新标签页默认打开导航站，没存过就是开
+        newTab: settings.newTab !== false
     };
+}
+
+export async function saveNewTabEnabled(enabled) {
+    await chrome.storage.local.set({ newTab: Boolean(enabled) });
 }
 
 export async function saveSettings({ serverUrl, token }) {

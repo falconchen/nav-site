@@ -15,7 +15,7 @@
     <form class="view" id="settingsForm">
         <label class="field">
             <span>导航站地址</span>
-            <input type="text" id="serverUrl" placeholder="https://your-nav-site.example" required>
+            <input type="text" id="serverUrl" placeholder="https://pipi2047.eu.org" required>
         </label>
 
         <label class="field">
@@ -36,10 +36,24 @@
     </form>
 
     <section class="view tips">
+        <h2>新标签页与首页</h2>
+        <label class="check">
+            <input type="checkbox" id="newTab">
+            <span>新标签页打开导航站</span>
+        </label>
+        <p class="muted hint">
+            跳转到上面填的导航站地址，关掉后恢复 Chrome 自带的新标签页。
+            首页固定为 <code id="homepageUrl"></code>，这是 Chrome 的限制，只能写死在扩展里，改了导航站地址也不会跟着变。
+            要在工具栏显示主页按钮，请到 <a href="#" id="openAppearance">Chrome 外观设置</a> 打开「显示主页按钮」。
+        </p>
+        <p class="notice" id="newTabStatus" hidden></p>
+    </section>
+
+    <section class="view tips">
         <h2>用法</h2>
         <ul>
             <li>点工具栏图标或按 <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd>：AI 预填名称、分类、描述，确认后保存</li>
-            <li>网页或链接上点右键 →「一键收藏到皮皮2047」：直接保存，完成后弹出通知告诉你存进了哪个分类</li>
+            <li>网页或链接上点右键 →「一键收藏到皮皮2047」：直接保存，网页右上角显示进度和存进了哪个分类</li>
         </ul>
     </section>
 
