@@ -90,11 +90,33 @@ window.addEventListener('pagehide', () => {
     }
 });
 
+// 本机从没存过导航数据才算新用户；老用户只是没点过卡片，不能给他塞默认次数
+async function isFirstLaunch() {
+    if (localStorage.getItem('navSiteCategories')) return false;
+    return !(await dbStorage.getItem('navSiteCategories'));
+}
+
+// 新用户的「访问最多」按 defaultVisitCounts 预置，访问时间摊在最近几天，保证排在前面
+function seedDefaultVisits() {
+    if (typeof defaultVisitCounts === 'undefined') return;
+    const now = Date.now();
+    Object.entries(defaultVisitCounts).forEach(([url, count]) => {
+        const key = visitUrlKey(url);
+        if (!key) return;
+        const visits = Array.from({ length: Math.min(count, VISIT_SAMPLE_SIZE) },
+            (_, i) => now - (i + 1) * DAY_MS / 3).reverse();
+        visitStats[key] = { count, visits };
+    });
+    scheduleVisitStatsSave();
+}
+
 window.visitStatsLoaded = (async () => {
     try {
         const saved = await dbStorage.getItem(VISIT_STORAGE_KEY);
         if (saved && typeof saved === 'object') {
             visitStats = saved;
+        } else if (await isFirstLaunch()) {
+            seedDefaultVisits();
         }
     } catch (error) {
         console.error('读取访问统计失败:', error);
