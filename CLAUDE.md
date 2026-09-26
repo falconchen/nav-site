@@ -87,10 +87,12 @@
   访问最多、特别关注和搜索（`collectAllWebsites()` 默认排除，要取私密网站得传 `{ onlyPrivate: true }`）。私密优先于特别关注。
   **这只是界面隐藏**：localStorage、云端 KV、版本历史、导出文件、`/api/v1` 里都是明文。其它规则：
   - 默认锁定、不渲染卡片 DOM；点「显示」后写 sessionStorage `privateRevealed`，本次会话有效。打开时不会停在私密收藏，左右滑动也滑不进去
-  - 图标、标题、网址默认 CSS 模糊（`.private-card:not(.revealed)`）：第一次点击卡片先变清晰（`revealPrivateCard()`，中键也一样），
-    再点才打开网站；离开私密收藏分区时 `reblurPrivateCards()` 恢复模糊并收起描述，重新渲染的卡片本来就是模糊的。
-    这只是视觉遮挡，标题和网址仍在 DOM 里。模糊时不显示悬浮提示，免得标题和网址从提示里露出来
-  - 描述只渲染占位符，真实文本存在 `privateDescriptions`（WeakMap），点击描述才填进 DOM；卡片变清晰后悬浮提示照常显示，但描述点开前只显示 `••••••`；点击不记访问次数
+  - 图标、标题、网址默认 CSS 模糊（`.private-card:not(.revealed)`）。有鼠标的设备（`(hover: hover) and (pointer: fine)`）
+    悬停就清晰、移开恢复，点击直接打开，悬浮提示照常；触屏设备第一次点击先变清晰（`revealPrivateCard()`，中键也一样），
+    再点才打开网站。点开描述时整张卡片也变清晰（加 `.revealed`），之后收起描述也不再模糊。
+    离开私密收藏分区时 `reblurPrivateCards()` 恢复模糊并收起描述，重新渲染的卡片本来就是模糊的。
+    这只是视觉遮挡，标题和网址仍在 DOM 里
+  - 描述只渲染占位符，真实文本存在 `privateDescriptions`（WeakMap），点击描述才填进 DOM；悬浮提示里描述点开前只显示 `••••••`；点击不记访问次数
   - `/api/v1` 的 `POST /websites` 接受 `private`，扩展弹窗有「私密收藏」勾选框；右键一键收藏不设私密
   - 分类 section 跳过私密网站后 DOM 下标和数据下标对不上，按卡片找数据一律用 `siteIndexOfCard()`，不要再写 `children.indexOf(card)`
 

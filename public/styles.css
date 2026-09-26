@@ -3387,7 +3387,7 @@ html:not([data-tab="all"]) body:not(.searching) #mobile-category-menu-wrapper {
   justify-content: center;
 }
 
-/* 私密卡片的图标、标题、网址默认模糊，第一次点击卡片变清晰（.revealed），离开分区后恢复 */
+/* 私密卡片的图标、标题、网址默认模糊：有鼠标的设备悬停时清晰，触屏设备第一次点击变清晰（.revealed），离开分区后恢复 */
 .private-card .card-icon,
 .private-card .card-title,
 .private-card .card-url {
@@ -3399,6 +3399,15 @@ html:not([data-tab="all"]) body:not(.searching) #mobile-category-menu-wrapper {
 .private-card:not(.revealed) .card-url {
   filter: blur(6px);
   user-select: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .private-card:hover .card-icon,
+  .private-card:hover .card-title,
+  .private-card:hover .card-url {
+    filter: none;
+    user-select: text;
+  }
 }
 
 /* 私密卡片的描述默认是占位符，点击才显示 */

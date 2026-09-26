@@ -252,7 +252,7 @@ function createCardHTML(website) {
     return `
         <div class="website-card ${pinnedClass} ${privateClass}" data-weight="${weight}">
             <button class="card-pin-btn" title="取消特别关注" aria-label="取消特别关注"><i class="fas fa-star"></i></button>
-            <div class="card-header"${website.private ? ' title="点击显示"' : ''}>
+            <div class="card-header">
                 <div class="card-icon ${withImgClass}">
                     ${iconContent}
                 </div>
@@ -284,6 +284,8 @@ function togglePrivateDescription(card) {
     description.textContent = revealed
         ? (privateDescriptions.get(card) || '（无描述）')
         : PRIVATE_DESCRIPTION_MASK;
+    // 描述都点开看了，图标、标题、网址也没必要再模糊；之后收起描述也保持清晰，离开分区才恢复
+    if (revealed) card.classList.add('revealed');
     notifyPrivateCardChange(card);
 }
 
@@ -292,10 +294,12 @@ function notifyPrivateCardChange(card) {
     card.dispatchEvent(new CustomEvent('private-card-change', { bubbles: true }));
 }
 
-// 私密卡片的图标、标题、网址默认模糊（CSS 按 .revealed 切换），第一次点击卡片先变清晰，再点才打开网站
+// 私密卡片的图标、标题、网址默认模糊（CSS 按 .revealed 切换）。
+// 有鼠标的设备悬停就变清晰（CSS :hover），点击直接打开；触屏设备第一次点击先变清晰，再点才打开
+const canHoverPrivateCards = window.matchMedia('(hover: hover) and (pointer: fine)');
+
 function revealPrivateCard(card) {
     card.classList.add('revealed');
-    card.querySelector('.card-header')?.removeAttribute('title');
     notifyPrivateCardChange(card);
 }
 
@@ -303,7 +307,6 @@ function revealPrivateCard(card) {
 function reblurPrivateCards() {
     document.querySelectorAll('.private-card.revealed').forEach(card => {
         card.classList.remove('revealed');
-        card.querySelector('.card-header')?.setAttribute('title', '点击显示');
     });
     document.querySelectorAll('.private-card .card-secret.revealed').forEach(description => {
         description.classList.remove('revealed');
@@ -2004,8 +2007,8 @@ function handleCardClick(e) {
 
     }
 
-    // 模糊着的私密卡片先变清晰，不打开网站（中键也一样）
-    if (this.classList.contains('private-card') && !this.classList.contains('revealed')) {
+    // 触屏设备上模糊着的私密卡片先变清晰，不打开网站（中键也一样）；有鼠标时悬停已经清晰了，直接打开
+    if (this.classList.contains('private-card') && !this.classList.contains('revealed') && !canHoverPrivateCards.matches) {
         revealPrivateCard(this);
         return;
     }
