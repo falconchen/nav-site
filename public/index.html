@@ -211,7 +211,12 @@
                         </button>
                     </div>
                     <div class="private-toolbar">
-                        <button type="button" class="btn btn-secondary" id="privateHideBtn" title="隐藏私密收藏（关闭标签页后也会自动隐藏）" aria-label="隐藏私密收藏">
+                        <button type="button" class="btn btn-secondary" id="privateHideBtn" title="锁上私密收藏（关闭标签页后也会自动锁上）" aria-label="锁上私密收藏">
+                            <!-- 平时是开锁（当前已解锁），悬停时换成锁，提示点下去会锁上 -->
+                            <i class="fas fa-lock-open private-hide-icon-idle"></i>
+                            <i class="fas fa-lock private-hide-icon-hover"></i>
+                        </button>
+                        <button type="button" class="btn btn-secondary" id="privateRevealAllBtn" title="显示全部网站（描述除外）" aria-label="显示全部网站" aria-pressed="false">
                             <i class="fas fa-eye-slash"></i>
                         </button>
                     </div>

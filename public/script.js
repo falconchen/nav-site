@@ -303,8 +303,35 @@ function revealPrivateCard(card) {
     notifyPrivateCardChange(card);
 }
 
+// 工具栏「显示全部」：所有私密卡片的图标、标题、网址一起变清晰，描述不动。
+// 打开期间重新渲染的卡片也保持清晰，离开分区或隐藏私密收藏时关掉
+let privateAllRevealed = false;
+
+function setPrivateAllRevealed(on) {
+    if (!on) {
+        reblurPrivateCards();
+        return;
+    }
+    privateAllRevealed = true;
+    document.querySelectorAll('#private .private-card').forEach(card => card.classList.add('revealed'));
+    updatePrivateRevealAllBtn();
+}
+
+function updatePrivateRevealAllBtn() {
+    const btn = document.getElementById('privateRevealAllBtn');
+    if (!btn) return;
+    btn.setAttribute('aria-pressed', String(privateAllRevealed));
+    btn.title = privateAllRevealed ? '重新模糊全部网站' : '显示全部网站（描述除外）';
+    btn.setAttribute('aria-label', privateAllRevealed ? '重新模糊全部网站' : '显示全部网站');
+    const icon = btn.querySelector('i');
+    // 闭眼表示现在是模糊的，点开后是睁眼
+    if (icon) icon.className = privateAllRevealed ? 'fas fa-eye' : 'fas fa-eye-slash';
+}
+
 // 离开私密收藏分区时恢复模糊，描述也收起；重新渲染出来的卡片本来就是模糊的
 function reblurPrivateCards() {
+    privateAllRevealed = false;
+    updatePrivateRevealAllBtn();
     document.querySelectorAll('.private-card.revealed').forEach(card => {
         card.classList.remove('revealed');
     });
@@ -1303,6 +1330,8 @@ function setPrivateRevealed(revealed) {
     } catch (e) {
         // 隐私模式下写不进去，只影响刷新后是否要重新点显示
     }
+    // 锁上时「显示全部」一起关掉，下次解锁回到默认的模糊状态
+    if (!revealed) reblurPrivateCards();
     renderPrivateCategory();
 }
 
@@ -1319,6 +1348,7 @@ function renderPrivateCategory() {
         : [];
     renderVirtualView('private', privateWebsites);
     if (!revealed) section.classList.remove('is-empty');
+    if (privateAllRevealed) setPrivateAllRevealed(true);
 }
 
 // 渲染最近添加视图
@@ -1781,6 +1811,7 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('websitePrivate')?.addEventListener('change', syncPrivateCheckbox);
     document.getElementById('privateRevealBtn')?.addEventListener('click', () => setPrivateRevealed(true));
     document.getElementById('privateHideBtn')?.addEventListener('click', () => setPrivateRevealed(false));
+    document.getElementById('privateRevealAllBtn')?.addEventListener('click', () => setPrivateAllRevealed(!privateAllRevealed));
 });
 
 // 获取所有分类中的最大权重，确保置顶网站权重最高

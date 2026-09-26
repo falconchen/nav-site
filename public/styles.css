@@ -3376,15 +3376,35 @@ html:not([data-tab="all"]) body:not(.searching) #mobile-category-menu-wrapper {
   display: flex;
   align-items: center;
   justify-content: flex-start;
+  gap: 0.5rem;
   margin-bottom: 1rem;
 }
 
 /* 只有图标，做成方形按钮 */
-#privateHideBtn {
+.private-toolbar .btn {
   padding: 0.6rem;
   width: 2.5rem;
   height: 2.5rem;
   justify-content: center;
+}
+
+/* 锁上按钮：平时显示开锁，悬停或键盘聚焦时换成锁 */
+#privateHideBtn .private-hide-icon-hover,
+#privateHideBtn:hover .private-hide-icon-idle,
+#privateHideBtn:focus-visible .private-hide-icon-idle {
+  display: none;
+}
+
+#privateHideBtn:hover .private-hide-icon-hover,
+#privateHideBtn:focus-visible .private-hide-icon-hover {
+  display: inline-block;
+}
+
+/* 「显示全部」打开时按钮高亮 */
+#privateRevealAllBtn[aria-pressed="true"] {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  color: #fff;
 }
 
 /* 私密卡片的图标、标题、网址默认模糊：有鼠标的设备悬停时清晰，触屏设备第一次点击变清晰（.revealed），离开分区后恢复 */
