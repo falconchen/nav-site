@@ -233,8 +233,9 @@ function closeModal(modalId) {
 function createCardHTML(website) {
     // 确保权重数据存在
     const weight = website.weight || 100;
-    // 添加置顶样式类
-    const pinnedClass = website.pinned ? 'pinned' : '';
+    // 添加置顶样式类。私密网站不进特别关注，星星也不显示
+    const pinnedClass = website.pinned && !website.private ? 'pinned' : '';
+    const privateClass = website.private ? 'private-card' : '';
     // 根据是否有图片决定是否添加背景去除类
     const withImgClass = website.imageData ? 'with-img' : '';
 
@@ -249,7 +250,7 @@ function createCardHTML(website) {
     }
 
     return `
-        <div class="website-card ${pinnedClass}" data-weight="${weight}">
+        <div class="website-card ${pinnedClass} ${privateClass}" data-weight="${weight}">
             <button class="card-pin-btn" title="取消特别关注" aria-label="取消特别关注"><i class="fas fa-star"></i></button>
             <div class="card-header">
                 <div class="card-icon ${withImgClass}">
@@ -260,7 +261,9 @@ function createCardHTML(website) {
                     <div class="card-url">${escapeHtml(website.url)}</div>
                 </div>
             </div>
-            <div class="card-description">${escapeHtml(website.description)}</div>
+            ${website.private
+                ? `<div class="card-description card-secret" title="点击查看描述">${PRIVATE_DESCRIPTION_MASK}</div>`
+                : `<div class="card-description">${escapeHtml(website.description)}</div>`}
             <div class="card-footer">
                 <button class="card-menu-btn" aria-label="菜单">
                     <i class="fas fa-minus"></i>
@@ -268,6 +271,29 @@ function createCardHTML(website) {
             </div>
         </div>
     `;
+}
+
+// 私密卡片的描述可能带密钥，默认只渲染占位符，真实文本不进 DOM，点击后才填进去
+const PRIVATE_DESCRIPTION_MASK = '•••••• 点击查看';
+const privateDescriptions = new WeakMap();
+
+function togglePrivateDescription(card) {
+    const description = card.querySelector('.card-description');
+    if (!description) return;
+    const revealed = description.classList.toggle('revealed');
+    description.textContent = revealed
+        ? (privateDescriptions.get(card) || '（无描述）')
+        : PRIVATE_DESCRIPTION_MASK;
+    // 鼠标一直停在卡片上不会再触发 mouseover，通知悬浮提示按新状态显示或收起
+    card.dispatchEvent(new CustomEvent('private-description-toggle', { bubbles: true, detail: { revealed } }));
+}
+
+// 分类 section 不渲染私密网站，DOM 下标要跳过它们才能对上 websites[categoryId] 里的下标
+function siteIndexOfCard(card, categoryId) {
+    const domIndex = Array.from(card.parentNode.children).indexOf(card);
+    if (domIndex < 0 || !Array.isArray(websites[categoryId])) return -1;
+    let seen = -1;
+    return websites[categoryId].findIndex(site => !site.private && ++seen === domIndex);
 }
 
 // 从数据加载网站卡片
@@ -297,8 +323,8 @@ function loadWebsitesFromData() {
         // 更新排序后的数据
         websites[category] = sortedWebsites;
 
-        // 创建卡片
-        sortedWebsites.forEach(website => {
+        // 创建卡片，私密网站只在私密收藏 tab 里出现
+        sortedWebsites.filter(website => !website.private).forEach(website => {
             cardsContainer.insertAdjacentHTML('beforeend', createCardHTML(website));
         });
     });
@@ -474,6 +500,7 @@ function updateCategorySections(updatedCategories) {
 // 添加网站功能
 function openAddWebsiteModal() {
     document.getElementById('websiteForm').reset();
+    syncPrivateCheckbox();
     document.getElementById('modalTitle').textContent = '添加网站';
     document.getElementById('submitBtn').innerHTML = '<i class="fas fa-plus"></i> 添加网站';
     currentEditingCard = null;
@@ -569,7 +596,7 @@ function confirmDeleteWebsite() {
             }
         } else {
             // 从数据对象中删除
-            const cardIndex = Array.from(websiteToDelete.parentNode.children).indexOf(websiteToDelete);
+            const cardIndex = siteIndexOfCard(websiteToDelete, categoryId);
 
             if (websites[categoryId] && websites[categoryId][cardIndex]) {
                 // 获取网站信息，用于在置顶分类中查找
@@ -669,8 +696,8 @@ function refreshCategoryUI(categoryId) {
     // 更新排序后的数据
     websites[categoryId] = sortedWebsites;
 
-    // 创建卡片
-    sortedWebsites.forEach(website => {
+    // 创建卡片，私密网站只在私密收藏 tab 里出现
+    sortedWebsites.filter(website => !website.private).forEach(website => {
         cardsContainer.insertAdjacentHTML('beforeend', createCardHTML(website));
     });
 
@@ -682,7 +709,11 @@ function refreshCategoryUI(categoryId) {
 function editWebsite(card) {
     const title = card.querySelector('.card-title').textContent;
     const url = card.querySelector('.card-url').textContent;
-    const description = card.querySelector('.card-description').textContent.trimStart();
+    const isPrivate = card.classList.contains('private-card');
+    // 私密卡片 DOM 里只有占位符，真实描述在渲染时存进了 privateDescriptions
+    const description = isPrivate
+        ? (privateDescriptions.get(card) || '')
+        : card.querySelector('.card-description').textContent.trimStart();
 
     // 检查是否有图标或图片
     const iconElement = card.querySelector('.card-icon i');
@@ -701,6 +732,8 @@ function editWebsite(card) {
     document.getElementById('websiteDescription').value = description;
     document.getElementById('websiteIcon').value = iconClass;
     document.getElementById('websitePinned').checked = isPinned;
+    document.getElementById('websitePrivate').checked = isPrivate;
+    syncPrivateCheckbox();
 
     // 获取卡片的分类
     let categoryId;
@@ -755,7 +788,7 @@ function editWebsite(card) {
         categoryId = categorySection.id;
 
         // 查找网站数据，获取可能存在的图片数据
-        const cardIndex = Array.from(card.parentNode.children).indexOf(card);
+        const cardIndex = siteIndexOfCard(card, categoryId);
         if (websites[categoryId] && websites[categoryId][cardIndex]) {
             const siteData = websites[categoryId][cardIndex];
             if (siteData.imageData) {
@@ -841,7 +874,9 @@ function submitWebsiteForm() {
     description = description.trimStart();
     const category = document.getElementById('websiteCategory').value;
     const iconUrl = document.getElementById('websiteIcon').value;
-    const isPinned = document.getElementById('websitePinned').checked;
+    const isPrivate = document.getElementById('websitePrivate').checked;
+    // 私密网站不进特别关注
+    const isPinned = !isPrivate && document.getElementById('websitePinned').checked;
     // 获取图片数据（如果有）
     const imageData = document.getElementById('websiteIcon').dataset.imageData || '';
 
@@ -889,6 +924,9 @@ function submitWebsiteForm() {
     let pinnedChanged = false;
     // 记录权重是否变更
     let weightChanged = false;
+    // 记录私密状态是否变更
+    let privateChanged = false;
+    const isNewWebsite = !currentEditingCard;
     // 当前时间戳，用于记录添加/编辑时间
     const currentTime = Date.now();
 
@@ -912,6 +950,7 @@ function submitWebsiteForm() {
 
         // 检查置顶状态是否变更
         pinnedChanged = oldPinned !== isPinned;
+        privateChanged = currentEditingCard.classList.contains('private-card') !== isPrivate;
 
         // 确保编辑的旧分类存在
         if (!oldCategoryId || !websites[oldCategoryId]) {
@@ -928,7 +967,7 @@ function submitWebsiteForm() {
             cardIndex = websites[oldCategoryId].findIndex(site =>
                 site.title === oldTitle && site.url === oldUrl);
         } else {
-            cardIndex = Array.from(currentEditingCard.parentNode.children).indexOf(currentEditingCard);
+            cardIndex = siteIndexOfCard(currentEditingCard, oldCategoryId);
         }
 
         // 获取旧权重
@@ -964,6 +1003,7 @@ function submitWebsiteForm() {
                 imageData: imageData, // 保存图片数据
                 weight: newWeight, // 设置新权重
                 pinned: isPinned, // 添加置顶属性
+                private: isPrivate,
                 addedTime: websiteData.addedTime || currentTime, // 保留原添加时间或使用当前时间
                 editedTime: currentTime // 记录编辑时间
             });
@@ -1009,12 +1049,13 @@ function submitWebsiteForm() {
                 imageData: imageData, // 保存图片数据
                 weight: newSiteWeight, // 如果置顶，更新权重
                 pinned: isPinned, // 更新置顶状态
+                private: isPrivate,
                 addedTime: websites[oldCategoryId][cardIndex].addedTime || currentTime, // 保留原添加时间或使用当前时间
                 editedTime: currentTime // 记录编辑时间
             };
 
-            // 如果权重或置顶状态变更，需要重新排序并刷新UI
-            if (weightChanged || pinnedChanged) {
+            // 如果权重、置顶或私密状态变更，需要重新排序并刷新UI
+            if (weightChanged || pinnedChanged || privateChanged) {
                 sortAndRefreshCategory(oldCategoryId);
             } else {
                 // 如果当前编辑的不是虚拟分类中的卡片，更新卡片UI
@@ -1062,6 +1103,7 @@ function submitWebsiteForm() {
             imageData: imageData, // 保存图片数据
             weight: newWeight, // 设置新权重
             pinned: isPinned, // 添加置顶属性
+            private: isPrivate,
             addedTime: currentTime, // 记录添加时间
             editedTime: currentTime // 记录编辑时间（与添加时间相同）
         });
@@ -1098,8 +1140,10 @@ function submitWebsiteForm() {
 
     // 延迟一点时间后滚动到目标分类，确保DOM更新完成
     setTimeout(() => {
-        // 定位逻辑：如果置顶状态变更，优先显示置顶分类；否则，如果分类变更，显示新分类
-        if (pinnedChanged && isPinned) {
+        // 定位逻辑：新加或刚设为私密的去私密收藏；置顶状态变更显示置顶分类；否则，如果分类变更，显示新分类
+        if (isPrivate && (isNewWebsite || privateChanged)) {
+            switchTab('private');
+        } else if (pinnedChanged && isPinned) {
             // 优先显示置顶分类
             switchTab('pinned');
 
@@ -1203,7 +1247,7 @@ function sortAndRefreshCategory(categoryId) {
 
 // 置顶 / 最近添加 / 访问最多 这几个视图里的卡片不属于某个分类 section，
 // 编辑、删除时要靠卡片上的 data-original-category 找回原分类
-const VIRTUAL_SECTION_IDS = ['frequent', 'recent', 'pinned'];
+const VIRTUAL_SECTION_IDS = ['frequent', 'recent', 'pinned', 'private'];
 
 function isVirtualSection(id) {
     return VIRTUAL_SECTION_IDS.includes(id);
@@ -1228,18 +1272,21 @@ function renderVirtualViews() {
     renderFrequentCategory();
     renderPinnedCategory();
     renderRecentCategory();
+    renderPrivateCategory();
 }
 
 // 「最近添加」tab 展示的网站数量。60 是 1～5 的最小公倍数，
 // 每行 3/4/5 张（普通、压缩、手机宫格）时最后一行都是满的
 const RECENT_LIMIT = 60;
 
-// 收集所有分类下的网站，带上原始分类，供置顶和最近添加两个视图使用
-function collectAllWebsites() {
+// 收集所有分类下的网站，带上原始分类，供各个视图使用。
+// 私密网站默认排除，只有私密收藏视图传 { onlyPrivate: true } 取它们
+function collectAllWebsites({ onlyPrivate = false } = {}) {
     const allWebsites = [];
     Object.keys(websites).forEach(category => {
         if (!Array.isArray(websites[category])) return;
         websites[category].forEach(website => {
+            if (!!website.private !== onlyPrivate) return;
             allWebsites.push({ ...website, originalCategory: category });
         });
     });
@@ -1256,6 +1303,9 @@ function renderVirtualView(sectionId, sites) {
     // 卡片记下原始分类，编辑、删除、置顶时靠它找回数据
     container.querySelectorAll('.website-card').forEach((card, index) => {
         card.dataset.originalCategory = sites[index].originalCategory;
+        if (sites[index].private) {
+            privateDescriptions.set(card, sites[index].description || '');
+        }
         addCardEventListeners(card);
     });
 
@@ -1272,6 +1322,43 @@ function renderPinnedCategory() {
         .sort((a, b) => (b.weight || 100) - (a.weight || 100));
 
     renderVirtualView('pinned', pinnedWebsites);
+}
+
+// 私密收藏默认锁定，点「显示」后本次会话内一直显示（sessionStorage，关标签页即失效）
+function isPrivateRevealed() {
+    try {
+        return sessionStorage.getItem('privateRevealed') === '1';
+    } catch (e) {
+        return false;
+    }
+}
+
+function setPrivateRevealed(revealed) {
+    try {
+        if (revealed) {
+            sessionStorage.setItem('privateRevealed', '1');
+        } else {
+            sessionStorage.removeItem('privateRevealed');
+        }
+    } catch (e) {
+        // 隐私模式下写不进去，只影响刷新后是否要重新点显示
+    }
+    renderPrivateCategory();
+}
+
+// 渲染私密收藏视图：锁定时不渲染任何卡片 DOM，搜索、悬浮提示、开发者工具都拿不到内容
+function renderPrivateCategory() {
+    const section = document.getElementById('private');
+    if (!section) return;
+    const revealed = isPrivateRevealed();
+    section.classList.toggle('is-locked', !revealed);
+
+    const privateWebsites = revealed
+        ? collectAllWebsites({ onlyPrivate: true })
+            .sort((a, b) => (b.weight || 100) - (a.weight || 100))
+        : [];
+    renderVirtualView('private', privateWebsites);
+    if (!revealed) section.classList.remove('is-empty');
 }
 
 // 渲染最近添加视图
@@ -1371,7 +1458,7 @@ function updateWebsiteCard(card, name, url, description, iconUrl, isPinned) {
 
     // 更新数据对象
     const categoryId = card.closest('.category-section').id;
-    const cardIndex = Array.from(card.parentNode.children).indexOf(card);
+    const cardIndex = siteIndexOfCard(card, categoryId);
 
     // 检查索引是否有效
     if (websites[categoryId] && cardIndex >= 0 && cardIndex < websites[categoryId].length) {
@@ -1387,6 +1474,7 @@ function updateWebsiteCard(card, name, url, description, iconUrl, isPinned) {
             imageData: imageData, // 保存图片数据
             weight: currentWeight, // 保留原有权重
             pinned: isPinned, // 更新置顶状态
+            private: false, // 分类 section 里只有非私密网站
             addedTime: websites[categoryId][cardIndex].addedTime || currentTime, // 保留原添加时间，如果没有则使用当前时间
             editedTime: currentTime // 记录编辑时间
         };
@@ -1482,6 +1570,10 @@ function createContextMenu() {
             <i class="fas fa-star"></i>
             <span id="pin-action-text">特别关注</span>
         </div>
+        <div class="context-menu-item" id="toggle-private-btn">
+            <i class="fas fa-lock"></i>
+            <span id="private-action-text">设为私密</span>
+        </div>
         <div class="context-menu-item" id="remove-frequent-btn">
             <i class="fas fa-eye-slash"></i>
             <span>从访问最多中移除</span>
@@ -1524,6 +1616,13 @@ function createContextMenu() {
     deleteBtn.addEventListener('click', function () {
         if (contextMenuTarget) {
             deleteWebsite(contextMenuTarget);
+            hideContextMenu();
+        }
+    });
+
+    contextMenu.querySelector('#toggle-private-btn').addEventListener('click', function () {
+        if (contextMenuTarget) {
+            togglePrivateStatus(contextMenuTarget);
             hideContextMenu();
         }
     });
@@ -1587,7 +1686,7 @@ function togglePinStatus(card) {
         websiteIndex = websites[categoryId].findIndex(site =>
             site.title === title && site.url === url);
     } else {
-        websiteIndex = Array.from(card.parentNode.children).indexOf(card);
+        websiteIndex = siteIndexOfCard(card, categoryId);
 
         // 验证索引
         if (websiteIndex < 0 || websiteIndex >= websites[categoryId].length) {
@@ -1680,6 +1779,50 @@ function togglePinStatus(card) {
     }
 }
 
+// 切换私密状态：数据改完整体重渲染，卡片会从各视图消失或回到原分类
+function togglePrivateStatus(card) {
+    const title = card.querySelector('.card-title').textContent;
+    const url = card.querySelector('.card-url').textContent;
+    const section = card.closest('.category-section');
+    const categoryId = isVirtualSection(section.id) ? card.dataset.originalCategory : section.id;
+    if (!categoryId || !websites[categoryId]) return;
+
+    const index = isVirtualSection(section.id)
+        ? websites[categoryId].findIndex(site => site.title === title && site.url === url)
+        : siteIndexOfCard(card, categoryId);
+    const site = websites[categoryId][index];
+    if (!site) return;
+
+    site.private = !site.private;
+    if (site.private) site.pinned = false;
+
+    refreshCategoryUI(categoryId);
+    renderVirtualViews();
+    if (window.saveNavData) {
+        window.saveNavData();
+    }
+
+    if (typeof showNotification === 'function') {
+        showNotification(site.private ? '已移入私密收藏' : '已移出私密收藏', 'success');
+    }
+}
+
+// 编辑弹窗里勾了私密就禁用「特别关注」
+function syncPrivateCheckbox() {
+    const privateBox = document.getElementById('websitePrivate');
+    const pinnedBox = document.getElementById('websitePinned');
+    if (!privateBox || !pinnedBox) return;
+    pinnedBox.disabled = privateBox.checked;
+    if (privateBox.checked) pinnedBox.checked = false;
+    pinnedBox.closest('.checkbox-container')?.classList.toggle('disabled', privateBox.checked);
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    document.getElementById('websitePrivate')?.addEventListener('change', syncPrivateCheckbox);
+    document.getElementById('privateRevealBtn')?.addEventListener('click', () => setPrivateRevealed(true));
+    document.getElementById('privateHideBtn')?.addEventListener('click', () => setPrivateRevealed(false));
+});
+
 // 获取所有分类中的最大权重，确保置顶网站权重最高
 function getGlobalMaxWeight() {
     let maxWeight = 100;
@@ -1708,6 +1851,11 @@ function showContextMenu(e, card) {
     const isPinned = card.classList.contains('pinned');
     const pinActionText = menu.querySelector('#pin-action-text');
     pinActionText.textContent = isPinned ? '取消特别关注' : '特别关注';
+
+    // 私密网站不进特别关注，隐藏这一项
+    const isPrivate = card.classList.contains('private-card');
+    menu.querySelector('#toggle-pin-btn').style.display = isPrivate ? 'none' : '';
+    menu.querySelector('#private-action-text').textContent = isPrivate ? '取消私密' : '设为私密';
 
     // 「从访问最多中移除」只在访问最多视图里出现
     const inFrequent = card.closest('.category-section')?.id === 'frequent';
@@ -1886,6 +2034,12 @@ function handleCardClick(e) {
     // 如果点击了菜单按钮或context菜单，不执行卡片点击
     if (e.target.closest('.context-menu') || e.target.closest('.card-menu-btn') || e.target.closest('.card-pin-btn')) return;
 
+    // 点私密卡片的描述是显示/收起描述，不打开网站
+    if (e.target.closest('.card-secret')) {
+        if (e.button === 0) togglePrivateDescription(this);
+        return;
+    }
+
     // 如果按住Ctrl键点击，则编辑网站
     if (e.ctrlKey) {
         editWebsite(this);
@@ -1896,7 +2050,8 @@ function handleCardClick(e) {
     const url = this.querySelector('.card-url').textContent;
     // 检查URL是否已包含协议
     const fullUrl = url.includes('://') ? url : `http://${url}`;
-    if (typeof recordVisit === 'function') recordVisit(fullUrl);
+    // 私密网站不记访问次数，免得本机 IndexedDB 里留下明文网址
+    if (typeof recordVisit === 'function' && !this.classList.contains('private-card')) recordVisit(fullUrl);
     window.open(fullUrl, '_blank');
 }
 

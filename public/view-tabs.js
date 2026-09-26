@@ -1,7 +1,9 @@
-// 视图 tab：最近添加 / 访问最多 / 特别关注 / 全部网站
+// 视图 tab：最近添加 / 访问最多 / 特别关注 / 全部网站 / 私密收藏
 // 当前 tab 写在 <html data-tab>，index.html 的内联脚本在首屏前就设好了，CSS 按它切换面板
 
-const VIEW_TABS = ['recent', 'frequent', 'pinned', 'all'];
+const VIEW_TABS = ['recent', 'frequent', 'pinned', 'all', 'private'];
+// 私密收藏只能点 tab 进入，左右滑动不会滑过去，免得误触
+const SWIPE_TABS = VIEW_TABS.filter(tab => tab !== 'private');
 // 每个 tab 各自记住滚动位置，来回切换时不用重新往下翻
 const tabScrollPositions = {};
 
@@ -31,7 +33,8 @@ function switchTab(tab, options = {}) {
     tabScrollPositions[current] = window.scrollY;
     document.documentElement.setAttribute('data-tab', tab);
     try {
-        localStorage.setItem('activeTab', tab);
+        // 私密收藏不记忆，刷新后回到上一个普通 tab
+        if (tab !== 'private') localStorage.setItem('activeTab', tab);
     } catch (e) {
         // 隐私模式下写不进去，不影响本次切换
     }
@@ -91,9 +94,10 @@ function setupTabSwipe() {
         if (elapsed > MAX_DURATION) return;
         if (Math.abs(dx) < MIN_DISTANCE || Math.abs(dx) < Math.abs(dy) * 1.5) return;
 
-        const index = VIEW_TABS.indexOf(getActiveTab());
+        const index = SWIPE_TABS.indexOf(getActiveTab());
+        if (index < 0) return;
         // 手指左滑看右边的 tab，右滑回左边的，到头不循环
-        const next = VIEW_TABS[index + (dx < 0 ? 1 : -1)];
+        const next = SWIPE_TABS[index + (dx < 0 ? 1 : -1)];
         if (next) {
             switchTab(next, { animate: true });
         }

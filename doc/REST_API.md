@@ -48,6 +48,7 @@ Authorization: Bearer navpat_xxxxxxxx
 | `url` | 可选，按网址查找。比较时忽略协议、`www.`、`#hash` 和末尾斜杠，扩展可以用它判断当前页是否已收藏 |
 
 返回的网站带 `category` 字段。旧版 base64 图标体积大，`imageData` 返回 `null`。
+`private: true` 表示网页端的私密收藏。这只是界面上的隐藏标记，接口照常返回完整的标题、网址和描述。
 
 ### `POST /api/v1/websites`
 

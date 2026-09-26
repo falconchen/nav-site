@@ -134,6 +134,7 @@ function siteView(site, categoryId) {
         icon: site.icon || DEFAULT_ICON,
         imageData,
         pinned: !!site.pinned,
+        private: !!site.private,
         weight: site.weight || 100,
         addedTime: site.addedTime || null,
         editedTime: site.editedTime || null,
