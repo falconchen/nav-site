@@ -497,7 +497,7 @@ html[data-sidebar="compact"] .categories-title-container {
 .categories-sidebar.compact-mode .category-item,
 html[data-sidebar="compact"] .category-item {
   justify-content: center;
-  padding: 0.75rem;
+  padding: 0.5rem 0.75rem;
 }
 
 /* 压缩模式下分类项文本隐藏 */
@@ -1448,7 +1448,7 @@ html[data-sidebar="compact"] .cards-grid {
 .categories-list {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.25rem;
 }
 
 /* 编辑模式下的分类项样式 */
@@ -2106,7 +2106,7 @@ html[data-sidebar="compact"] .cards-grid {
   }
 
   .category-item {
-    padding: 0.6rem 0.8rem;
+    padding: 0.5rem 0.8rem;
   }
 
   .section-title {
@@ -2228,8 +2228,7 @@ html[data-sidebar="compact"] .cards-grid {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  margin-bottom: 0.5rem;
+  padding: 0.5rem 1rem;
   border-radius: 0.5rem;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -2673,7 +2672,7 @@ html[data-sidebar="compact"] .website-card:hover {
 
   html[data-sidebar="compact"] .category-item {
     justify-content: flex-start;
-    padding: 0.75rem 1rem;
+    padding: 0.5rem 1rem;
   }
 
   /* 恢复分类项文字（移动端需要可读性） */
