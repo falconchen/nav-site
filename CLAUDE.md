@@ -102,7 +102,7 @@
 
 ### AI 网站识别
 
-「AI识别」按钮触发 `POST /api/analyze-website`，抓取目标网页后跑两轮模型：分类和描述生成。
+「自动填写」按钮（原「AI识别」，id 仍是 `aiDetectBtn`）触发 `POST /api/analyze-website`，抓取目标网页后跑两轮模型：分类和描述生成。
 抓取、解析、两轮 AI 的实现在 `server/lib/website-analyzer.js`，网页端和 `/api/v1` 共用。
 
 **分类用编号制，不让模型输出分类 id。** 用户会改分类名而 id 不变（比如「社交媒体」改名成
@@ -243,9 +243,40 @@ npm run deploy      # 部署到 Cloudflare Workers 生产环境
 
 ## 架构模式
 
+### 视觉设计：纸与墨（v2.0.0）
+
+整站是一本「私人网址簿」，刻意避开 AI 产品常见的样子。改样式时守住这几条：
+
+- **配色**：暖白纸面（`--paper`）+ 墨色文字（`--ink` / `--ink-2..4`）+ 唯一的朱砂强调色（`--accent`）。
+  不用渐变、不用发光、不用紫色；强调色只给激活态、编号、焦点环和印章，主按钮是墨色不是强调色
+- **字体**：分类标题、弹窗标题、品牌字用宋体（`--font-serif`，苹果设备用系统 Songti，不额外下载字体），
+  界面用系统无衬线（`--font-sans`），编号和版本号用等宽（`--font-mono`）。不引入 Inter 等西文字体
+- **层次**：靠留白、发丝线（`--line`）和字重，卡片静止时没有阴影，悬停才浮起
+- **目录编号**：侧边栏「目录」和分类标题的 01、02 用 CSS 计数器（`toc` / `section`）生成，两边一一对应；
+  普通模式隐藏分类图标，压缩模式才显示图标
+- 所有颜色、圆角、阴影、动效都在 `styles.css` 顶部的 token 里；旧变量名（`--primary-color`、`--surface-color` 等）
+  保留为别名，sync.js、session.js 里 JS 拼的弹窗还在用
+- 卡片网址把协议包在 `.card-url-protocol` 里用 CSS 隐藏（`cardUrlHTML()`），`textContent` 仍是完整网址，
+  打开、复制、编辑都读它，所以不要改用 `innerText`
+- 通知（`showNotification`）和云端保存进度（`showSaveProgress`）只加 class，样式都在 CSS 里
+
+**手机端（≤768px / ≤480px）**：
+- ≤480px 卡片是 App 式图标宫格；卡片上的菜单按钮已去掉，触屏**长按 450ms** 弹出菜单（`bindCardLongPress()`，
+  iOS 不会为长按触发 `contextmenu`），菜单弹出后吞掉松手时的 click，免得顺带打开网站
+- 右键菜单在小屏变成底部动作面板，下面垫遮罩（`body:has(.context-menu.active)::after`），点空白只关菜单
+- 弹窗在小屏是底部弹层，操作按钮吸底；输入框字号 16px，避免 iOS 聚焦放大
+- 按 `/` 聚焦搜索框
+
+**分享与图标**（`public/img/`、`public/manifest.webmanifest`，构建时一并复制）：
+- `og-cover.png`（1200×630）供微信、Telegram、X 等的分享卡片，`index.html` 里的 og / twitter 标签指向线上域名
+- `seal.svg` 是印章 favicon，「皮」字轮廓取自 Noto Serif SC（OFL 协议，可嵌入）；不要换成系统宋体的轮廓，那个不能再分发
+- `apple-touch-icon.png`、`icon-192/512.png` 是满版印章（系统自己裁圆角），`favicon-32.png` 是带圆角的小图标
+- 这些图用无头 Chrome 渲染 HTML 模板生成；改品牌色或文案时要重新生成
+
 ### 主题系统
-- 基于 CSS 变量驱动（`data-theme="light|dark"`）
-- 强调色系统（`data-accent="blue|purple|green|orange"`）
+- 基于 CSS 变量驱动（`data-theme="light|dark"`）；没手动选过时跟随系统深浅色，并监听系统切换
+- 强调色（`data-accent`，印章点击循环）：默认朱砂、`cadetblue` 青碧、`blue-1772f6` 靛青、`pink-ff1365` 胭脂，
+  键名沿用旧值（存在用户 localStorage 里），深色模式各有一组更亮的值
 - 侧边栏模式（`data-sidebar="normal|compact"`）
 - HTML 中的内联脚本防止主题闪烁
 - 所有偏好设置存储在 localStorage

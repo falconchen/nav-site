@@ -156,7 +156,7 @@ function showUserInfo(user) {
     // 用户在 Google / GitHub 换了头像后，旧地址过一阵会失效，失效时换成默认头像，不显示破图
     avatar.onerror = () => {
         avatar.onerror = null;
-        avatar.src = 'img/compass-solid.svg';
+        avatar.src = 'img/seal.svg';
     };
     avatar.src = avatarUrl;
 

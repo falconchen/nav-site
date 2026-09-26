@@ -12,50 +12,31 @@ function escapeHtml(value) {
         .replace(/'/g, '&#39;');
 }
 
-// 显示通知
+// 显示通知：样式见 styles.css 的 .notification
 function showNotification(message, type = 'info') {
-    // 创建通知元素
     const notification = document.createElement('div');
     notification.className = `notification notification-${type}`;
+    notification.setAttribute('role', type === 'error' ? 'alert' : 'status');
     notification.textContent = message;
-
-    // 样式
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: ${type === 'success' ? 'var(--secondary-color)' :
-                    type === 'error' ? '#ef4444' : 'var(--primary-color)'};
-        color: white;
-        padding: 1rem 1.5rem;
-        border-radius: 0.5rem;
-        box-shadow: var(--shadow-large);
-        z-index: 1001;
-        transform: translateX(100%);
-        transition: transform 0.3s ease;
-    `;
-
     document.body.appendChild(notification);
 
-    // 显示动画
-    setTimeout(() => {
-        notification.style.transform = 'translateX(0)';
-    }, 100);
+    // 同一时间只留最新一条，免得几条叠在一起
+    document.querySelectorAll('.notification.show').forEach(old => {
+        if (old !== notification) old.classList.remove('show');
+    });
 
-    // 自动移除
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => notification.classList.add('show'));
+    });
+
     setTimeout(() => {
-        notification.style.transform = 'translateX(100%)';
-        setTimeout(() => {
-            if (notification.parentNode) {
-                notification.parentNode.removeChild(notification);
-            }
-        }, 300);
+        notification.classList.remove('show');
+        setTimeout(() => notification.remove(), 400);
     }, 3000);
 }
 
-// 显示保存进度条
+// 显示保存进度面板（手动上传到云端用）：样式见 styles.css 的 .save-panel
 function showSaveProgress() {
-    // 移除已存在的进度条
     const existingProgress = document.getElementById('save-progress-bar');
     if (existingProgress) {
         existingProgress.remove();
@@ -63,64 +44,26 @@ function showSaveProgress() {
 
     const progressContainer = document.createElement('div');
     progressContainer.id = 'save-progress-bar';
-    progressContainer.style.cssText = `
-        position: fixed;
-        top: 70px;
-        right: 20px;
-        background: white;
-        border-radius: 0.5rem;
-        box-shadow: var(--shadow-large);
-        padding: 1rem 1.5rem;
-        z-index: 1002;
-        min-width: 300px;
-        transform: translateX(100%);
-        transition: transform 0.3s ease;
-    `;
-
+    progressContainer.className = 'save-panel';
+    progressContainer.setAttribute('role', 'status');
     progressContainer.innerHTML = `
-        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
-            <div class="spinner" style="
-                width: 20px;
-                height: 20px;
-                border: 2px solid #e5e7eb;
-                border-top-color: var(--primary-color);
-                border-radius: 50%;
-                animation: spin 0.8s linear infinite;
-            "></div>
-            <span style="font-weight: 500; color: #111827;">正在保存数据</span>
+        <div class="save-panel-head">
+            <span class="spinner"></span>
+            <span>正在保存到云端</span>
         </div>
-        <div style="background: #e5e7eb; height: 6px; border-radius: 3px; overflow: hidden; position: relative;">
-            <div id="progress-bar-fill" style="
-                background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
-                height: 100%;
-                width: 0%;
-                border-radius: 3px;
-                transition: width 0.3s ease;
-            "></div>
-        </div>
-        <div id="progress-status" style="
-            font-size: 0.75rem;
-            color: #6b7280;
-            margin-top: 0.5rem;
-            text-align: center;
-        ">准备中...</div>
+        <div class="save-panel-track"><div id="progress-bar-fill"></div></div>
+        <div id="progress-status">准备中…</div>
     `;
-
     document.body.appendChild(progressContainer);
 
-    // 添加动画样式
-    const style = document.createElement('style');
-    style.textContent = `
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-    `;
-    document.head.appendChild(style);
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => progressContainer.classList.add('show'));
+    });
 
-    // 显示动画
-    setTimeout(() => {
-        progressContainer.style.transform = 'translateX(0)';
-    }, 100);
+    const dismiss = () => {
+        progressContainer.classList.remove('show');
+        setTimeout(() => progressContainer.remove(), 400);
+    };
 
     return {
         update: (percent, status) => {
@@ -134,34 +77,16 @@ function showSaveProgress() {
             const statusText = document.getElementById('progress-status');
             const spinner = progressContainer.querySelector('.spinner');
 
-            if (fill) fill.style.width = '100%';
-            if (spinner) spinner.style.display = 'none';
-
-            if (success) {
-                if (fill) fill.style.background = 'var(--secondary-color)';
-                if (statusText) statusText.textContent = message || '保存成功！';
-            } else {
-                if (fill) fill.style.background = '#ef4444';
-                if (statusText) statusText.textContent = message || '保存失败';
+            if (fill) {
+                fill.style.width = '100%';
+                fill.style.background = success ? 'var(--success)' : 'var(--danger)';
             }
+            if (spinner) spinner.style.display = 'none';
+            if (statusText) statusText.textContent = message || (success ? '已保存' : '保存失败');
 
-            setTimeout(() => {
-                progressContainer.style.transform = 'translateX(100%)';
-                setTimeout(() => {
-                    if (progressContainer.parentNode) {
-                        progressContainer.parentNode.removeChild(progressContainer);
-                    }
-                }, 300);
-            }, 1500);
+            setTimeout(dismiss, 1500);
         },
-        remove: () => {
-            progressContainer.style.transform = 'translateX(100%)';
-            setTimeout(() => {
-                if (progressContainer.parentNode) {
-                    progressContainer.parentNode.removeChild(progressContainer);
-                }
-            }, 300);
-        }
+        remove: dismiss
     };
 }
 

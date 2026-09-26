@@ -2,21 +2,31 @@
 <html lang="zh-CN" data-theme="light">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>关于我们 - 皮皮2047</title>
-    <link rel="icon" href="img/compass-solid.svg" type="image/svg+xml">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>关于 · 皮皮2047</title>
+    <meta name="description" content="皮皮2047 是一本私人网址簿：分类、搜索、特别关注、私密收藏，登录后多设备同步。">
+    <meta name="color-scheme" content="light dark">
+    <meta name="theme-color" content="#f4f2ed" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#121110" media="(prefers-color-scheme: dark)">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="皮皮2047">
+    <meta property="og:title" content="关于 · 皮皮2047">
+    <meta property="og:description" content="皮皮2047 是一本私人网址簿：分类、搜索、特别关注、私密收藏，登录后多设备同步。">
+    <meta property="og:image" content="https://pipi2047.eu.org/img/og-cover.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="icon" href="img/seal.svg" type="image/svg+xml">
+    <link rel="icon" href="img/favicon-32.png" sizes="32x32" type="image/png">
+    <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
     <link rel="stylesheet" href="https://cdnjs.snrat.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha384-iw3OoTErCYJJB9mCa8LNS2hbsQ7M3C0EpIsO/H5+EGAkPGc6rk+V8i04oW/K5xq0" crossorigin="anonymous">
     <link rel="stylesheet" href="styles.css">
     <script>
     (function() {
       try {
         var theme = localStorage.getItem('theme');
-        if (theme === 'dark' || theme === 'light') {
-          document.documentElement.setAttribute('data-theme', theme);
+        if (theme !== 'dark' && theme !== 'light') {
+          theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
         }
+        document.documentElement.setAttribute('data-theme', theme);
         var accent = localStorage.getItem('accent');
         if (accent) {
           document.documentElement.setAttribute('data-accent', accent);
@@ -24,157 +34,24 @@
       } catch(e) {}
     })();
     </script>
-    <style>
-    .about-container {
-        max-width: 800px;
-        margin: 0 auto;
-        padding: 2rem;
-    }
-    .about-header {
-        text-align: center;
-        padding: 3rem 0 2rem;
-        border-bottom: 1px solid var(--border-color);
-        margin-bottom: 2rem;
-    }
-    .about-header .logo {
-        font-size: 3rem;
-        color: var(--primary-color);
-        margin-bottom: 1rem;
-    }
-    .about-header h1 {
-        font-size: 2rem;
-        font-weight: 700;
-        color: var(--text-primary);
-        margin-bottom: 0.5rem;
-    }
-    .about-header .tagline {
-        font-size: 1.1rem;
-        color: var(--text-secondary);
-    }
-    .about-content {
-        background: var(--surface-color);
-        border-radius: 1rem;
-        padding: 2rem;
-        box-shadow: var(--shadow-light);
-    }
-    .about-content h2 {
-        font-size: 1.25rem;
-        font-weight: 600;
-        color: var(--text-primary);
-        margin: 2rem 0 1rem;
-    }
-    .about-content h2:first-child {
-        margin-top: 0;
-    }
-    .about-content p, .about-content li {
-        font-size: 0.95rem;
-        line-height: 1.7;
-        color: var(--text-secondary);
-        margin-bottom: 0.75rem;
-    }
-    .about-content ul {
-        padding-left: 1.5rem;
-        margin-bottom: 1rem;
-    }
-    .about-content a {
-        color: var(--primary-color);
-        text-decoration: none;
-    }
-    .about-content a:hover {
-        text-decoration: underline;
-    }
-    .back-link {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        color: var(--primary-color);
-        text-decoration: none;
-        margin-bottom: 1.5rem;
-        font-weight: 500;
-    }
-    .back-link:hover {
-        text-decoration: underline;
-    }
-    .feature-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 1.5rem;
-        margin: 1.5rem 0;
-    }
-    .feature-card {
-        background: var(--background-color);
-        padding: 1.5rem;
-        border-radius: 0.75rem;
-        text-align: center;
-    }
-    .feature-card i {
-        font-size: 2rem;
-        color: var(--primary-color);
-        margin-bottom: 0.75rem;
-    }
-    .feature-card h3 {
-        font-size: 1rem;
-        font-weight: 600;
-        color: var(--text-primary);
-        margin-bottom: 0.5rem;
-    }
-    .feature-card p {
-        font-size: 0.875rem;
-        margin-bottom: 0;
-    }
-    .contact-methods {
-        display: flex;
-        gap: 1rem;
-        flex-wrap: wrap;
-        margin-top: 1rem;
-    }
-    .contact-method {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        background: var(--background-color);
-        padding: 0.75rem 1rem;
-        border-radius: 0.5rem;
-        color: var(--text-primary);
-        text-decoration: none;
-        font-size: 0.9rem;
-    }
-    .contact-method:hover {
-        background: var(--primary-color);
-        color: white;
-    }
-    .contact-method i {
-        color: var(--primary-color);
-    }
-    .contact-method:hover i {
-        color: white;
-    }
-    </style>
 </head>
-<body>
-    <header class="header">
+<body class="doc-page">
+    <header class="header doc-header">
         <div class="header-container">
-            <div class="header-left">
-                <a href="/" class="logo" style="text-decoration: none;">
-                    <span class="accent-swatch"><i class="fas fa-compass"></i></span>
-                    <span>皮皮2047</span>
-                </a>
-            </div>
+            <a href="/" class="logo" aria-label="返回皮皮2047首页">
+                <span class="accent-swatch" aria-hidden="true"><span class="seal-glyph">皮</span></span>
+                <span class="brand-name">皮皮<span class="brand-num">2047</span></span>
+            </a>
+            <a href="/" class="doc-back"><i class="fas fa-arrow-left"></i>返回首页</a>
         </div>
     </header>
 
     <main class="about-container">
-        <a href="/" class="back-link">
-            <i class="fas fa-arrow-left"></i>
-            返回首页
-        </a>
 
         <div class="about-header">
-            <div class="logo">
-                <i class="fas fa-compass"></i>
-            </div>
-            <h1>皮皮2047</h1>
-            <p class="tagline">次世代网络导航助手</p>
+            <p class="doc-eyebrow">About</p>
+            <h1>皮皮<span class="brand-num">2047</span></h1>
+            <p class="tagline">把常去的网站，收进一本随手可翻的网址簿。</p>
         </div>
 
         <div class="about-content">
@@ -194,8 +71,8 @@
                     <p>分类名称、图标、顺序都能自己改，367 个图标可选</p>
                 </div>
                 <div class="feature-card">
-                    <i class="fas fa-wand-magic-sparkles"></i>
-                    <h3>AI 识别</h3>
+                    <i class="fas fa-wand-magic"></i>
+                    <h3>自动填写</h3>
                     <p>输入网址，自动补全标题、描述、图标，并参考你已有的收藏推荐分类</p>
                 </div>
                 <div class="feature-card">
@@ -256,9 +133,7 @@
                 </a>
             </div>
 
-            <p style="margin-top: 2rem; text-align: center; color: var(--text-muted);">
-                © 2026 皮皮2047 - 次世代网络导航助手
-            </p>
+            <p class="doc-colophon">© 2026 皮皮2047 · 私人网址簿</p>
         </div>
     </main>
 </body>

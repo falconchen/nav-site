@@ -42,6 +42,10 @@ async function buildProject() {
         if (fs.existsSync('public/img')) {
             fs.cpSync('public/img', 'dist/img', { recursive: true });
         }
+        // PWA 清单（分享到手机、添加到主屏幕用）
+        if (fs.existsSync('public/manifest.webmanifest')) {
+            fs.copyFileSync('public/manifest.webmanifest', 'dist/manifest.webmanifest');
+        }
 
         // 4. 压缩 public/ 下所有 HTML 文件（index、about、privacy、terms 等，新增页面自动包含）
         const htmlFiles = fs.readdirSync('public').filter(name => name.endsWith('.html'));

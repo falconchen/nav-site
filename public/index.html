@@ -2,22 +2,50 @@
 <html lang="zh-CN" data-theme="light" data-sidebar="normal" data-tab="all">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>皮皮2047 - 次世代网络导航助手</title>
-    <link rel="icon" href="img/compass-solid.svg" type="image/svg+xml">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>皮皮2047 · 私人网址簿</title>
+    <meta name="description" content="把常去的网站收进一本随手可翻的网址簿：分类、搜索、特别关注、私密收藏，登录后多设备同步。">
+    <meta name="color-scheme" content="light dark">
+    <meta name="theme-color" content="#f4f2ed" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#121110" media="(prefers-color-scheme: dark)">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="皮皮2047">
+    <meta name="format-detection" content="telephone=no">
+
+    <!-- 分享卡片：微信、Telegram、X、Slack 等读 Open Graph / Twitter Card -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="皮皮2047">
+    <meta property="og:title" content="皮皮2047 · 私人网址簿">
+    <meta property="og:description" content="把常去的网站收进一本随手可翻的网址簿：分类、搜索、特别关注、私密收藏，登录后多设备同步。">
+    <meta property="og:image" content="https://pipi2047.eu.org/img/og-cover.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="皮皮2047 · 私人网址簿">
+    <meta property="og:url" content="https://pipi2047.eu.org/">
+    <meta property="og:locale" content="zh_CN">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="皮皮2047 · 私人网址簿">
+    <meta name="twitter:description" content="把常去的网站收进一本随手可翻的网址簿。">
+    <meta name="twitter:image" content="https://pipi2047.eu.org/img/og-cover.png">
+    <meta itemprop="name" content="皮皮2047 · 私人网址簿">
+    <meta itemprop="image" content="https://pipi2047.eu.org/img/og-cover.png">
+
+    <link rel="icon" href="img/seal.svg" type="image/svg+xml">
+    <link rel="icon" href="img/favicon-32.png" sizes="32x32" type="image/png">
+    <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+    <link rel="manifest" href="manifest.webmanifest">
     <link rel="stylesheet" href="https://cdnjs.snrat.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha384-iw3OoTErCYJJB9mCa8LNS2hbsQ7M3C0EpIsO/H5+EGAkPGc6rk+V8i04oW/K5xq0" crossorigin="anonymous">
     <link rel="stylesheet" href="styles.css">
     <script>
     (function() {
       try {
-        // 读取并应用主题设置
+        // 读取并应用主题设置；没手动选过就跟随系统深浅色
         var theme = localStorage.getItem('theme');
-        if (theme === 'dark' || theme === 'light') {
-          document.documentElement.setAttribute('data-theme', theme);
+        if (theme !== 'dark' && theme !== 'light') {
+          theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
         }
+        document.documentElement.setAttribute('data-theme', theme);
 
         // 读取并应用侧边栏模式设置
         var sidebarMode = localStorage.getItem('categoriesCompactMode');
@@ -60,16 +88,17 @@
         <div class="header-container">
 		<div class="header-left">
             <div class="logo">
-                <button id="accentSwatch" class="accent-swatch" title="切换配色" aria-label="切换配色">
-                    <i class="fas fa-compass"></i>
+                <button id="accentSwatch" class="accent-swatch" title="换一种印泥颜色" aria-label="切换配色">
+                    <span class="seal-glyph" aria-hidden="true">皮</span>
                 </button>
-                <span>皮皮2047</span>
+                <span class="brand-name">皮皮<span class="brand-num">2047</span></span>
             </div>
 			<div class="version">v.<span id="version">dev</span></div>
 		</div>
             <div class="search-container">
                 <i class="fas fa-search search-icon"></i>
-                <input type="text" class="search-box" placeholder="搜索网站...">
+                <input type="search" class="search-box" placeholder="搜索网站、网址或描述" enterkeyhint="search" autocomplete="off" aria-label="搜索网站">
+                <kbd class="search-kbd" aria-hidden="true">/</kbd>
             </div>
 
             <div class="header-right">
@@ -77,7 +106,7 @@
                 <button class="theme-toggle header-mode-toggle" onclick="toggleCategoriesMode()" title="切换显示模式" aria-label="切换显示模式">
                     <i class="fa-solid fa-down-left-and-up-right-to-center categories-mode-icon"></i>
                 </button>
-                <button class="theme-toggle" onclick="toggleTheme()">
+                <button class="theme-toggle" onclick="toggleTheme()" title="切换深浅色" aria-label="切换深浅色">
                     <i class="fas fa-moon" id="theme-icon"></i>
                 </button>
 				<div class="user-info" id="userInfo" style="display: none;">
@@ -163,7 +192,7 @@
                 <button id="categories-toggle-btn" title="切换显示模式" onclick="toggleCategoriesMode()">
                     <i class="fa-solid fa-down-left-and-up-right-to-center categories-mode-icon" id="toggle-icon"></i>
                 </button>
-                <h3 class="categories-title">网站分类</h3>
+                <h3 class="categories-title">目录</h3>
                 <button id="category-edit-btn" title="编辑分类" onclick="enterCategoryEditMode()">
                     <i class="fas fa-edit"></i>
                 </button>
@@ -231,7 +260,7 @@
     <footer class="footer">
         <div class="footer-container">
             <div class="footer-text">
-				© 2025 皮皮2047 - 次世代网络导航助手
+                © 2025 <span class="footer-brand">皮皮2047</span> · 私人网址簿
             </div>
             <div class="footer-links">
                 <a href="/about.html" class="footer-link">
@@ -260,7 +289,7 @@
     </footer>
 
     <!-- 添加网站按钮 - 固定在右下角 -->
-    <button class="add-website-btn floating-btn" onclick="openAddWebsiteModal()">
+    <button class="add-website-btn floating-btn" onclick="openAddWebsiteModal()" title="添加网站" aria-label="添加网站">
         <i class="fas fa-plus"></i>
     </button>
 
@@ -280,12 +309,12 @@
                     <div class="input-group">
                         <input type="url" id="websiteUrl" class="form-input" placeholder="https://example.com" required>
                         <button type="button" id="aiDetectBtn" class="ai-detect-btn" disabled>
-                            <i class="fas fa-robot"></i> AI识别
+                            <i class="fas fa-wand-magic"></i> 自动填写
                         </button>
                     </div>
                 </div>
 
-                <div class="form-row" style="margin-top:1rem;">
+                <div class="form-row" style="margin-top:16px;">
                     <div class="form-left">
                         <div class="form-group">
                             <label class="form-label" for="websiteName">网站名称 *</label>
@@ -349,7 +378,7 @@
                     </div>
                 </div>
 
-                <div class="form-group" style="margin-top:1rem;">
+                <div class="form-group">
                     <label class="form-label" for="websiteDescription">简短描述</label>
                     <textarea id="websiteDescription" class="form-textarea" placeholder="请输入网站描述（最多2行）"></textarea>
                 </div>
@@ -397,13 +426,11 @@
                 </button>
             </div>
 
-            <div style="padding: 1rem 0;">
-                <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
-                    <i class="fas fa-exclamation-triangle" style="font-size: 2rem; color: #f59e0b;"></i>
-                    <div>
-                        <p style="margin: 0; font-weight: 500; color: var(--text-primary);">确定要删除这个网站吗？</p>
-                        <p style="margin: 0.5rem 0 0 0; font-size: 0.875rem; color: var(--text-secondary);" id="deleteWebsiteName">此操作无法撤销</p>
-                    </div>
+            <div class="confirm-body">
+                <span class="confirm-icon"><i class="fas fa-trash-can"></i></span>
+                <div>
+                    <p class="confirm-title">确定要删除这个网站吗？</p>
+                    <p class="confirm-text" id="deleteWebsiteName">此操作无法撤销</p>
                 </div>
             </div>
 
@@ -412,9 +439,8 @@
                     <i class="fas fa-times"></i>
                     取消
                 </button>
-                <button type="button" class="btn" style="background-color: #dc2626; color: white;" onclick="confirmDeleteWebsite()">
-                    <i class="fas fa-trash"></i>
-                    确认删除
+                <button type="button" class="btn btn-danger" onclick="confirmDeleteWebsite()">
+                    删除
                 </button>
             </div>
         </div>
@@ -430,27 +456,24 @@
                 </button>
                         </div>
 
-            <div style="padding: 1rem 0;">
-                <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
-                    <i class="fas fa-exclamation-triangle" style="font-size: 2rem; color: #f59e0b;"></i>
-                        <div>
-                        <p style="margin: 0; font-weight: 500; color: var(--text-primary);">确定要删除此分类吗？</p>
-                        <p style="margin: 0.5rem 0 0 0; font-size: 0.875rem; color: var(--text-primary);" id="deleteCategoryName">分类名称</p>
-                        <p style="margin: 0.5rem 0 0 0; font-size: 0.875rem; color: var(--text-secondary);">所有网站将移至"未分类"分类下</p>
-                        </div>
-                    </div>
+            <div class="confirm-body">
+                <span class="confirm-icon"><i class="fas fa-trash-can"></i></span>
+                <div>
+                    <p class="confirm-title">确定要删除此分类吗？</p>
+                    <p class="confirm-text" id="deleteCategoryName">分类名称</p>
+                    <p class="confirm-text muted">里面的网站会移到「未分类」。</p>
                 </div>
+            </div>
 
             <div class="form-buttons">
                 <button type="button" class="btn btn-secondary" onclick="closeCategoryModal('deleteCategoryModal')">
                     <i class="fas fa-times"></i>
                     取消
                 </button>
-                <button type="button" class="btn" style="background-color: #dc2626; color: white;" onclick="confirmDeleteCategory()">
-                    <i class="fas fa-trash"></i>
-                    确认删除
+                <button type="button" class="btn btn-danger" onclick="confirmDeleteCategory()">
+                    删除分类
                 </button>
-                </div>
+            </div>
         </div>
     </div>
 

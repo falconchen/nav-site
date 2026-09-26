@@ -1,0 +1,16 @@
+{
+  "name": "皮皮2047 · 私人网址簿",
+  "short_name": "皮皮2047",
+  "description": "把常去的网站收进一本随手可翻的网址簿。",
+  "lang": "zh-CN",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f4f2ed",
+  "theme_color": "#f4f2ed",
+  "icons": [
+    { "src": "/img/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/img/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/img/seal.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

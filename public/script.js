@@ -229,6 +229,15 @@ function closeModal(modalId) {
     }
 }
 
+// 卡片上的网址：协议单独包一层，CSS 隐藏掉减少视觉噪音。
+// 元素的 textContent 仍是完整网址，打开、复制、编辑都直接读它
+function cardUrlHTML(url) {
+    const value = String(url || '');
+    const match = value.match(/^(https?:\/\/)(.*)$/i);
+    if (!match) return escapeHtml(value);
+    return `<span class="card-url-protocol">${escapeHtml(match[1])}</span>${escapeHtml(match[2])}`;
+}
+
 // 根据数据创建卡片HTML
 function createCardHTML(website) {
     // 确保权重数据存在
@@ -258,7 +267,7 @@ function createCardHTML(website) {
                 </div>
                 <div>
                     <div class="card-title">${escapeHtml(website.title)}</div>
-                    <div class="card-url">${escapeHtml(website.url)}</div>
+                    <div class="card-url">${cardUrlHTML(website.url)}</div>
                 </div>
             </div>
             ${website.private
@@ -609,7 +618,7 @@ let websiteToDelete = null;
 
 function deleteWebsite(card) {
     const websiteName = card.querySelector('.card-title').textContent;
-    document.getElementById('deleteWebsiteName').textContent = `网站"${websiteName}"将被永久删除`;
+    document.getElementById('deleteWebsiteName').textContent = `「${websiteName}」删除后无法恢复。`;
     websiteToDelete = card;
     openModal('deleteConfirmModal');
 }
@@ -1977,12 +1986,85 @@ function addCardEventListeners(card) {
         pinBtn.addEventListener('click', handlePinBtnClick);
     }
 
+    // 触屏长按打开菜单（iOS 不会为长按触发 contextmenu）
+    if (!card.dataset.longPressBound) {
+        card.dataset.longPressBound = '1';
+        bindCardLongPress(card);
+    }
+
     // 菜单按钮点击（移动设备）
     const menuBtn = card.querySelector('.card-menu-btn');
     if (menuBtn) {
         menuBtn.removeEventListener('click', handleMenuBtnClick);
         menuBtn.addEventListener('click', handleMenuBtnClick);
     }
+}
+
+// 长按 450ms 弹出卡片菜单；手指移动或提前松开则取消。
+// 菜单弹出后吞掉随之而来的 click，免得松手时顺带打开网站
+const LONG_PRESS_MS = 450;
+const LONG_PRESS_SLOP = 10;
+
+function bindCardLongPress(card) {
+    let timer = null;
+    let startX = 0;
+    let startY = 0;
+    let fired = false;
+
+    const cancel = () => {
+        clearTimeout(timer);
+        timer = null;
+    };
+
+    card.addEventListener('touchstart', (e) => {
+        if (e.touches.length !== 1) return cancel();
+        fired = false;
+        const touch = e.touches[0];
+        startX = touch.clientX;
+        startY = touch.clientY;
+        cancel();
+        timer = setTimeout(() => {
+            timer = null;
+            fired = true;
+            if (navigator.vibrate) navigator.vibrate(8);
+            const rect = card.getBoundingClientRect();
+            showContextMenu(new PointerEvent('contextmenu', {
+                bubbles: true,
+                cancelable: true,
+                clientX: Math.min(startX, rect.right),
+                clientY: startY
+            }), card);
+        }, LONG_PRESS_MS);
+    }, { passive: true });
+
+    card.addEventListener('touchmove', (e) => {
+        if (!timer) return;
+        const touch = e.touches[0];
+        if (Math.abs(touch.clientX - startX) > LONG_PRESS_SLOP || Math.abs(touch.clientY - startY) > LONG_PRESS_SLOP) {
+            cancel();
+        }
+    }, { passive: true });
+
+    card.addEventListener('touchend', (e) => {
+        cancel();
+        if (fired) e.preventDefault();
+    });
+    card.addEventListener('touchcancel', cancel);
+
+    card.addEventListener('click', (e) => {
+        if (!fired) return;
+        fired = false;
+        e.stopImmediatePropagation();
+        e.preventDefault();
+    }, true);
+
+    // 安卓长按会自己触发 contextmenu，已经由上面打开过了
+    card.addEventListener('contextmenu', (e) => {
+        if (fired) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+        }
+    }, true);
 }
 
 // 处理卡片图钉点击
@@ -2220,12 +2302,20 @@ document.addEventListener('DOMContentLoaded', async function () {
     const savedTheme = localStorage.getItem('theme');
     const html = document.documentElement;
     const themeIcon = document.getElementById('theme-icon');
-    if (savedTheme === 'dark') {
-        html.setAttribute('data-theme', 'dark');
-        if (themeIcon) themeIcon.className = 'fas fa-sun';
-    } else if (savedTheme === 'light') {
-        html.setAttribute('data-theme', 'light');
-        if (themeIcon) themeIcon.className = 'fas fa-moon';
+    if (savedTheme === 'dark' || savedTheme === 'light') {
+        html.setAttribute('data-theme', savedTheme);
+    }
+    // 没手动选过时跟随系统（首屏已由 index.html 内联脚本设好），系统切换时同步
+    const syncThemeIcon = () => {
+        if (themeIcon) themeIcon.className = html.getAttribute('data-theme') === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+    };
+    syncThemeIcon();
+    if (!savedTheme && window.matchMedia) {
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+            if (localStorage.getItem('theme')) return;
+            html.setAttribute('data-theme', e.matches ? 'dark' : 'light');
+            syncThemeIcon();
+        });
     }
 
     // 初始化分类列表模式
@@ -2279,6 +2369,18 @@ document.addEventListener('DOMContentLoaded', async function () {
 
             // 隐藏右键菜单
             hideContextMenu();
+        }
+
+        // 按 / 聚焦搜索框（正在输入时不拦截）
+        if (e.key === '/' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+            const target = e.target;
+            const typing = target && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName));
+            const searchBox = document.querySelector('.search-box');
+            if (!typing && searchBox && !document.querySelector('.modal-overlay.active')) {
+                e.preventDefault();
+                searchBox.focus();
+                searchBox.select();
+            }
         }
     });
 
@@ -2734,7 +2836,7 @@ function setupAIDetection() {
             // 恢复按钮状态
             aiDetectBtn.disabled = false;
             aiDetectBtn.classList.remove('loading');
-            aiDetectBtn.innerHTML = '<i class="fas fa-robot"></i> AI识别';
+            aiDetectBtn.innerHTML = '<i class="fas fa-wand-magic"></i> 自动填写';
         }
     });
 }

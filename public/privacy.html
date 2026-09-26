@@ -2,21 +2,31 @@
 <html lang="zh-CN" data-theme="light">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>隐私政策 - 皮皮2047</title>
-    <link rel="icon" href="img/compass-solid.svg" type="image/svg+xml">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>隐私政策 · 皮皮2047</title>
+    <meta name="description" content="皮皮2047 如何处理你的数据：存在哪里、用来做什么、你能做什么。">
+    <meta name="color-scheme" content="light dark">
+    <meta name="theme-color" content="#f4f2ed" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#121110" media="(prefers-color-scheme: dark)">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="皮皮2047">
+    <meta property="og:title" content="隐私政策 · 皮皮2047">
+    <meta property="og:description" content="皮皮2047 如何处理你的数据：存在哪里、用来做什么、你能做什么。">
+    <meta property="og:image" content="https://pipi2047.eu.org/img/og-cover.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="icon" href="img/seal.svg" type="image/svg+xml">
+    <link rel="icon" href="img/favicon-32.png" sizes="32x32" type="image/png">
+    <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
     <link rel="stylesheet" href="https://cdnjs.snrat.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha384-iw3OoTErCYJJB9mCa8LNS2hbsQ7M3C0EpIsO/H5+EGAkPGc6rk+V8i04oW/K5xq0" crossorigin="anonymous">
     <link rel="stylesheet" href="styles.css">
     <script>
     (function() {
       try {
         var theme = localStorage.getItem('theme');
-        if (theme === 'dark' || theme === 'light') {
-          document.documentElement.setAttribute('data-theme', theme);
+        if (theme !== 'dark' && theme !== 'light') {
+          theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
         }
+        document.documentElement.setAttribute('data-theme', theme);
         var accent = localStorage.getItem('accent');
         if (accent) {
           document.documentElement.setAttribute('data-accent', accent);
@@ -24,107 +34,22 @@
       } catch(e) {}
     })();
     </script>
-    <style>
-    .legal-container {
-        max-width: 800px;
-        margin: 0 auto;
-        padding: 2rem;
-    }
-    .legal-header {
-        text-align: center;
-        padding: 3rem 0 2rem;
-        border-bottom: 1px solid var(--border-color);
-        margin-bottom: 2rem;
-    }
-    .legal-header h1 {
-        font-size: 2rem;
-        font-weight: 700;
-        color: var(--text-primary);
-        margin-bottom: 0.5rem;
-    }
-    .legal-header p {
-        color: var(--text-secondary);
-    }
-    .legal-content {
-        background: var(--surface-color);
-        border-radius: 1rem;
-        padding: 2rem;
-        box-shadow: var(--shadow-light);
-    }
-    .legal-content h2 {
-        font-size: 1.25rem;
-        font-weight: 600;
-        color: var(--text-primary);
-        margin: 2rem 0 1rem;
-    }
-    .legal-content h2:first-child {
-        margin-top: 0;
-    }
-    .legal-content p, .legal-content li {
-        font-size: 0.95rem;
-        line-height: 1.7;
-        color: var(--text-secondary);
-        margin-bottom: 0.75rem;
-    }
-    .legal-content ul {
-        padding-left: 1.5rem;
-        margin-bottom: 1rem;
-    }
-    .legal-content a {
-        color: var(--primary-color);
-        text-decoration: none;
-    }
-    .legal-content a:hover {
-        text-decoration: underline;
-    }
-    .legal-content .highlight {
-        background: var(--background-color);
-        padding: 0.25rem 0.5rem;
-        border-radius: 0.25rem;
-        font-family: monospace;
-        color: var(--primary-color);
-    }
-    .back-link {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        color: var(--primary-color);
-        text-decoration: none;
-        margin-bottom: 1.5rem;
-        font-weight: 500;
-    }
-    .back-link:hover {
-        text-decoration: underline;
-    }
-    .update-date {
-        text-align: right;
-        color: var(--text-muted);
-        font-size: 0.875rem;
-        margin-top: 2rem;
-        padding-top: 1rem;
-        border-top: 1px solid var(--border-color);
-    }
-    </style>
 </head>
-<body>
-    <header class="header">
+<body class="doc-page">
+    <header class="header doc-header">
         <div class="header-container">
-            <div class="header-left">
-                <a href="/" class="logo" style="text-decoration: none;">
-                    <span class="accent-swatch"><i class="fas fa-compass"></i></span>
-                    <span>皮皮2047</span>
-                </a>
-            </div>
+            <a href="/" class="logo" aria-label="返回皮皮2047首页">
+                <span class="accent-swatch" aria-hidden="true"><span class="seal-glyph">皮</span></span>
+                <span class="brand-name">皮皮<span class="brand-num">2047</span></span>
+            </a>
+            <a href="/" class="doc-back"><i class="fas fa-arrow-left"></i>返回首页</a>
         </div>
     </header>
 
     <main class="legal-container">
-        <a href="/" class="back-link">
-            <i class="fas fa-arrow-left"></i>
-            返回首页
-        </a>
 
         <div class="legal-header">
+            <p class="doc-eyebrow">Privacy</p>
             <h1>隐私政策</h1>
             <p>我们重视您的隐私保护</p>
         </div>
