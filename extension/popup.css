@@ -1,81 +1,158 @@
+/* 皮皮2047 收藏助手 · 纸与墨
+   与导航站同一套视觉：暖白纸面、墨色文字、唯一的朱砂强调色，宋体标题。
+   弹窗和设置页共用这份样式，设置页另有 options.css 补版式。 */
+
 :root {
-    --bg: #ffffff;
-    --surface: #f8fafc;
-    --text: #1e293b;
-    --muted: #64748b;
-    --border: #e2e8f0;
-    --primary: #4f46e5;
-    --primary-hover: #4338ca;
-    --success-bg: #ecfdf5;
-    --success-text: #047857;
-    --warn-bg: #fffbeb;
-    --warn-text: #b45309;
-    --danger: #dc2626;
     color-scheme: light;
+
+    --paper: #f4f2ed;
+    --paper-sunk: #ebe8e1;
+    --card: #ffffff;
+    --field: #faf9f6;
+    --ink: #1c1b19;
+    --ink-hover: #3a3834;
+    --ink-2: #55514a;
+    --ink-3: #8a857b;
+    --ink-4: #b8b3a8;
+    --line: #e4e0d6;
+    --line-strong: #d1cbbf;
+    --accent: #c4412a;
+    --accent-rgb: 196, 65, 42;
+    --star: #cf9119;
+    --danger: #b3261e;
+    --danger-rgb: 179, 38, 30;
+    --success: #2f7a55;
+    --success-rgb: 47, 122, 85;
+    --warn: #9a6408;
+    --warn-rgb: 207, 145, 25;
+    --ring: 0 0 0 3px rgba(var(--accent-rgb), 0.14);
+
+    --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Hiragino Sans GB",
+        "HarmonyOS Sans SC", "MiSans", "Microsoft YaHei UI", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
+    --font-serif: "Songti SC", "STSong", "Noto Serif SC", "Source Han Serif SC", "Source Han Serif CN", Georgia, serif;
+    --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
 }
 
 @media (prefers-color-scheme: dark) {
     :root {
-        --bg: #0f172a;
-        --surface: #1e293b;
-        --text: #f1f5f9;
-        --muted: #94a3b8;
-        --border: #334155;
-        --primary: #6366f1;
-        --primary-hover: #818cf8;
-        --success-bg: rgba(16, 185, 129, 0.15);
-        --success-text: #34d399;
-        --warn-bg: rgba(245, 158, 11, 0.15);
-        --warn-text: #fbbf24;
-        --danger: #f87171;
         color-scheme: dark;
+
+        --paper: #121110;
+        --paper-sunk: #1b1a18;
+        --card: #1c1b19;
+        --field: #171614;
+        --ink: #edeae3;
+        --ink-hover: #ffffff;
+        --ink-2: #b3ada2;
+        --ink-3: #7f796f;
+        --ink-4: #57524b;
+        --line: #2a2825;
+        --line-strong: #3a3733;
+        --accent: #e2664c;
+        --accent-rgb: 226, 102, 76;
+        --star: #e4ac3a;
+        --danger: #ef6a5f;
+        --danger-rgb: 239, 106, 95;
+        --success: #5cb88a;
+        --success-rgb: 92, 184, 138;
+        --warn: #e4ac3a;
+        --warn-rgb: 228, 172, 58;
     }
 }
 
-* {
+*,
+*::before,
+*::after {
     box-sizing: border-box;
 }
 
 body {
     width: 360px;
     margin: 0;
-    background: var(--bg);
-    color: var(--text);
-    font: 14px/1.5 -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--card);
+    color: var(--ink);
+    font: 14px/1.55 var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
+
+button,
+input,
+select,
+textarea {
+    font: inherit;
+    color: inherit;
+}
+
+::selection {
+    background: rgba(var(--accent-rgb), 0.2);
+}
+
+:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+/* ---------- 标题栏 ---------- */
 
 .bar {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 10px 12px;
-    border-bottom: 1px solid var(--border);
+    gap: 10px;
+    height: 52px;
+    padding: 0 10px 0 16px;
+    background: var(--paper);
+    border-bottom: 1px solid var(--line);
+}
+
+.bar-seal {
+    width: 24px;
+    height: 24px;
+    flex: none;
+    border-radius: 6px;
+    box-shadow: 0 1px 2px rgba(28, 27, 25, 0.14);
 }
 
 .bar-title {
     flex: 1;
-    font-weight: 600;
+    min-width: 0;
+    font-family: var(--font-serif);
+    font-size: 15.5px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.bar-title .bar-num {
+    font-weight: 400;
+    color: var(--ink-3);
 }
 
 .icon-btn {
     display: grid;
     place-items: center;
-    width: 28px;
-    height: 28px;
+    width: 32px;
+    height: 32px;
+    padding: 0;
     border: none;
-    border-radius: 6px;
+    border-radius: 8px;
     background: transparent;
-    color: var(--muted);
+    color: var(--ink-3);
     cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .icon-btn:hover {
-    background: var(--surface);
-    color: var(--text);
+    background: var(--paper-sunk);
+    color: var(--ink);
 }
 
+/* ---------- 视图 ---------- */
+
 .view {
-    padding: 14px 12px;
+    padding: 16px;
 }
 
 .view[hidden] {
@@ -86,8 +163,8 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 10px;
-    padding: 28px 12px;
+    gap: 14px;
+    padding: 44px 16px 48px;
 }
 
 #viewLoading[hidden] {
@@ -95,10 +172,10 @@ body {
 }
 
 .spinner {
-    width: 24px;
-    height: 24px;
-    border: 3px solid var(--border);
-    border-top-color: var(--primary);
+    width: 22px;
+    height: 22px;
+    border: 2px solid var(--line);
+    border-top-color: var(--accent);
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
 }
@@ -107,21 +184,45 @@ body {
     to { transform: rotate(360deg); }
 }
 
-.muted {
-    color: var(--muted);
-    margin: 0;
+#viewMessage {
+    padding: 28px 18px 22px;
+    text-align: center;
 }
+
+#messageText {
+    margin: 0;
+    font-size: 14.5px;
+    line-height: 1.7;
+    color: var(--ink);
+}
+
+#viewMessage .actions {
+    justify-content: center;
+}
+
+#viewMessage .actions .btn {
+    flex: none;
+}
+
+.muted {
+    margin: 0;
+    color: var(--ink-3);
+}
+
+/* ---------- 表单 ---------- */
 
 .field {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    margin-bottom: 10px;
+    gap: 6px;
+    margin-bottom: 14px;
 }
 
 .field > span {
     font-size: 12px;
-    color: var(--muted);
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: var(--ink-2);
 }
 
 input[type="text"],
@@ -130,61 +231,156 @@ input[type="password"],
 select,
 textarea {
     width: 100%;
-    padding: 7px 9px;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    background: var(--surface);
-    color: var(--text);
-    font: inherit;
+    height: 38px;
+    padding: 0 11px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--field);
+    color: var(--ink);
+    font-size: 14px;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: var(--ink-4);
+}
+
+input:hover,
+select:hover,
+textarea:hover {
+    border-color: var(--line-strong);
 }
 
 input:focus,
 select:focus,
 textarea:focus {
-    outline: 2px solid var(--primary);
-    outline-offset: -1px;
+    border-color: rgba(var(--accent-rgb), 0.55);
+    background: var(--card);
+    box-shadow: var(--ring);
 }
 
 textarea {
+    height: auto;
+    min-height: 76px;
+    padding: 9px 11px;
+    line-height: 1.6;
     resize: vertical;
+}
+
+select {
+    padding-right: 32px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%238a857b' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    cursor: pointer;
 }
 
 .row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-}
-
-.check {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    cursor: pointer;
+    gap: 12px;
 }
 
 .checks {
     display: flex;
-    gap: 14px;
+    gap: 18px;
+}
+
+.check {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13.5px;
+    color: var(--ink);
+    cursor: pointer;
+    user-select: none;
+}
+
+.check input {
+    position: relative;
+    width: 16px;
+    height: 16px;
+    flex: none;
+    margin: 0;
+    border: 1.5px solid var(--line-strong);
+    border-radius: 4px;
+    background: var(--card);
+    -webkit-appearance: none;
+    appearance: none;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.check input:hover {
+    border-color: var(--ink-3);
+}
+
+.check input:checked {
+    border-color: var(--ink);
+    background: var(--ink);
+}
+
+.check input:checked::after {
+    content: "";
+    position: absolute;
+    left: 4.5px;
+    top: 1px;
+    width: 4px;
+    height: 8px;
+    border: solid var(--card);
+    border-width: 0 1.75px 1.75px 0;
+    transform: rotate(45deg);
+}
+
+#pinned + span::before {
+    content: "★";
+    margin-right: 4px;
+    color: var(--star);
 }
 
 /* 勾了私密收藏后特别关注不可选 */
 .check:has(input:disabled) {
-    opacity: 0.5;
+    opacity: 0.45;
     cursor: not-allowed;
 }
 
+.check input:disabled {
+    cursor: not-allowed;
+}
+
+/* ---------- 已收藏的网站 ---------- */
+
 .site {
     display: flex;
-    gap: 10px;
-    align-items: flex-start;
+    gap: 12px;
+    align-items: center;
+    padding: 12px;
+    background: var(--field);
+    border: 1px solid var(--line);
+    border-radius: 12px;
 }
 
 .site-icon {
-    width: 24px;
-    height: 24px;
-    border-radius: 4px;
-    object-fit: contain;
+    width: 36px;
+    height: 36px;
     flex-shrink: 0;
+    padding: 0;
+    object-fit: cover;
+    border-radius: 9px;
+    background: #fff;
+    color-scheme: light;
+    box-shadow: 0 0 0 1px rgba(28, 27, 25, 0.07);
+}
+
+.row .site-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
 }
 
 .site-text {
@@ -192,73 +388,132 @@ textarea {
 }
 
 .site-title {
-    font-weight: 500;
     overflow: hidden;
-    text-overflow: ellipsis;
+    font-weight: 600;
     white-space: nowrap;
+    text-overflow: ellipsis;
 }
 
 .site-desc {
-    font-size: 12px;
-    color: var(--muted);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-top: 2px;
+    font-size: 12.5px;
+    line-height: 1.55;
+    color: var(--ink-2);
 }
 
+/* ---------- 提示 ---------- */
+
 .notice {
-    margin: 0 0 12px;
-    padding: 8px 10px;
-    border-radius: 6px;
+    margin: 0 0 14px;
+    padding: 9px 12px;
+    border-radius: 10px;
     font-size: 13px;
+    line-height: 1.6;
+    color: var(--ink);
+    background: var(--paper-sunk);
 }
 
 .notice.success {
-    background: var(--success-bg);
-    color: var(--success-text);
+    color: var(--success);
+    background: rgba(var(--success-rgb), 0.1);
+}
+
+.notice.success strong {
+    font-weight: 600;
 }
 
 .notice.warn {
-    background: var(--warn-bg);
-    color: var(--warn-text);
+    color: var(--warn);
+    background: rgba(var(--warn-rgb), 0.12);
+}
+
+.notice.error {
+    color: var(--danger);
+    background: rgba(var(--danger-rgb), 0.09);
 }
 
 .warnings {
-    margin-top: 8px;
+    margin-top: 12px;
     font-size: 12px;
+    line-height: 1.6;
 }
+
+/* ---------- 按钮 ---------- */
 
 .actions {
     display: flex;
     justify-content: flex-end;
     gap: 8px;
-    margin-top: 12px;
+    margin-top: 16px;
+}
+
+.actions .btn {
+    flex: 1;
 }
 
 .btn {
-    padding: 7px 16px;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    background: var(--surface);
-    color: var(--text);
-    font: inherit;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 38px;
+    padding: 0 16px;
+    border: 1px solid var(--line-strong);
+    border-radius: 10px;
+    background: var(--card);
+    color: var(--ink);
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
     cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
+}
+
+.btn:hover:not(:disabled) {
+    background: var(--paper-sunk);
+}
+
+.btn:active:not(:disabled) {
+    transform: scale(0.98);
 }
 
 .btn:disabled {
-    opacity: 0.6;
+    opacity: 0.55;
     cursor: default;
 }
 
 .btn.primary {
-    border-color: var(--primary);
-    background: var(--primary);
-    color: #fff;
+    border-color: var(--ink);
+    background: var(--ink);
+    color: var(--card);
 }
 
 .btn.primary:hover:not(:disabled) {
-    background: var(--primary-hover);
+    border-color: var(--ink-hover);
+    background: var(--ink-hover);
 }
 
 .btn.danger {
-    border-color: var(--danger);
+    border-color: rgba(var(--danger-rgb), 0.4);
     background: transparent;
     color: var(--danger);
+}
+
+.btn.danger:hover:not(:disabled),
+.btn.danger[data-confirming] {
+    border-color: var(--danger);
+    background: var(--danger);
+    color: #fff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+    }
 }

@@ -35,9 +35,9 @@ function notify(title, message) {
 }
 
 const BADGE = {
-    loading: { text: '…', color: '#4f46e5' },
-    success: { text: '✓', color: '#059669' },
-    error: { text: '!', color: '#dc2626' }
+    loading: { text: '…', color: '#c4412a' },
+    success: { text: '✓', color: '#2f7a55' },
+    error: { text: '!', color: '#b3261e' }
 };
 const BADGE_CLEAR_DELAY_MS = 5000;
 
@@ -120,7 +120,7 @@ ext.contextMenus.onClicked.addListener(async (info, tab) => {
             await report('error', '收藏失败', '只能收藏 http/https 网页');
             return;
         }
-        await report('loading', '正在收藏…', 'AI 正在识别名称、分类和描述，大约需要几秒');
+        await report('loading', '正在收藏…', '正在自动填写名称、分类和描述，大约需要几秒');
         await quickSave(tab.url, await getPageHints(tab), report);
         return;
     }
@@ -130,7 +130,7 @@ ext.contextMenus.onClicked.addListener(async (info, tab) => {
             await report('error', '收藏失败', '只能收藏 http/https 链接');
             return;
         }
-        await report('loading', '正在收藏链接…', 'AI 正在识别名称、分类和描述，大约需要几秒');
+        await report('loading', '正在收藏链接…', '正在自动填写名称、分类和描述，大约需要几秒');
         // 链接指向的页面没打开，拿不到 hints，全靠服务端抓取
         await quickSave(info.linkUrl, {}, report);
     }

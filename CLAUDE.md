@@ -273,6 +273,12 @@ npm run deploy      # 部署到 Cloudflare Workers 生产环境
 - `apple-touch-icon.png`、`icon-192/512.png` 是满版印章（系统自己裁圆角），`favicon-32.png` 是带圆角的小图标
 - 这些图用无头 Chrome 渲染 HTML 模板生成；改品牌色或文案时要重新生成
 
+**浏览器扩展**用同一套视觉：`extension/popup.css`（弹窗和设置页共用）、`options.css`、`newtab.css`、
+`lib/toast.js`（网页内收藏提示，shadow DOM 里自带样式）、`background.js` 的角标颜色，颜色值是从 `styles.css`
+的 token 抄过去的，改网站配色时要一起改。扩展只跟随系统深浅色（读不到网站的主题设置）。
+扩展图标 16 / 32 / 48 是按目标像素单独渲染的（字撑满、圆角收小），直接从大图缩小笔画会糊；
+128 按 Chrome 应用店规范四周留 16px 透明边
+
 ### 主题系统
 - 基于 CSS 变量驱动（`data-theme="light|dark"`）；没手动选过时跟随系统深浅色，并监听系统切换
 - 强调色（`data-accent`，印章点击循环）：默认朱砂、`cadetblue` 青碧、`blue-1772f6` 靛青、`pink-ff1365` 胭脂，

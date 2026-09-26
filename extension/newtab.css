@@ -1,19 +1,19 @@
-/* 跳转前会闪一下这个页面，底色和导航站的主题保持一致，免得白屏一闪 */
+/* 跳转前会闪一下这个页面，底色和导航站的纸面一致，免得白屏一闪 */
 :root {
     color-scheme: light dark;
 }
 
 body {
     margin: 0;
-    background: #f8fafc;
-    color: #64748b;
-    font: 14px/1.5 -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #f4f2ed;
+    color: #8a857b;
+    font: 14px/1.6 -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
     body {
-        background: #0f172a;
-        color: #94a3b8;
+        background: #121110;
+        color: #7f796f;
     }
 }
 
@@ -28,4 +28,5 @@ main[hidden] {
 
 a {
     color: inherit;
+    text-underline-offset: 3px;
 }

@@ -19,47 +19,51 @@ export function renderToast(state, title, message) {
         root.innerHTML = `
             <style>
                 .toast {
-                    --bg: #fff; --text: #1e293b; --muted: #64748b; --border: #e2e8f0;
-                    --primary: #4f46e5; --success: #059669; --error: #dc2626;
-                    display: flex; gap: 10px; align-items: flex-start;
-                    width: 300px; padding: 12px 14px; box-sizing: border-box;
-                    border: 1px solid var(--border); border-radius: 10px;
-                    background: var(--bg); color: var(--text);
-                    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18);
-                    font: 14px/1.5 -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
-                    animation: enter 0.18s ease-out;
+                    --card: #fff; --ink: #1c1b19; --ink-2: #55514a; --ink-3: #8a857b; --line: #e4e0d6;
+                    --accent: #c4412a; --success: #2f7a55; --error: #b3261e;
+                    display: flex; gap: 12px; align-items: flex-start;
+                    width: 312px; padding: 14px 14px 14px 16px; box-sizing: border-box;
+                    border: 1px solid var(--line); border-radius: 14px;
+                    background: var(--card); color: var(--ink);
+                    box-shadow: 0 2px 6px rgba(28, 27, 25, 0.06), 0 24px 48px -16px rgba(28, 27, 25, 0.32);
+                    font: 14px/1.55 -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+                    -webkit-font-smoothing: antialiased;
+                    animation: enter 0.32s cubic-bezier(0.16, 1, 0.3, 1);
                 }
                 @media (prefers-color-scheme: dark) {
                     .toast {
-                        --bg: #1e293b; --text: #f1f5f9; --muted: #94a3b8; --border: #334155;
-                        --primary: #818cf8; --success: #34d399; --error: #f87171;
+                        --card: #1c1b19; --ink: #edeae3; --ink-2: #b3ada2; --ink-3: #7f796f; --line: #2a2825;
+                        --accent: #e2664c; --success: #5cb88a; --error: #ef6a5f;
+                        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), 0 24px 48px -16px rgba(0, 0, 0, 0.8);
                     }
                 }
-                @keyframes enter { from { opacity: 0; transform: translateY(-6px); } }
+                @keyframes enter { from { opacity: 0; transform: translateY(-8px) scale(0.98); } }
                 @keyframes spin { to { transform: rotate(360deg); } }
                 .icon {
-                    flex-shrink: 0; display: grid; place-items: center;
+                    flex-shrink: 0; display: grid; place-items: center; box-sizing: border-box;
                     width: 20px; height: 20px; margin-top: 1px; border-radius: 50%;
-                    color: #fff; font-size: 13px; font-weight: 700; line-height: 1;
+                    color: #fff; font-size: 11px; font-weight: 800; line-height: 1;
                 }
                 .loading .icon {
-                    box-sizing: border-box; border: 2.5px solid var(--border); border-top-color: var(--primary);
+                    border: 2px solid var(--line); border-top-color: var(--accent);
                     animation: spin 0.8s linear infinite;
                 }
                 .success .icon { background: var(--success); }
                 .error .icon { background: var(--error); }
                 .text { flex: 1; min-width: 0; }
-                .title { font-weight: 600; }
+                .title { font-weight: 600; letter-spacing: -0.005em; }
                 .message {
-                    margin-top: 2px; color: var(--muted); font-size: 13px;
+                    margin-top: 2px; color: var(--ink-2); font-size: 13px; line-height: 1.6;
                     white-space: pre-line; overflow-wrap: anywhere;
                 }
                 .message:empty { display: none; }
                 .close {
-                    flex-shrink: 0; border: none; background: none; padding: 0 2px;
-                    color: var(--muted); font-size: 18px; line-height: 1; cursor: pointer;
+                    flex-shrink: 0; display: grid; place-items: center;
+                    width: 24px; height: 24px; margin: -2px -4px 0 0; padding: 0;
+                    border: none; border-radius: 6px; background: none;
+                    color: var(--ink-3); font-size: 16px; line-height: 1; cursor: pointer;
                 }
-                .close:hover { color: var(--text); }
+                .close:hover { color: var(--ink); background: rgba(128, 120, 108, 0.14); }
             </style>
             <div class="toast" role="status" aria-live="polite">
                 <span class="icon" aria-hidden="true"></span>
