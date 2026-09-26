@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { analyzeWebsite, categoryByDomain, truncateDescription } from '../server/lib/website-analyzer.js';
+import { analyzeWebsite, categoryByDomain, fetchPageViaReader, truncateDescription } from '../server/lib/website-analyzer.js';
 
 const PAGE_HTML = `
 <html>
@@ -374,6 +374,45 @@ describe('Jina Reader 兜底', () => {
 
         expect(result.title).toBe('Medium');
         expect(result.analysis.warnings).toEqual(['fetched_via_reader']);
+    });
+
+    it('Markdown 正文去掉菜单（连续的短链接列表项）和跳转链接，保留文章里的列表', async () => {
+        const content = [
+            '[Skip to main content](https://openai.com/index/#main)',
+            '',
+            '*   [Research](https://openai.com/research/)',
+            '*   Products',
+            '*   [Business](https://openai.com/business/)',
+            '*   [Developers](https://openai.com/api/)',
+            '',
+            '## 注册前准备',
+            '',
+            '*   一个干净的邮箱（推荐 Gmail ，未加入过 Muse 候补名单）',
+            '*   稳定的美国 IP',
+            '',
+            // 文章里连续的短条目，但不是链接
+            '1.   Confirm age（推荐）',
+            '2.   Link Instagram account',
+            '3.   Link Facebook account',
+            '',
+            // 两条短链接不够成菜单
+            '*   官网： [https://muse.ai/](https://muse.ai/)',
+            '*   [注册页](https://muse.ai/join)',
+            '',
+            '[Two years of OpenAI Academy Company Sep 23, 2026](https://openai.com/index/x/)'
+        ].join('\n');
+        fetchSpy.mockResolvedValue(new Response(JSON.stringify({
+            code: 200,
+            data: { ...READER_DATA.data, content }
+        }), { headers: { 'Content-Type': 'application/json' } }));
+
+        const page = await fetchPageViaReader('https://openai.com/index/', { JINA_API_KEY: 'jina_test' });
+
+        expect(page.content).toBe(
+            '注册前准备 一个干净的邮箱（推荐 Gmail ，未加入过 Muse 候补名单） 稳定的美国 IP ' +
+            'Confirm age（推荐） Link Instagram account Link Facebook account ' +
+            '官网： https://muse.ai/ 注册页 Two years of OpenAI Academy Company Sep 23, 2026'
+        );
     });
 
     it('状态码 200 的质询页也会改用 Jina', async () => {

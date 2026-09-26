@@ -130,11 +130,47 @@ export function isChallengePage(info) {
 
 // ---------- 第三方兜底抓取 ----------
 
-// Markdown 正文转成纯文本：去掉图片，链接只留文字，标题和强调符号去掉
+// 菜单在 Markdown 里是一串很短的链接列表项（`*   [Research](...)`），自己抓取时靠过滤 nav/header 去掉，
+// Jina 的 X-Remove-Selector 实测会关掉它自带的正文提取、反而返回更多内容，所以在这里按形状过滤：
+// 同一个列表里（中间没有空行）连续 MENU_RUN_MIN 条以上、每条不超过 MENU_ITEM_MAX_CHARS 字，
+// 且至少一半是整行链接，整段丢掉。文章里也有连续的短条目，但基本是纯文字
+const MENU_ITEM_MAX_CHARS = 25;
+const MENU_RUN_MIN = 3;
+const LIST_ITEM_PATTERN = /^\s*(?:[-*+]|\d+\.)\s+(.*)$/;
+const MARKDOWN_LINK_PATTERN = /\[([^\]]*)\]\([^)]*\)/g;
+const WHOLE_LINE_LINK_PATTERN = /^\[[^\]]*\]\([^)]*\)$/;
+const SKIP_LINK_PATTERN = /^\s*\[(skip to|jump to|跳到|跳转到)[^\]]*\]\([^)]*\)\s*$/i;
+
+function dropMenuRuns(lines) {
+    const kept = [];
+    let run = [];
+    const flush = () => {
+        const links = run.filter(item => WHOLE_LINE_LINK_PATTERN.test(item.text)).length;
+        const isMenu = run.length >= MENU_RUN_MIN && links * 2 >= run.length;
+        if (!isMenu) kept.push(...run.map(item => item.line));
+        run = [];
+    };
+    for (const line of lines) {
+        const match = line.match(LIST_ITEM_PATTERN);
+        const text = match ? match[1].trim() : '';
+        if (match && text.replace(MARKDOWN_LINK_PATTERN, '$1').length <= MENU_ITEM_MAX_CHARS) {
+            run.push({ line, text });
+            continue;
+        }
+        flush();
+        if (!SKIP_LINK_PATTERN.test(line)) kept.push(line);
+    }
+    flush();
+    return kept;
+}
+
+// Markdown 正文转成纯文本：去掉图片和菜单，链接只留文字，标题和强调符号去掉
 function markdownToText(markdown) {
-    return (markdown || '')
+    const lines = (markdown || '')
         .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
-        .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+        .split('\n');
+    return dropMenuRuns(lines).join('\n')
+        .replace(MARKDOWN_LINK_PATTERN, '$1')
         .replace(/^\s{0,3}(#{1,6}|>|[-*+]|\d+\.)\s+/gm, '')
         .replace(/[*_`]{1,3}/g, '')
         .replace(/\s+/g, ' ')
