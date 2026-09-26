@@ -7,6 +7,7 @@
  */
 
 import * as htmlparser2 from 'htmlparser2';
+import { getUserAgent } from './user-agent.js';
 
 // 分类和描述用同一个模型。70B 支持 JSON 模式（response_format），
 // 分类要的是稳定的结构化输出，不是文采，所以 temperature 给 0。
@@ -48,8 +49,6 @@ const DESCRIPTION_REFUSAL_PATTERN = /无相关信息|没有(足够的?|相关的
 const READER_ENDPOINT = 'https://r.jina.ai/';
 const READER_TIMEOUT_MS = 10000;
 
-const DEFAULT_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36';
-
 // 反爬质询页的标题特征，这类页面状态码可能是 200
 const CHALLENGE_TITLE_PATTERN = /just a moment|attention required|access denied|请稍候|安全验证|verify you are human/i;
 
@@ -86,7 +85,7 @@ export async function fetchPage(url, env = {}, { timeoutMs = FETCH_TIMEOUT_MS } 
     try {
         response = await fetch(url, {
             headers: {
-                'User-Agent': env.USER_AGENT || DEFAULT_USER_AGENT,
+                'User-Agent': getUserAgent(env),
                 'Accept-Language': env.ACCEPT_LANGUAGE || 'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7',
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
                 'Referer': 'https://www.google.com/search?q=' + encodeURIComponent(urlObj.host)
