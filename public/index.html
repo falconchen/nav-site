@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN" data-theme="light" data-sidebar="normal" data-tab="pinned">
+<html lang="zh-CN" data-theme="light" data-sidebar="normal" data-tab="all">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -30,7 +30,7 @@
         // 读取并应用上次停留的视图 tab，避免刷新时闪到别的 tab
         var tab = localStorage.getItem('activeTab');
         // 私密收藏不记忆，刷新后不会直接停在那里
-        if (tab !== 'frequent' && tab !== 'recent' && tab !== 'all') tab = 'pinned';
+        if (tab !== 'frequent' && tab !== 'recent' && tab !== 'pinned') tab = 'all';
         document.documentElement.setAttribute('data-tab', tab);
 
         // 读取并应用强调色（accent）
@@ -108,9 +108,12 @@
         </div>
     </header>
 
-    <!-- 视图 tab：最近添加 / 访问最多 / 特别关注 / 全部网站 / 私密收藏。右键或长按可调整顺序 -->
+    <!-- 视图 tab：全部网站 / 最近添加 / 访问最多 / 特别关注 / 私密收藏。右键或长按可调整顺序 -->
     <nav class="view-tabs" role="tablist" aria-label="视图">
         <div class="view-tabs-inner">
+            <button type="button" class="view-tab" role="tab" data-tab="all" aria-controls="tab-all" aria-label="全部网站">
+                <i class="fas fa-layer-group"></i><span class="tab-label">全部网站</span><span class="tab-label-short">全部</span>
+            </button>
             <button type="button" class="view-tab" role="tab" data-tab="recent" aria-controls="tab-recent" aria-label="最近添加">
                 <i class="fas fa-clock"></i><span class="tab-label">最近添加</span><span class="tab-label-short">最近</span>
             </button>
@@ -119,9 +122,6 @@
             </button>
             <button type="button" class="view-tab" role="tab" data-tab="pinned" aria-controls="tab-pinned" aria-label="特别关注">
                 <i class="fas fa-star"></i><span class="tab-label">特别关注</span><span class="tab-label-short">关注</span>
-            </button>
-            <button type="button" class="view-tab" role="tab" data-tab="all" aria-controls="tab-all" aria-label="全部网站">
-                <i class="fas fa-layer-group"></i><span class="tab-label">全部网站</span><span class="tab-label-short">全部</span>
             </button>
             <button type="button" class="view-tab" role="tab" data-tab="private" aria-controls="tab-private" aria-label="私密收藏">
                 <i class="fas fa-lock"></i><span class="tab-label">私密收藏</span><span class="tab-label-short">私密</span>

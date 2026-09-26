@@ -1,9 +1,9 @@
-// 视图 tab：最近添加 / 访问最多 / 特别关注 / 全部网站 / 私密收藏
+// 视图 tab：全部网站 / 最近添加 / 访问最多 / 特别关注 / 私密收藏
 // 当前 tab 写在 <html data-tab>，index.html 的内联脚本在首屏前就设好了，CSS 按它切换面板
 
 // 默认顺序。用户可以调整，调整后的顺序存 localStorage tabOrder（只存本机），
 // index.html 在 tab 栏后面的内联脚本按它重排 DOM，所以当前顺序一律以 DOM 为准
-const VIEW_TABS = ['recent', 'frequent', 'pinned', 'all', 'private'];
+const VIEW_TABS = ['all', 'recent', 'frequent', 'pinned', 'private'];
 
 function getTabOrder() {
     return Array.from(document.querySelectorAll('.view-tab'), btn => btn.dataset.tab);
@@ -18,7 +18,7 @@ const tabScrollPositions = {};
 
 function getActiveTab() {
     const tab = document.documentElement.getAttribute('data-tab');
-    return VIEW_TABS.includes(tab) ? tab : 'pinned';
+    return VIEW_TABS.includes(tab) ? tab : 'all';
 }
 
 function switchTab(tab, options = {}) {
