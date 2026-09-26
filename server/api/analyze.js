@@ -2,8 +2,7 @@ import { Hono } from 'hono';
 import { isRateLimited } from '../lib/rate-limit.js';
 import {
     classifyCategory,
-    extractPageInfo,
-    fetchPage,
+    loadPage,
     probeFavicon,
     summarizeDescription
 } from '../lib/website-analyzer.js';
@@ -43,16 +42,16 @@ app.post('/analyze-website', async (c) => {
     console.log('分析网站:', url);
     console.log('可用分类:', categories?.map(cat => cat.name).join(', ') || '无分类信息');
 
-    const page = await fetchPage(url, c.env);
-    if (!page.ok) {
+    // 自己抓取被拦截时会再试 Jina Reader（配了 JINA_API_KEY 才会）
+    const { page: info, failure } = await loadPage(url, c.env);
+    if (!info) {
       // fetchFailed 让前端改用同域名的已收录网址预填，而不是直接报错
-      return c.json({ error: describeFetchFailure(page), fetchFailed: true }, 502);
+      return c.json({ error: describeFetchFailure(failure), fetchFailed: true }, 502);
     }
 
-    const info = extractPageInfo(page.html, page.finalUrl);
     const { title } = info;
     let { description } = info;
-    const icon = info.icon || await probeFavicon(page.finalUrl);
+    const icon = info.icon || await probeFavicon(info.finalUrl);
 
     // 注意：如果环境中没有配置AI，使用简单的规则判断分类
     let category = '';
@@ -72,13 +71,13 @@ app.post('/analyze-website', async (c) => {
           console.error('AI 生成描述错误:', descErr);
         }
       } else {
-        category = getCategoryByKeywords(title, description, page.html, categories);
+        category = getCategoryByKeywords(title, description, info.content, categories);
         categoryConfidence = 'fallback';
       }
     } catch (aiError) {
       console.error('AI分析错误:', aiError);
       // 发生错误时使用简单规则判断分类
-      category = getCategoryByKeywords(title, description, page.html, categories);
+      category = getCategoryByKeywords(title, description, info.content, categories);
       categoryConfidence = 'fallback';
     }
 

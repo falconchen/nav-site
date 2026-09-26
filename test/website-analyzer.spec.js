@@ -292,3 +292,113 @@ describe('truncateDescription', () => {
         expect(truncateDescription('啊'.repeat(300), 200)).toBe('啊'.repeat(200));
     });
 });
+
+describe('Jina Reader 兜底', () => {
+    let fetchSpy;
+
+    beforeEach(() => {
+        fetchSpy = vi.spyOn(globalThis, 'fetch');
+    });
+
+    afterEach(() => {
+        fetchSpy.mockRestore();
+    });
+
+    const READER_DATA = {
+        code: 200,
+        data: {
+            title: 'Claude Code 仓库',
+            description: 'Jina 拿到的描述 &gt; 带实体',
+            url: 'https://github.com/anthropics/claude-code',
+            content: '# 标题\n\n![图](https://x/y.png) 这是[正文](https://a.b)。' + '正文内容。'.repeat(60),
+            metadata: { 'og:site_name': 'GitHub' },
+            external: {
+                icon: { 'https://github.com/favicon.ico': {} },
+                'apple-touch-icon': { 'https://github.com/apple.png': { sizes: '180x180' } }
+            },
+            httpStatus: 200
+        }
+    };
+
+    // 第一次是自己抓（按 blockedResponse 返回），打到 r.jina.ai 的返回 readerData
+    function stubFetch(blockedResponse, readerData = READER_DATA) {
+        fetchSpy.mockImplementation(async (input) => {
+            if (String(input).startsWith('https://r.jina.ai/')) {
+                return new Response(JSON.stringify(readerData), { headers: { 'Content-Type': 'application/json' } });
+            }
+            return blockedResponse();
+        });
+    }
+
+    function readerCalls() {
+        return fetchSpy.mock.calls.filter(([input]) => String(input).startsWith('https://r.jina.ai/'));
+    }
+
+    it('自己抓取被拦截时改用 Jina，结果按网页来源处理并记 fetched_via_reader', async () => {
+        stubFetch(() => new Response('Forbidden', { status: 403 }));
+        const aiRun = stubAi();
+
+        const result = await analyze({ AI: { run: aiRun }, JINA_API_KEY: 'jina_test' });
+
+        expect(result).toMatchObject({
+            title: 'Claude Code 仓库',
+            description: 'AI 写的描述。',
+            icon: 'https://github.com/apple.png'
+        });
+        expect(result.analysis.sources.title).toBe('page');
+        expect(result.analysis.warnings).toEqual(['fetched_via_reader']);
+
+        const [[input, init]] = readerCalls();
+        expect(input).toBe('https://r.jina.ai/https://github.com/anthropics/claude-code');
+        expect(init.headers.Authorization).toBe('Bearer jina_test');
+        expect(init.headers.Accept).toBe('application/json');
+
+        // Markdown 转成纯文本再喂给 AI
+        const descCall = aiRun.mock.calls.find(([, options]) => !options.response_format);
+        const prompt = descCall[1].messages[1].content;
+        expect(prompt).toContain('标题 这是正文。');
+        expect(prompt).not.toContain('](');
+    });
+
+    it('状态码 200 的质询页也会改用 Jina', async () => {
+        stubFetch(() => htmlResponse('<html><head><title>Just a moment...</title></head><body></body></html>'));
+
+        const result = await analyze({ AI: { run: stubAi() }, JINA_API_KEY: 'jina_test' });
+
+        expect(result.title).toBe('Claude Code 仓库');
+        expect(readerCalls()).toHaveLength(1);
+    });
+
+    it('没配 JINA_API_KEY 时不调 Jina', async () => {
+        stubFetch(() => new Response('Forbidden', { status: 403 }));
+
+        const result = await analyze({ AI: { run: stubAi() } });
+
+        expect(readerCalls()).toHaveLength(0);
+        expect(result.analysis.warnings).toContain('fetch_blocked');
+    });
+
+    it('扩展已经传来足够的正文时不花 Jina 的额度', async () => {
+        stubFetch(() => new Response('Forbidden', { status: 403 }));
+
+        await analyze({ AI: { run: stubAi() }, JINA_API_KEY: 'jina_test' }, {
+            hints: { title: '标签页标题', content: '扩展看到的正文。'.repeat(40) }
+        });
+
+        expect(readerCalls()).toHaveLength(0);
+    });
+
+    it('Jina 那边也被目标站拦截时当作抓取失败', async () => {
+        stubFetch(() => new Response('Forbidden', { status: 403 }), {
+            code: 200,
+            data: { ...READER_DATA.data, title: 'Just a moment...', content: '', httpStatus: 403 }
+        });
+
+        const result = await analyze({ AI: { run: stubAi() }, JINA_API_KEY: 'jina_test' });
+
+        expect(result.analysis.warnings).toContain('fetch_blocked');
+        expect(result.analysis.warnings).not.toContain('fetched_via_reader');
+        expect(result.analysis.sources.title).toBe('domain');
+    });
+});
+

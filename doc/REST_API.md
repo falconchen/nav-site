@@ -130,6 +130,7 @@ Authorization: Bearer navpat_xxxxxxxx
 | `fetch_timeout` | 抓网页超时 |
 | `fetch_blocked` | 被拦截：401/403/429/503，或返回的是反爬质询页 |
 | `fetch_failed` | 网络错误或其它 HTTP 错误 |
+| `fetched_via_reader` | 自己抓取失败，改由 Jina Reader 抓到了内容（`sources` 里仍记为 `page`）。请求带了足够的 `hints.content` 时不走 Jina |
 | `not_html` | 网址指向的是图片、PDF 等文件 |
 | `content_thin` | 网页正文太少（SPA 空壳、登录墙），改用了 `hints.content` |
 | `ai_unavailable` | 没有 AI 绑定 |

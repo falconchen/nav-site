@@ -43,6 +43,11 @@ const THIN_CONTENT_CHARS = 200;
 // 模型拿不到内容时会写「无相关信息可供总结」这类拒答，存下来比留空更糟
 const DESCRIPTION_REFUSAL_PATTERN = /无相关信息|没有(足够的?|相关的?|具体的?)?信息|信息不足|无法(生成|总结|提供|确定|判断)|暂无(描述|信息)|^(抱歉|很抱歉)|i'?m sorry|i cannot|not enough information|no (relevant )?information/i;
 
+// Jina Reader：自己抓取被拦截（Cloudflare 质询等）时的兜底，按输出 token 计费，
+// 所以只在失败时调用，并且要 JSON 格式（Markdown 正文）：同一页 HTML 格式要贵十几倍
+const READER_ENDPOINT = 'https://r.jina.ai/';
+const READER_TIMEOUT_MS = 10000;
+
 const DEFAULT_USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36';
 
 // 反爬质询页的标题特征，这类页面状态码可能是 200
@@ -121,6 +126,115 @@ export async function fetchPage(url, env = {}, { timeoutMs = FETCH_TIMEOUT_MS } 
  */
 export function isChallengePage(info) {
     return CHALLENGE_TITLE_PATTERN.test(info.title || '') && (info.content || '').length < 500;
+}
+
+// ---------- 第三方兜底抓取 ----------
+
+// Markdown 正文转成纯文本：去掉图片，链接只留文字，标题和强调符号去掉
+function markdownToText(markdown) {
+    return (markdown || '')
+        .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
+        .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+        .replace(/^\s{0,3}(#{1,6}|>|[-*+]|\d+\.)\s+/gm, '')
+        .replace(/[*_`]{1,3}/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+// Jina 的 external 字段形如 { icon: { '<绝对地址>': {sizes} } }，和 extractIcon 一样 apple-touch-icon 优先
+function pickReaderIcon(external = {}) {
+    for (const rel of ['apple-touch-icon', 'icon', 'shortcut icon']) {
+        const first = Object.keys(external[rel] || {})[0];
+        if (first && /^https?:\/\//.test(first)) return first;
+    }
+    return '';
+}
+
+/**
+ * 通过 Jina Reader 抓取网页，返回和 extractPageInfo() 同结构的信息（多一个 finalUrl）
+ * 没配 JINA_API_KEY、请求失败或 Jina 那边也被拦截时返回 null
+ */
+export async function fetchPageViaReader(url, env = {}, { timeoutMs = READER_TIMEOUT_MS } = {}) {
+    if (!env.JINA_API_KEY) return null;
+
+    let data;
+    try {
+        const response = await fetch(READER_ENDPOINT + url, {
+            headers: {
+                'Authorization': `Bearer ${env.JINA_API_KEY}`,
+                'Accept': 'application/json',
+                // 图片对分类和描述没用，还占 token
+                'X-Retain-Images': 'none'
+            },
+            signal: AbortSignal.timeout(timeoutMs)
+        });
+        if (!response.ok) {
+            console.log(`Jina Reader 失败 (HTTP ${response.status}):`, url);
+            return null;
+        }
+        ({ data } = await response.json());
+    } catch (error) {
+        console.log('Jina Reader 失败:', url, error && error.message);
+        return null;
+    }
+
+    // 目标站把 Jina 也拦了时，httpStatus 是目标站的状态码
+    if (!data || Number(data.httpStatus) >= 400) {
+        console.log(`Jina Reader 抓取被拦截 (HTTP ${data?.httpStatus}):`, url);
+        return null;
+    }
+
+    const finalUrl = data.url || url;
+    const content = markdownToText(data.content);
+    const metadata = data.metadata || {};
+    const info = {
+        host: new URL(finalUrl).host,
+        title: cleanText(data.title || ''),
+        description: cleanText(data.description || ''),
+        keywords: cleanText(metadata.keywords || ''),
+        siteName: cleanText(metadata['og:site_name'] || ''),
+        heading: '',
+        icon: pickReaderIcon(data.external),
+        firstParagraph: content.slice(0, 200),
+        content,
+        finalUrl
+    };
+    if (isChallengePage(info)) {
+        console.log('Jina Reader 拿到的是质询页:', url);
+        return null;
+    }
+    console.log(`Jina Reader 抓取成功: 正文 ${content.length} 字`, url);
+    return info;
+}
+
+/**
+ * 抓网页并提取信息：先自己抓，失败或拿到质询页时再走 Jina Reader
+ *
+ * @param {Object} [options]
+ * @param {boolean} [options.skipReader] 调用方另有正文来源（扩展的 hints）时不花 Jina 的额度
+ * @returns {Promise<{page: Object|null, failure?: Object, viaReader?: boolean}>}
+ *   page 为 extractPageInfo() 的结果加 finalUrl；都失败时 failure 是自己抓取的失败信息
+ *   （{failure, status}，质询页记为 blocked）
+ */
+export async function loadPage(url, env = {}, { fetchMs, readerMs, skipReader = false } = {}) {
+    const fetched = await fetchPage(url, env, { timeoutMs: fetchMs });
+    let failure;
+    if (fetched.ok) {
+        const page = extractPageInfo(fetched.html, fetched.finalUrl);
+        page.finalUrl = fetched.finalUrl;
+        if (!isChallengePage(page)) return { page };
+        console.log('抓取拿到的是质询页:', url);
+        failure = { failure: 'blocked', status: fetched.status };
+    } else {
+        failure = { failure: fetched.failure, status: fetched.status };
+    }
+
+    // 不是网页的（图片、PDF）换谁抓都一样
+    if (!skipReader && failure.failure !== 'not_html') {
+        const page = await fetchPageViaReader(url, env, { timeoutMs: readerMs });
+        if (page) return { page, viaReader: true };
+    }
+    return { page: null, failure };
 }
 
 // ---------- 解析 ----------
@@ -602,7 +716,7 @@ export function buildCategoriesWithSamples(categories, sitesByCategory) {
  * @param {Object} [options.hints] 扩展从当前页拿到的 { title, description, content, icon }
  * @param {Array} options.categories 真实分类 [{id, name, order}]（不含虚拟分类）
  * @param {Object} options.sitesByCategory 云端 websites 对象
- * @param {Object} [options.timeouts] { fetchMs, aiMs }，测试用
+ * @param {Object} [options.timeouts] { fetchMs, readerMs, aiMs }，测试用
  */
 export async function analyzeWebsite(env, {
     url,
@@ -622,17 +736,14 @@ export async function analyzeWebsite(env, {
     // 1. 抓网页。标题、描述、分类都给了就不抓，只缺图标不值得多等一次抓取
     let page = null;
     if (needTitle || needDescription || needCategory) {
-        const fetched = await fetchPage(url, env, { timeoutMs: timeouts.fetchMs });
-        if (fetched.ok) {
-            page = extractPageInfo(fetched.html, fetched.finalUrl);
-            page.finalUrl = fetched.finalUrl;
-            if (isChallengePage(page)) {
-                warnings.push('fetch_blocked');
-                page = null;
-            }
-        } else {
-            warnings.push(FETCH_FAILURE_WARNINGS[fetched.failure] || 'fetch_failed');
-        }
+        const loaded = await loadPage(url, env, {
+            fetchMs: timeouts.fetchMs,
+            readerMs: timeouts.readerMs,
+            skipReader: (hints.content || '').length >= THIN_CONTENT_CHARS
+        });
+        page = loaded.page;
+        if (loaded.viaReader) warnings.push('fetched_via_reader');
+        if (loaded.failure) warnings.push(FETCH_FAILURE_WARNINGS[loaded.failure.failure] || 'fetch_failed');
     }
 
     // 2. 合并页面信息和扩展传来的 hints。正文太薄时用扩展看到的正文

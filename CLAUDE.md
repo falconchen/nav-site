@@ -121,6 +121,18 @@ AIGC、id 仍是 `social`），让模型输出 id 会被这种语义错位带偏
 - 响应里的 `analysis` 写明每个字段的来源和降级原因（`warnings`），字段含义见 `doc/REST_API.md`
 - 本地 `npm run dev` 调 Workers AI 需要先 `npx wrangler login`，否则 AI 全部报 `Not logged in`，只能看到兜底结果
 
+### 抓取被拦截时的兜底
+
+v2ex 这类站点会间歇性开 Cloudflare 质询，Worker 抓取拿到 403。网页端和 `/api/v1` 都经过 `loadPage()`：
+
+1. 先自己抓（`fetchPage`），失败或拿到质询页时，配了 `JINA_API_KEY` 就改走 Jina Reader（`fetchPageViaReader`）。
+   Jina 按输出 token 计费，所以只在失败时调用，且用 JSON 格式（Markdown 正文）：同一页要 HTML 格式贵十几倍。
+   Jina 那边也被拦（`httpStatus` ≥ 400 或质询页）时当作失败；`/api/v1` 带了足够的 `hints.content` 时不调 Jina
+2. 仍然失败：网页端接口返回 502 + `fetchFailed`，前端 `fillFormFromDomainHistory()` 按同域名已收录网址预填分类和图标；
+   `/api/v1` 走原有兜底链（hints、同域名归类）
+
+不要接「绕过反爬」类的抓取服务（住宅代理、自动过质询），那是在对抗对方站点的防护。
+
 ### 图标存储
 
 网站卡片的自定义图标存在 `website.imageData` 字段：
@@ -198,6 +210,7 @@ npm run deploy      # 部署到 Cloudflare Workers 生产环境
 - `JWT_SECRET` - JWT 签名密钥
 - `CF_PHOTOS_ENDPOINT` - 图床地址（如 `https://your-photo-host`）
 - `CF_PHOTOS_TOKEN` - 图床的 AUTH_TOKEN
+- `JINA_API_KEY` - Jina Reader 的 key，抓取被拦截时的兜底（可选，不配就不走 Jina）
 
 图床地址走 secret 而不是 `wrangler.jsonc` 的 vars，是为了不把自己的图床域名硬编码进仓库。
 换图床只改环境变量即可，代码不用动；只填域名时会按 https 补全。

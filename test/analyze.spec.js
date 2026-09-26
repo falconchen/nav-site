@@ -347,4 +347,35 @@ describe('描述生成', () => {
         expect(body.error).toContain('HTTP 403');
         expect(aiRun).not.toHaveBeenCalled();
     });
+
+    it('抓取被拦截但 Jina 拿到了内容时照常返回识别结果', async () => {
+        fetchSpy.mockImplementation(async (input) => {
+            if (String(input).startsWith('https://r.jina.ai/')) {
+                return new Response(JSON.stringify({
+                    code: 200,
+                    data: {
+                        title: 'V2EX 帖子',
+                        description: '帖子描述',
+                        url: 'https://v2ex.com/t/1',
+                        content: '帖子正文。'.repeat(50),
+                        external: { icon: { 'https://v2ex.com/static/icon-192.png': {} } },
+                        httpStatus: 200
+                    }
+                }), { headers: { 'Content-Type': 'application/json' } });
+            }
+            return new Response('Just a moment...', { status: 403, headers: { 'cf-mitigated': 'challenge' } });
+        });
+        const res = await analyzeApi.request(
+            '/analyze-website',
+            analyzeRequest({ url: 'https://v2ex.com/t/1', categories: CATEGORIES }),
+            { ...createEnv({ aiRun: vi.fn(async () => ({ response: '一句话描述。' })) }), JINA_API_KEY: 'jina_test' }
+        );
+
+        expect(res.status).toBe(200);
+        expect(await res.json()).toMatchObject({
+            title: 'V2EX 帖子',
+            icon: 'https://v2ex.com/static/icon-192.png'
+        });
+    });
 });
+
