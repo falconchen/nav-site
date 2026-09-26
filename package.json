@@ -5,6 +5,7 @@
 	"scripts": {
 		"build": "node build-script.js",
 		"build:firefox": "node build-firefox-extension.js",
+		"sign:firefox": "npm run build:firefox && npx -y web-ext@10 sign --channel=unlisted --source-dir extension-firefox --artifacts-dir web-ext-artifacts",
 		"dev": "wrangler dev",
 		"start": "wrangler dev",
 		"test": "vitest",

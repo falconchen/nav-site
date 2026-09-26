@@ -25,8 +25,13 @@ npm run build:firefox   # 在 nav-site/ 下执行，生成 extension-firefox/（
 `options_page` 改成 `options_ui`，并加上扩展 id 和最低版本 140（ESR）。版本号直接沿用 Chrome 的。
 
 - **临时加载**：Firefox 打开 `about:debugging#/runtime/this-firefox` →「临时载入附加组件」，选 `extension-firefox/manifest.json`。重启浏览器后失效
-- **长期安装**：正式版 Firefox 只装签过名的扩展。用 `npx web-ext sign --channel=unlisted --source-dir extension-firefox`
-  配 AMO 的 API 密钥签名（不上架，只给自己装），得到的 `.xpi` 拖进 Firefox 安装
+- **长期安装**：正式版 Firefox 只装签过名的扩展。用 AMO 签名、不上架（unlisted），只给自己装：
+  1. 用 Firefox 账号登录 <https://addons.mozilla.org/developers/addon/api/key/> 生成 API 密钥（JWT issuer 和 secret）
+  2. 把密钥放进环境变量 `WEB_EXT_API_KEY`、`WEB_EXT_API_SECRET`，然后 `npm run sign:firefox`（先构建再签名，一般几分钟）
+  3. 签好的 `.xpi` 在 `web-ext-artifacts/`（已 gitignore），拖进 Firefox 安装；更新时拖新的覆盖，设置保留
+
+  AMO 要求每次签名的版本号比上次高，改扩展时照常升 `extension/manifest.json` 的版本号就行。
+  这样装的扩展不会自动更新，要自动更新得在 manifest 加 `update_url` 并自己托管 `updates.json`
 - **校验**：`npx web-ext lint --source-dir extension-firefox`。唯一的警告是 Firefox for Android 不支持 140 的
   `data_collection_permissions`，这个扩展不面向 Android（Android 不能接管新标签页），可以忽略
 
