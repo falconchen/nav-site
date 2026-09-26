@@ -150,6 +150,12 @@ function pickReaderIcon(external = {}) {
     return '';
 }
 
+// Jina 的字段不保证是字符串：同名 meta 出现多次时是数组（medium 的 og:site_name 是 ['Medium', 'Medium']）
+function readerText(value) {
+    if (Array.isArray(value)) value = value.find(item => typeof item === 'string') || '';
+    return typeof value === 'string' ? cleanText(value) : '';
+}
+
 /**
  * 通过 Jina Reader 抓取网页，返回和 extractPageInfo() 同结构的信息（多一个 finalUrl）
  * 没配 JINA_API_KEY、请求失败或 Jina 那边也被拦截时返回 null
@@ -185,14 +191,14 @@ export async function fetchPageViaReader(url, env = {}, { timeoutMs = READER_TIM
     }
 
     const finalUrl = data.url || url;
-    const content = markdownToText(data.content);
+    const content = markdownToText(typeof data.content === 'string' ? data.content : '');
     const metadata = data.metadata || {};
     const info = {
         host: new URL(finalUrl).host,
-        title: cleanText(data.title || ''),
-        description: cleanText(data.description || ''),
-        keywords: cleanText(metadata.keywords || ''),
-        siteName: cleanText(metadata['og:site_name'] || ''),
+        title: readerText(data.title),
+        description: readerText(data.description),
+        keywords: readerText(metadata.keywords),
+        siteName: readerText(metadata['og:site_name']),
         heading: '',
         icon: pickReaderIcon(data.external),
         firstParagraph: content.slice(0, 200),

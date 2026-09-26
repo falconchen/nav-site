@@ -360,6 +360,22 @@ describe('Jina Reader 兜底', () => {
         expect(prompt).not.toContain('](');
     });
 
+    it('Jina 的 metadata 字段是数组时取第一个（同名 meta 出现多次）', async () => {
+        stubFetch(() => new Response('Forbidden', { status: 403 }), {
+            code: 200,
+            data: {
+                ...READER_DATA.data,
+                title: '',
+                metadata: { 'og:site_name': ['Medium', 'Medium'], keywords: ['a', 'b'], viewport: ['x', 'y'] }
+            }
+        });
+
+        const result = await analyze({ AI: { run: stubAi() }, JINA_API_KEY: 'jina_test' });
+
+        expect(result.title).toBe('Medium');
+        expect(result.analysis.warnings).toEqual(['fetched_via_reader']);
+    });
+
     it('状态码 200 的质询页也会改用 Jina', async () => {
         stubFetch(() => htmlResponse('<html><head><title>Just a moment...</title></head><body></body></html>'));
 
