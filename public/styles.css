@@ -3023,6 +3023,11 @@ body.searching .view-tab.active {
   border-bottom-color: transparent;
 }
 
+/* 小屏才用的简称 */
+.view-tab .tab-label-short {
+  display: none;
+}
+
 /* 面板切换 */
 .tab-panel {
   display: none;
@@ -3130,30 +3135,19 @@ html:not([data-tab="all"]) body:not(.searching) #mobile-category-menu-wrapper {
     min-width: 0;
   }
 
-  /* 极窄屏（或有滚动条占宽）时文字省略，不把锁图标挤出去 */
-  .view-tab span {
+  /* 五个 tab 放全称挤不下，小屏换成两个字的简称，五个等宽 */
+  .view-tab .tab-label {
+    display: none;
+  }
+
+  .view-tab .tab-label-short {
+    display: inline;
     overflow: hidden;
     text-overflow: ellipsis;
   }
-
-  /* 五个 tab 挤不下，私密收藏在手机上只留锁图标 */
-  .view-tab[data-tab="private"] {
-    flex: 0 0 auto;
-    padding-left: 0.6rem;
-    padding-right: 0.6rem;
-  }
-
-  .view-tab[data-tab="private"] span {
-    display: none;
-  }
 }
 
-@media (max-width: 400px) {
-  .view-tab {
-    font-size: 0.85rem;
-    gap: 0.25rem;
-  }
-}
+
 
 /* ========== 特别关注卡片右上角的星星，点击取消关注 ========== */
 :root {

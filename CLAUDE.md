@@ -77,6 +77,7 @@
 - 普通分类 section 渲染在 `#tab-all` 里；`showCategory()` 会先切到「全部网站」
 - 搜索始终搜全部网站：有关键词时加 `body.searching`，临时显示 `#tab-all`，清空后回到原 tab
 - 移动端左右滑动只在松手时判断一次（不跟手），每个 tab 各自记住滚动位置
+- 小屏（≤768px）五个 tab 等宽，显示两字简称（最近 / 常用 / 关注 / 全部 / 私密，`.tab-label-short`），桌面端显示全称（`.tab-label`）
 - 特别关注卡片右上角的星星是真实按钮（`.card-pin-btn`，每张卡都渲染，靠 `.pinned` 类显示），点击取消关注
 - 第五个 tab「私密收藏」（`data-tab="private"`）放 `website.private === true` 的网站，它们不进分类 section、最近添加、
   访问最多、特别关注和搜索（`collectAllWebsites()` 默认排除，要取私密网站得传 `{ onlyPrivate: true }`）。私密优先于特别关注。
