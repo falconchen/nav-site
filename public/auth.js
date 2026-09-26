@@ -152,7 +152,13 @@ function showUserInfo(user) {
     // 设置头像，如果没有则使用默认头像
     const avatarUrl = userData.avatar_url || userData.avatar || `https://github.com/identicons/${userData.login || 'default'}.png`;
     console.log('🖼️ Setting avatar URL:', avatarUrl);
-    document.getElementById('userAvatar').src = avatarUrl;
+    const avatar = document.getElementById('userAvatar');
+    // 用户在 Google / GitHub 换了头像后，旧地址过一阵会失效，失效时换成默认头像，不显示破图
+    avatar.onerror = () => {
+        avatar.onerror = null;
+        avatar.src = 'img/compass-solid.svg';
+    };
+    avatar.src = avatarUrl;
 
     // 设置用户名
     const displayName = userData.name || userData.login || 'Unknown User';

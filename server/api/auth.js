@@ -4,6 +4,7 @@
 
 import { Hono } from 'hono';
 import { sign, verify } from 'hono/jwt';
+import { refreshProviderProfile } from '../lib/oauth-profile.js';
 
 const app = new Hono();
 
@@ -317,8 +318,9 @@ async function handleOAuthLogin(c, email, providerInfo) {
         );
 
         if (existingProvider) {
-            // 已绑定，直接更新最后登录时间
+            // 已绑定：同步 provider 这次返回的名字和头像，再更新最后登录时间
             console.log('✅ Existing user, provider already bound');
+            refreshProviderProfile(existingUser, existingProvider, providerInfo);
             existingUser.lastLogin = new Date().toISOString();
             await saveUserToRedis(c, existingUser);
             return existingUser;

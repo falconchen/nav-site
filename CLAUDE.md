@@ -250,6 +250,10 @@ npm run deploy      # 部署到 Cloudflare Workers 生产环境
 6. 返回 HTML，通过 postMessage 发送到父窗口
 7. 前端存储 JWT，更新 UI
 
+同一邮箱可绑定多个 provider（Google / GitHub）。已绑定的 provider 再次登录时，`refreshProviderProfile()`（`server/lib/oauth-profile.js`）
+用这次返回的名字和头像刷新该 provider 的记录；顶层 `name` / `avatar_url` 只在原本来自该 provider 时才跟着换，
+避免换一种方式登录头像就来回切换。资料只在登录时同步，不实时拉取。前端头像加载失败时换成站点图标。
+
 ### 数据结构
 旧版本把 `pinned` / `recent` 当虚拟分类存在 `categories` 里，现在不再存储。本地加载、导入、云端下载
 都会经过 `ensureFixedCategories()`，由它剥掉旧数据里的这两项；服务端 `/api/v1` 也仍会过滤它们，用来兼容云端的旧数据。
