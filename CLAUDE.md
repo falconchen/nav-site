@@ -9,6 +9,7 @@
 - **nav-site/**: 基于 Cloudflare Workers 的导航网站，支持用户认证和云端同步
 - **extension/**（在 nav-site 内）: Chrome / Firefox 扩展「皮皮2047 收藏助手」，调用 `/api/v1` 收藏网页，见 `extension/README.md`。
   两个浏览器共用代码，Firefox 版由 `npm run build:firefox` 改写 manifest 生成到 `extension-firefox/`；扩展 API 一律用 `lib/ext.js` 的 `ext`，不直接写 `chrome.*`。
+  Firefox 版自行分发：`npm run sign:firefox` 签名后 `npm run release:firefox` 发到 GitHub Releases，靠 `update_url` 自动更新。
   每次修改扩展都要升 `extension/manifest.json` 的 `version`：小改动升次版本（1.1.0 → 1.2.0），大改动升主版本（1.2.0 → 2.0.0），升级时修订号归零
 - **dxy/**: 简单的 HTML 页面（遗留项目）
 - **sassy/**: CSS 样式项目（遗留项目）

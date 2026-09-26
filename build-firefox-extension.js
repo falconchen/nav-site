@@ -14,6 +14,10 @@ const OUT = path.join(__dirname, 'extension-firefox');
 // 扩展 id 一旦发布就不能改：storage 按 id 存，AMO 签名也认 id
 const GECKO_ID = 'pipi2047-collector@pipi2047.eu.org';
 
+// 自动更新清单放在 GitHub 固定的 firefox-updates Release 里，由 release-firefox-extension.js 每次发版覆盖。
+// 这个地址会签进扩展，改了之后已安装的扩展就找不到更新了
+const UPDATE_URL = 'https://github.com/falconchen/nav-site/releases/download/firefox-updates/updates.json';
+
 // 不进扩展包的文件
 const SKIP = new Set(['README.md', 'manifest.json']);
 
@@ -30,6 +34,7 @@ function toFirefoxManifest(chrome) {
     manifest.browser_specific_settings = {
         gecko: {
             id: GECKO_ID,
+            update_url: UPDATE_URL,
             // data_collection_permissions 从 140 开始支持，140 也是 ESR
             strict_min_version: '140.0',
             // 收藏时会把网址和页面内容发给导航站服务端

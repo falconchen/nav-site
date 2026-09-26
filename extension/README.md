@@ -22,17 +22,22 @@ npm run build:firefox   # 在 nav-site/ 下执行，生成 extension-firefox/（
 ```
 
 脚本把 Chrome 的 manifest 改成 Firefox 能用的：后台从 service worker 改成事件页（`background.scripts`）、
-`options_page` 改成 `options_ui`，并加上扩展 id 和最低版本 140（ESR）。版本号直接沿用 Chrome 的。
+`options_page` 改成 `options_ui`，并加上扩展 id、最低版本 140（ESR）和自动更新地址 `update_url`。版本号直接沿用 Chrome 的。
 
 - **临时加载**：Firefox 打开 `about:debugging#/runtime/this-firefox` →「临时载入附加组件」，选 `extension-firefox/manifest.json`。重启浏览器后失效
 - **长期安装**：正式版 Firefox 只装签过名的扩展。用 AMO 签名、不上架（unlisted），只给自己装：
   1. 用 Firefox 账号登录 <https://addons.mozilla.org/developers/addon/api/key/> 生成 API 密钥（JWT issuer 和 secret）
   2. 把密钥放进环境变量 `WEB_EXT_API_KEY`、`WEB_EXT_API_SECRET`，然后 `npm run sign:firefox`（先构建再签名，一般几分钟）
-  3. 签好的 `.xpi` 在 `web-ext-artifacts/`（已 gitignore），拖进 Firefox 安装；更新时拖新的覆盖，设置保留
+  3. 签好的 `.xpi` 在 `web-ext-artifacts/`（已 gitignore）
+  4. `npm run release:firefox` 发布到 GitHub Releases：`.xpi` 放进 `firefox-v<版本>`，
+     再把固定 Release `firefox-updates` 里的 `updates.json` 覆盖成指向这个版本（需要已登录的 `gh`）
 
   AMO 要求每次签名的版本号比上次高，改扩展时照常升 `extension/manifest.json` 的版本号就行。
-  这样装的扩展不会自动更新，要自动更新得在 manifest 加 `update_url` 并自己托管 `updates.json`
-- **校验**：`npx web-ext lint --source-dir extension-firefox`。唯一的警告是 Firefox for Android 不支持 140 的
+- **自动更新**：manifest 的 `update_url` 指向 `firefox-updates` 里的 `updates.json`，Firefox 大约每天检查一次，
+  也可以在 `about:addons` 齿轮菜单里「检查更新」。首次安装从 Releases 页面下载 `firefox-v*` 里的 `.xpi` 拖进 Firefox。
+  1.7.0 之前的版本没有 `update_url`，要手动装一次 1.7.0 或更新的版本。
+  `update_url` 签进了扩展，改地址会让已安装的扩展再也收不到更新
+- **校验**：`npx web-ext lint --self-hosted --source-dir extension-firefox`。不加 `--self-hosted` 会按上架 AMO 的规则把 `update_url` 报成错误。唯一的警告是 Firefox for Android 不支持 140 的
   `data_collection_permissions`，这个扩展不面向 Android（Android 不能接管新标签页），可以忽略
 
 和 Chrome 版的区别：
