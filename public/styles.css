@@ -441,6 +441,11 @@ a {
   opacity: 0;
 }
 
+/* 放大镜：只在小屏显示，展开/收起搜索栏 */
+.header-right .search-toggle {
+  display: none;
+}
+
 /* 右侧操作 */
 .header-right {
   display: flex;
@@ -3040,7 +3045,11 @@ html:not([data-tab="all"]) body:not(.searching) #mobile-category-menu-wrapper {
       "search search";
     height: auto;
     padding: 10px var(--page-pad) 12px;
-    gap: 10px 12px;
+    gap: 0 12px;
+  }
+
+  html.search-open .header-container {
+    row-gap: 10px;
   }
 
   .header-left {
@@ -3054,9 +3063,23 @@ html:not([data-tab="all"]) body:not(.searching) #mobile-category-menu-wrapper {
 
   .search-container {
     grid-area: search;
+    display: none;
     max-width: none;
     width: 100%;
     margin: 0;
+  }
+
+  html.search-open .search-container {
+    display: block;
+  }
+
+  .header-right .search-toggle {
+    display: inline-grid;
+    font-size: 16px;
+  }
+
+  html.search-open .search-toggle {
+    color: var(--accent);
   }
 
   .version,
@@ -3100,6 +3123,7 @@ html:not([data-tab="all"]) body:not(.searching) #mobile-category-menu-wrapper {
     right: 28%;
   }
 
+  .view-tab i,
   .view-tab .tab-label {
     display: none;
   }

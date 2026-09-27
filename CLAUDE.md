@@ -81,7 +81,7 @@
 - 移动端左右滑动只在松手时判断一次（不跟手），每个 tab 各自记住滚动位置
 - tab 顺序可调：tab 栏右键或长按打开「调整分区顺序」弹窗，顺序只存本机 localStorage `tabOrder`（和默认顺序相同时删掉）。
   `index.html` 紧跟 tab 栏的内联脚本在首屏前重排 DOM，所以 JS 里当前顺序一律用 `getTabOrder()` 读 DOM，滑动顺序跟着变，不要再按 `VIEW_TABS` 的下标算
-- 小屏（≤768px）五个 tab 等宽，显示两字简称（最近 / 常用 / 关注 / 全部 / 私密，`.tab-label-short`），桌面端显示全称（`.tab-label`）
+- 小屏（≤768px）五个 tab 等宽、不显示图标，只显示两字简称（最近 / 常用 / 关注 / 全部 / 私密，`.tab-label-short`），桌面端显示全称（`.tab-label`）
 - 特别关注卡片右上角的星星是真实按钮（`.card-pin-btn`，每张卡都渲染，靠 `.pinned` 类显示），点击取消关注
 - 第五个 tab「私密收藏」（`data-tab="private"`）放 `website.private === true` 的网站，它们不进分类 section、最近添加、
   访问最多、特别关注和搜索（`collectAllWebsites()` 默认排除，要取私密网站得传 `{ onlyPrivate: true }`）。私密优先于特别关注。
@@ -269,6 +269,7 @@ npm run deploy      # 部署到 Cloudflare Workers 生产环境
 - 右键菜单在小屏变成底部动作面板，下面垫遮罩（`body:has(.context-menu.active)::after`），点空白只关菜单
 - 弹窗在小屏是底部弹层，操作按钮吸底；输入框字号 16px，避免 iOS 聚焦放大
 - 按 `/` 聚焦搜索框
+- 小屏搜索栏默认收起，头部放大镜（`#searchToggle`）展开，展开状态是 `<html class="search-open">`；搜索框为空时失焦自动收起，再点放大镜或按 Esc 收起并清空关键词
 
 **分享与图标**（`public/img/`、`public/manifest.webmanifest`，构建时一并复制）：
 - `og-cover.png`（1200×630）供微信、Telegram、X 等的分享卡片，`index.html` 里的 og / twitter 标签指向线上域名

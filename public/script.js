@@ -2417,7 +2417,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             const searchBox = document.querySelector('.search-box');
             if (!typing && searchBox && !document.querySelector('.modal-overlay.active')) {
                 e.preventDefault();
-                searchBox.focus();
+                openSearchBar();
                 searchBox.select();
             }
         }
@@ -2668,6 +2668,44 @@ searchBox.addEventListener('input', function (e) {
 
     // 添加搜索高亮
     highlightSearchResults(searchTerm);
+});
+
+// 小屏搜索栏默认收起，点头部放大镜展开；桌面端搜索栏常驻，这里的 class 不影响它
+const searchToggle = document.getElementById('searchToggle');
+
+function openSearchBar() {
+    document.documentElement.classList.add('search-open');
+    searchToggle.setAttribute('aria-expanded', 'true');
+    searchBox.focus();
+}
+
+function closeSearchBar() {
+    document.documentElement.classList.remove('search-open');
+    searchToggle.setAttribute('aria-expanded', 'false');
+    if (searchBox.value) {
+        searchBox.value = '';
+        searchBox.dispatchEvent(new Event('input'));
+    }
+    searchBox.blur();
+}
+
+// 按下时阻止默认行为，避免搜索框先失焦触发自动收起、紧接着的 click 又把它打开
+searchToggle.addEventListener('mousedown', e => e.preventDefault());
+searchToggle.addEventListener('click', () => {
+    if (document.documentElement.classList.contains('search-open')) {
+        closeSearchBar();
+    } else {
+        openSearchBar();
+    }
+});
+
+// 没输入内容就离开搜索框时自动收起；有关键词时保留，方便滚动浏览结果
+searchBox.addEventListener('blur', () => {
+    if (!searchBox.value) closeSearchBar();
+});
+
+searchBox.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeSearchBar();
 });
 
 // 搜索高亮功能
