@@ -2004,6 +2004,42 @@ function addCardEventListeners(card) {
 // 菜单弹出后吞掉随之而来的 click，免得松手时顺带打开网站
 const LONG_PRESS_MS = 450;
 const LONG_PRESS_SLOP = 10;
+// 松手后多久内的 click 算长按带出来的（iOS 一般在 touchend 后 300ms 内补发）
+const GHOST_CLICK_WINDOW_MS = 400;
+
+// 长按弹出菜单后，拦下松手时 iOS 补发的那一次 click。
+// 菜单弹出时全屏遮罩已经盖在手指下面，这次 click 落在遮罩（body）上而不是卡片上，
+// 放在卡片上的拦截拦不住，会冒泡到 document 上「点空白处关菜单」，菜单一闪就没了。
+// 主屏幕 Web App 模式会补发这次 click，Safari 标签页里长按交给系统处理、不补发，所以只在前者出现。
+// 所以挂在 window 捕获阶段，不管落在哪都吞掉；松手后一小段时间或下次触摸时撤掉
+let ghostClickGuard = null;
+
+function armGhostClickGuard() {
+    disarmGhostClickGuard();
+    const swallow = (e) => {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        disarmGhostClickGuard();
+    };
+    window.addEventListener('click', swallow, true);
+    // 下一次触摸（比如点菜单项）开始时就撤掉，真实的点击不会被误吞
+    window.addEventListener('touchstart', disarmGhostClickGuard, { capture: true, passive: true, once: true });
+    ghostClickGuard = { swallow, timer: null };
+}
+
+function releaseGhostClickGuardSoon() {
+    if (!ghostClickGuard) return;
+    clearTimeout(ghostClickGuard.timer);
+    ghostClickGuard.timer = setTimeout(disarmGhostClickGuard, GHOST_CLICK_WINDOW_MS);
+}
+
+function disarmGhostClickGuard() {
+    if (!ghostClickGuard) return;
+    window.removeEventListener('click', ghostClickGuard.swallow, true);
+    window.removeEventListener('touchstart', disarmGhostClickGuard, true);
+    clearTimeout(ghostClickGuard.timer);
+    ghostClickGuard = null;
+}
 
 function bindCardLongPress(card) {
     let timer = null;
@@ -2017,6 +2053,8 @@ function bindCardLongPress(card) {
     };
 
     card.addEventListener('touchstart', (e) => {
+        // 新的一次触摸开始，上一次长按留下的拦截不再需要
+        disarmGhostClickGuard();
         if (e.touches.length !== 1) return cancel();
         fired = false;
         const touch = e.touches[0];
@@ -2026,6 +2064,7 @@ function bindCardLongPress(card) {
         timer = setTimeout(() => {
             timer = null;
             fired = true;
+            armGhostClickGuard();
             if (navigator.vibrate) navigator.vibrate(8);
             const rect = card.getBoundingClientRect();
             showContextMenu(new PointerEvent('contextmenu', {
@@ -2045,18 +2084,18 @@ function bindCardLongPress(card) {
         }
     }, { passive: true });
 
+    // 触摸事件始终派发给起点元素（卡片），即使手指此刻在遮罩上
     card.addEventListener('touchend', (e) => {
         cancel();
-        if (fired) e.preventDefault();
+        if (fired) {
+            e.preventDefault();
+            releaseGhostClickGuardSoon();
+        }
     });
-    card.addEventListener('touchcancel', cancel);
-
-    card.addEventListener('click', (e) => {
-        if (!fired) return;
-        fired = false;
-        e.stopImmediatePropagation();
-        e.preventDefault();
-    }, true);
+    card.addEventListener('touchcancel', () => {
+        cancel();
+        if (fired) releaseGhostClickGuardSoon();
+    });
 
     // 安卓长按会自己触发 contextmenu，已经由上面打开过了
     card.addEventListener('contextmenu', (e) => {

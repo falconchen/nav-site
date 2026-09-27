@@ -262,7 +262,10 @@ npm run deploy      # 部署到 Cloudflare Workers 生产环境
 
 **手机端（≤768px / ≤480px）**：
 - ≤480px 卡片是 App 式图标宫格；卡片上的菜单按钮已去掉，触屏**长按 450ms** 弹出菜单（`bindCardLongPress()`，
-  iOS 不会为长按触发 `contextmenu`），菜单弹出后吞掉松手时的 click，免得顺带打开网站
+  iOS 不会为长按触发 `contextmenu`）。添加到主屏幕的 Web App 模式下，iOS 松手后会补发一次 click，
+  而此时全屏遮罩已盖在手指下，这次 click 落在遮罩（body）上，会冒泡到 document 把菜单立刻关掉；
+  所以拦截挂在 **window 捕获阶段**（`armGhostClickGuard()`），松手 400ms 后或下一次触摸时撤掉，不要改回挂在卡片上。
+  菜单打开时整页 `user-select: none`，否则手指停在遮罩上会进入选字手势
 - 右键菜单在小屏变成底部动作面板，下面垫遮罩（`body:has(.context-menu.active)::after`），点空白只关菜单
 - 弹窗在小屏是底部弹层，操作按钮吸底；输入框字号 16px，避免 iOS 聚焦放大
 - 按 `/` 聚焦搜索框
