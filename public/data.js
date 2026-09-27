@@ -867,7 +867,8 @@ function createImportExportUI() {
   cloudOverrideBtn.href = '#';
   cloudOverrideBtn.className = 'footer-link cloud-override-btn';
   cloudOverrideBtn.innerHTML = '<i class="fas fa-history"></i> 历史版本';
-  cloudOverrideBtn.style.display = 'none'; // 默认隐藏，只有登录后才显示
+  // 只有登录后才显示。登录校验可能比这里先完成（loadData 要先读完 IndexedDB），所以按已记下的状态设
+  cloudOverrideBtn.style.display = cloudOverrideVisible ? 'inline-flex' : 'none';
 
   // 创建导入导出按钮组
   const exportBtn = document.createElement('a');
@@ -941,8 +942,11 @@ document.addEventListener('DOMContentLoaded', async function () {
   createImportExportUI();
 });
 
-// 显示/隐藏云端覆盖按钮
+// 显示/隐藏云端覆盖按钮（页脚「历史版本」）。按钮还没创建时先记下状态，创建时照着设
+let cloudOverrideVisible = false;
+
 function toggleCloudOverrideButton(show) {
+  cloudOverrideVisible = show;
   const cloudOverrideBtn = document.querySelector('.cloud-override-btn');
   if (cloudOverrideBtn) {
     cloudOverrideBtn.style.display = show ? 'inline-flex' : 'none';
