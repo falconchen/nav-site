@@ -1658,6 +1658,12 @@ html[data-sidebar="compact"] .category-section {
   font-size: 13px;
 }
 
+/* 开锁图标比锁宽约 3px，两个图标占同样宽的格子，悬停换图标时按钮不跳 */
+#privateHideBtn i {
+  width: 1.15em;
+  text-align: center;
+}
+
 #privateHideBtn .private-hide-icon-hover,
 #privateHideBtn:hover .private-hide-icon-idle,
 #privateHideBtn:focus-visible .private-hide-icon-idle {
@@ -1667,6 +1673,14 @@ html[data-sidebar="compact"] .category-section {
 #privateHideBtn:hover .private-hide-icon-hover,
 #privateHideBtn:focus-visible .private-hide-icon-hover {
   display: inline-block;
+}
+
+/* 悬停时整个按钮换成朱砂色，和锁图标一起提示「点下去会锁定」 */
+#privateHideBtn:hover,
+#privateHideBtn:focus-visible {
+  color: var(--accent);
+  background: var(--card);
+  border-color: var(--accent);
 }
 
 /* 打开时是朱砂色描边和文字，不填底色，和纸面的克制风格一致 */
