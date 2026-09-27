@@ -329,12 +329,9 @@ function setPrivateAllRevealed(on) {
 function updatePrivateRevealAllBtn() {
     const btn = document.getElementById('privateRevealAllBtn');
     if (!btn) return;
+    // 文字始终是「显示全部」，打开状态靠 aria-pressed 和朱砂色描边表示
     btn.setAttribute('aria-pressed', String(privateAllRevealed));
     btn.title = privateAllRevealed ? '重新模糊全部网站' : '显示全部网站（描述除外）';
-    btn.setAttribute('aria-label', privateAllRevealed ? '重新模糊全部网站' : '显示全部网站');
-    const icon = btn.querySelector('i');
-    // 闭眼表示现在是模糊的，点开后是睁眼
-    if (icon) icon.className = privateAllRevealed ? 'fas fa-eye' : 'fas fa-eye-slash';
 }
 
 // 离开私密收藏分区时恢复模糊，描述也收起；重新渲染出来的卡片本来就是模糊的

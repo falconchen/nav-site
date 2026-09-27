@@ -1639,17 +1639,23 @@ html[data-sidebar="compact"] .category-section {
   display: none;
 }
 
+/* 右上角：「显示全部」在前，「隐藏」在最右 */
 .private-toolbar {
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: flex-end;
+  gap: 10px;
   margin-bottom: 18px;
 }
 
 .private-toolbar .btn {
-  width: 36px;
-  height: 36px;
-  padding: 0;
+  height: 38px;
+  padding: 0 16px;
+  color: var(--ink-2);
+}
+
+.private-toolbar .btn i {
+  font-size: 13px;
 }
 
 #privateHideBtn .private-hide-icon-hover,
@@ -1663,10 +1669,15 @@ html[data-sidebar="compact"] .category-section {
   display: inline-block;
 }
 
+/* 打开时是朱砂色描边和文字，不填底色，和纸面的克制风格一致 */
 #privateRevealAllBtn[aria-pressed="true"] {
-  color: #fff;
-  background: var(--accent);
+  color: var(--accent);
+  background: var(--card);
   border-color: var(--accent);
+}
+
+#privateRevealAllBtn[aria-pressed="true"]:hover {
+  background: var(--accent-soft);
 }
 
 /* 私密卡片的图标、标题、网址默认模糊：有鼠标的设备悬停时清晰，触屏设备第一次点击变清晰（.revealed），离开分区后恢复 */
