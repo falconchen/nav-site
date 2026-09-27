@@ -110,13 +110,14 @@
                 <button class="theme-toggle header-mode-toggle" onclick="toggleCategoriesMode()" title="切换显示模式" aria-label="切换显示模式">
                     <i class="fa-solid fa-down-left-and-up-right-to-center categories-mode-icon"></i>
                 </button>
-                <button class="theme-toggle" onclick="toggleTheme()" title="切换深浅色" aria-label="切换深浅色">
+                <!-- 小屏隐藏，深浅色收进账户菜单 -->
+                <button class="theme-toggle header-theme-toggle" onclick="toggleTheme()" title="切换深浅色" aria-label="切换深浅色">
                     <i class="fas fa-moon" id="theme-icon"></i>
                 </button>
-				<div class="user-info" id="userInfo" style="display: none;">
+				<div class="user-info" id="userInfo" style="display: none;" onclick="toggleUserMenu()">
                     <img id="userAvatar" class="user-avatar" src="" alt="User Avatar">
                     <span id="userName"></span>
-                    <button class="user-menu-btn" onclick="toggleUserMenu()">
+                    <button class="user-menu-btn" aria-label="账户菜单">
                         <i class="fas fa-chevron-down"></i>
                     </button>
                     <div class="user-menu" id="userMenu">
@@ -135,6 +136,11 @@
                             个人令牌
                         </div>
 
+                        <div class="user-menu-item theme-menu-item" onclick="toggleTheme()">
+                            <i class="fas fa-moon"></i>
+                            <span class="theme-menu-label">深色模式</span>
+                        </div>
+
                         <div class="user-menu-item" onclick="logout()">
                             <i class="fas fa-sign-out-alt"></i>
                             退出登录
@@ -149,6 +155,26 @@
                     <i class="fab fa-google"></i>
                     <span class="login-btn-text">登录</span>
                 </button>
+                <!-- 小屏的登录入口：两种登录方式和深浅色合在一个菜单里，桌面端不显示 -->
+                <div class="login-entry" id="loginEntry">
+                    <button type="button" class="login-btn" onclick="toggleLoginMenu()" aria-haspopup="menu">
+                        <span class="login-btn-text">登录</span>
+                    </button>
+                    <div class="user-menu" id="loginMenu" onclick="this.classList.remove('show')">
+                        <div class="user-menu-item" onclick="login('github')">
+                            <i class="fab fa-github"></i>
+                            用 GitHub 登录
+                        </div>
+                        <div class="user-menu-item" onclick="login('google')">
+                            <i class="fab fa-google"></i>
+                            用 Google 登录
+                        </div>
+                        <div class="user-menu-item theme-menu-item" onclick="toggleTheme()">
+                            <i class="fas fa-moon"></i>
+                            <span class="theme-menu-label">深色模式</span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </header>

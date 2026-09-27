@@ -270,6 +270,11 @@ npm run deploy      # 部署到 Cloudflare Workers 生产环境
 - 弹窗在小屏是底部弹层，操作按钮吸底；输入框字号 16px，避免 iOS 聚焦放大
 - 按 `/` 聚焦搜索框
 - 小屏搜索栏默认收起，头部放大镜（`#searchToggle`）展开，展开状态是 `<html class="search-open">`；搜索框为空时失焦自动收起，再点放大镜或按 Esc 收起并清空关键词
+- 小屏页眉只放品牌、放大镜、账户三样。深浅色切换收进账户菜单（`.theme-menu-item`，`syncThemeControls()` 同步图标和文案）；
+  未登录时 GitHub / Google 两个按钮隐藏，换成一个「登录」（`#loginEntry`），菜单里是两种登录方式 + 深浅色；登录后只显示圆形头像。
+  header 有 `backdrop-filter`，里面的 `position: fixed` 会被限制在 header 内，所以账户菜单是下拉，不是底部弹层
+- 小屏分类目录：「全部」已激活时再点一次，从底部弹出（`#categorySheet`，`renderCategorySheet()` / `openCategorySheet()`，挂在 body 上）；
+  激活的「全部」标签后有个小箭头提示。搜索中点「全部」仍是结束搜索
 
 **分享与图标**（`public/img/`、`public/manifest.webmanifest`，构建时一并复制）：
 - `og-cover.png`（1200×630）供微信、Telegram、X 等的分享卡片，`index.html` 里的 og / twitter 标签指向线上域名

@@ -1,17 +1,22 @@
 // 主题切换功能
 function toggleTheme() {
     const html = document.documentElement;
-    const themeIcon = document.getElementById('theme-icon');
+    const next = html.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    syncThemeControls();
+}
 
-    if (html.getAttribute('data-theme') === 'light') {
-        html.setAttribute('data-theme', 'dark');
-        themeIcon.className = 'fas fa-sun';
-        localStorage.setItem('theme', 'dark');
-    } else {
-        html.setAttribute('data-theme', 'light');
-        themeIcon.className = 'fas fa-moon';
-        localStorage.setItem('theme', 'light');
-    }
+// 页眉按钮显示「要切到的那一种」的图标；小屏账户菜单里的那一项同时改文案
+function syncThemeControls() {
+    const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const icon = dark ? 'fas fa-sun' : 'fas fa-moon';
+    const themeIcon = document.getElementById('theme-icon');
+    if (themeIcon) themeIcon.className = icon;
+    document.querySelectorAll('.theme-menu-item').forEach(item => {
+        item.querySelector('i').className = icon;
+        item.querySelector('.theme-menu-label').textContent = dark ? '浅色模式' : '深色模式';
+    });
 }
 
 // 强调色切换
@@ -2337,20 +2342,16 @@ document.addEventListener('DOMContentLoaded', async function () {
     // 读取localStorage主题
     const savedTheme = localStorage.getItem('theme');
     const html = document.documentElement;
-    const themeIcon = document.getElementById('theme-icon');
     if (savedTheme === 'dark' || savedTheme === 'light') {
         html.setAttribute('data-theme', savedTheme);
     }
     // 没手动选过时跟随系统（首屏已由 index.html 内联脚本设好），系统切换时同步
-    const syncThemeIcon = () => {
-        if (themeIcon) themeIcon.className = html.getAttribute('data-theme') === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
-    };
-    syncThemeIcon();
+    syncThemeControls();
     if (!savedTheme && window.matchMedia) {
         window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
             if (localStorage.getItem('theme')) return;
             html.setAttribute('data-theme', e.matches ? 'dark' : 'light');
-            syncThemeIcon();
+            syncThemeControls();
         });
     }
 
@@ -2403,8 +2404,9 @@ document.addEventListener('DOMContentLoaded', async function () {
                 }
             });
 
-            // 隐藏右键菜单
+            // 隐藏右键菜单和目录
             hideContextMenu();
+            closeCategorySheet();
         }
 
         // 按 / 聚焦搜索框（正在输入时不拦截）
@@ -2421,12 +2423,10 @@ document.addEventListener('DOMContentLoaded', async function () {
     });
 
     // 渲染移动端分类菜单（按钮在搜索栏右侧）
-    renderMobileCategoryMenuInHeader();
+    renderCategorySheet();
 
-    // 当数据变更时（新增/删除/导入等），同步更新移动端分类菜单
-    document.addEventListener('dataChanged', () => {
-        renderMobileCategoryMenuInHeader(true);
-    });
+    // 当数据变更时（新增/删除/导入等），同步更新移动端目录
+    document.addEventListener('dataChanged', renderCategorySheet);
 
     // 添加滚动监听，更新当前分类状态
     setupScrollSpy();
@@ -2518,81 +2518,62 @@ function setupScrollSpy() {
     updateActiveCategory();
 }
 
-// 在头部搜索栏右侧渲染移动端分类菜单
-function renderMobileCategoryMenuInHeader(force = false) {
-    const headerSearch = document.querySelector('.search-container');
-    if (!headerSearch) return;
+// 小屏的分类目录：「全部」tab 已激活时再点一次，从底部弹出
+function renderCategorySheet() {
+    let sheet = document.getElementById('categorySheet');
+    if (!sheet) {
+        sheet = document.createElement('div');
+        sheet.id = 'categorySheet';
+        sheet.className = 'category-sheet';
+        sheet.setAttribute('role', 'dialog');
+        sheet.setAttribute('aria-label', '目录');
+        sheet.innerHTML = '<div class="category-sheet-title">目录</div><div class="category-sheet-list"></div>';
+        document.body.appendChild(sheet);
 
-    const isSmallScreen = window.matchMedia('(max-width: 768px)').matches;
-
-    // 非小屏则移除按钮
-    let menuWrapper = document.getElementById('mobile-category-menu-wrapper');
-    if (!isSmallScreen) {
-        if (menuWrapper) menuWrapper.remove();
-        return;
-    }
-
-    if (!menuWrapper) {
-        menuWrapper = document.createElement('div');
-        menuWrapper.id = 'mobile-category-menu-wrapper';
-        menuWrapper.innerHTML = `
-            <button id="mobileCategoryMenuBtn" class="mobile-category-menu-btn" aria-label="分类">
-                <i class="fas fa-bars"></i>
-            </button>
-            <div id="mobileCategoryDropdown" class="mobile-category-dropdown" aria-hidden="true"></div>
-        `;
-        // 插入到搜索容器内，靠右浮动
-        headerSearch.appendChild(menuWrapper);
-    }
-
-    const dropdown = document.getElementById('mobileCategoryDropdown');
-    const btn = document.getElementById('mobileCategoryMenuBtn');
-    if (!dropdown || !btn) return;
-
-    // 填充分类项
-    const buildItem = (id, name, icon) => {
-        const div = document.createElement('div');
-        div.className = 'mobile-category-item';
-        div.dataset.id = id;
-        div.innerHTML = `${icon ? `<i class="${icon}"></i>` : ''}<span>${name}</span>`;
-        div.onclick = () => {
-            dropdown.classList.remove('active');
-            dropdown.setAttribute('aria-hidden', 'true');
-            showCategory(id);
-        };
-        return div;
-    };
-
-    dropdown.innerHTML = '';
-
-    if (Array.isArray(window.categories)) {
-        const sorted = [...window.categories].sort((a, b) => a.order - b.order);
-        sorted.forEach(cat => {
-            dropdown.appendChild(buildItem(cat.id, cat.name, cat.icon));
+        // 点遮罩（弹层以外的地方）关闭
+        document.addEventListener('click', (e) => {
+            if (sheet.classList.contains('active') && !sheet.contains(e.target)) {
+                closeCategorySheet();
+            }
         });
     }
 
-    // 切换下拉
-    btn.onclick = (e) => {
-        e.stopPropagation();
-        const active = dropdown.classList.toggle('active');
-        dropdown.setAttribute('aria-hidden', String(!active));
-    };
+    const list = sheet.querySelector('.category-sheet-list');
+    list.innerHTML = '';
+    if (!Array.isArray(window.categories)) return;
 
-    // 点击外部关闭
-    document.addEventListener('click', () => {
-        if (dropdown.classList.contains('active')) {
-            dropdown.classList.remove('active');
-            dropdown.setAttribute('aria-hidden', 'true');
-        }
+    [...window.categories].sort((a, b) => a.order - b.order).forEach(cat => {
+        const item = document.createElement('button');
+        item.type = 'button';
+        item.className = 'mobile-category-item';
+        item.dataset.category = cat.id;
+        const name = document.createElement('span');
+        name.textContent = cat.name;
+        item.appendChild(name);
+        item.onclick = () => {
+            closeCategorySheet();
+            showCategory(cat.id);
+        };
+        list.appendChild(item);
     });
-
-    // 监听窗口尺寸变化，进入/退出小屏重新渲染
-    if (!renderMobileCategoryMenuInHeader._resizeBound) {
-        renderMobileCategoryMenuInHeader._resizeBound = true;
-        window.addEventListener('resize', () => renderMobileCategoryMenuInHeader(true));
-    }
 }
+
+function openCategorySheet() {
+    const sheet = document.getElementById('categorySheet');
+    if (!sheet) return;
+    sheet.classList.add('active');
+    // 当前正在看的分类（侧边栏的滚动监听在小屏也照常更新）高亮并滚到可见处
+    const current = document.querySelector('.category-item.active')?.dataset.category;
+    sheet.querySelectorAll('.mobile-category-item').forEach(item => {
+        item.classList.toggle('active', item.dataset.category === current);
+    });
+    sheet.querySelector('.mobile-category-item.active')?.scrollIntoView({ block: 'nearest' });
+}
+
+function closeCategorySheet() {
+    document.getElementById('categorySheet')?.classList.remove('active');
+}
+
 // 更新分类下拉菜单
 function updateCategoryDropdown() {
     const categorySelect = document.getElementById('websiteCategory');

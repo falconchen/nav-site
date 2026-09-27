@@ -24,6 +24,11 @@ document.addEventListener('DOMContentLoaded', function() {
         if (userMenu && !userInfo.contains(e.target)) {
             userMenu.classList.remove('show');
         }
+
+        const loginEntry = document.getElementById('loginEntry');
+        if (loginEntry && !loginEntry.contains(e.target)) {
+            document.getElementById('loginMenu').classList.remove('show');
+        }
     });
 });
 
@@ -110,6 +115,7 @@ async function checkAuthStatus() {
 function showLoginButton() {
     document.getElementById('loginBtn').style.display = 'flex';
     document.getElementById('loginBtnGoogle').style.display = 'flex';
+    document.getElementById('loginEntry').hidden = false;
     document.getElementById('userInfo').style.display = 'none';
 }
 
@@ -142,6 +148,8 @@ function showUserInfo(user) {
 
     document.getElementById('loginBtn').style.display = 'none';
     document.getElementById('loginBtnGoogle').style.display = 'none';
+    document.getElementById('loginEntry').hidden = true;
+    document.getElementById('loginMenu').classList.remove('show');
     document.getElementById('userInfo').style.display = 'flex';
 
     // 显示云端覆盖按钮
@@ -237,6 +245,11 @@ function handleAuthMessage(event) {
 function toggleUserMenu() {
     const userMenu = document.getElementById('userMenu');
     userMenu.classList.toggle('show');
+}
+
+// 小屏未登录时的登录菜单（GitHub / Google / 深浅色）
+function toggleLoginMenu() {
+    document.getElementById('loginMenu').classList.toggle('show');
 }
 
 // 登出函数

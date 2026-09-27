@@ -87,7 +87,7 @@ function setupTabSwipe() {
         if (e.touches.length !== 1) return;
         if (document.body.classList.contains('searching')) return;
         if (document.querySelector('.modal-overlay.active')) return;
-        if (e.target.closest('input, textarea, select, .header, .mobile-category-dropdown, .context-menu')) return;
+        if (e.target.closest('input, textarea, select, .header, .category-sheet, .context-menu')) return;
 
         const touch = e.touches[0];
         start = { x: touch.clientX, y: touch.clientY, time: Date.now() };
@@ -250,7 +250,19 @@ document.addEventListener('DOMContentLoaded', () => {
     updateTabButtons();
 
     document.querySelectorAll('.view-tab').forEach(btn => {
-        btn.addEventListener('click', () => switchTab(btn.dataset.tab, { animate: true }));
+        btn.addEventListener('click', (e) => {
+            // 小屏「全部」已激活时再点一次打开分类目录（搜索中点它仍是结束搜索）。
+            // 挡住冒泡，否则 document 上「点外面关闭」的监听会把刚打开的目录关掉
+            if (btn.dataset.tab === 'all' && getActiveTab() === 'all' &&
+                !document.body.classList.contains('searching') &&
+                window.matchMedia('(max-width: 768px)').matches &&
+                typeof openCategorySheet === 'function') {
+                e.stopPropagation();
+                openCategorySheet();
+                return;
+            }
+            switchTab(btn.dataset.tab, { animate: true });
+        });
     });
 
     setupTabSwipe();

@@ -446,6 +446,12 @@ a {
   display: none;
 }
 
+/* 小屏专用：合并后的登录入口、账户菜单里的深浅色 */
+.login-entry,
+.user-menu .theme-menu-item {
+  display: none;
+}
+
 /* 右侧操作 */
 .header-right {
   display: flex;
@@ -2759,70 +2765,66 @@ html[data-sidebar="compact"] .category-section {
   color: var(--ink-3);
 }
 
-/* ---------- 移动端分类菜单（在搜索框右侧） ---------- */
+/* ---------- 小屏分类目录：「全部」tab 激活时再点一次，从底部弹出 ---------- */
 
-#mobile-category-menu-wrapper {
-  position: absolute;
-  right: 4px;
-  top: 50%;
-  transform: translateY(-50%);
+.category-sheet {
+  position: fixed;
+  left: 10px;
+  right: 10px;
+  bottom: calc(10px + env(safe-area-inset-bottom));
+  z-index: 1001;
   display: flex;
-  align-items: center;
-}
-
-html:not([data-tab="all"]) body:not(.searching) #mobile-category-menu-wrapper {
-  display: none;
-}
-
-.mobile-category-menu-btn {
-  display: inline-grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  padding: 0;
-  font-size: 14px;
-  color: var(--ink-2);
-  background: none;
-  border: none;
-  border-radius: var(--r-sm);
-}
-
-.mobile-category-menu-btn:active {
-  background: var(--paper-sunk);
-}
-
-.mobile-category-dropdown {
-  position: absolute;
-  right: -4px;
-  top: calc(100% + 10px);
-  z-index: 999;
-  display: none;
-  min-width: 200px;
-  max-height: 62vh;
-  padding: 6px;
-  overflow: auto;
-  counter-reset: toc;
+  flex-direction: column;
+  max-height: 70vh;
+  padding: 8px;
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: 18px;
   box-shadow: var(--shadow-3);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(24px);
+  transition: opacity 0.14s ease, transform 0.2s var(--ease-out), visibility 0.14s;
 }
 
-.mobile-category-dropdown.active {
-  display: block;
-  animation: pop-in 0.2s var(--ease-out);
+.category-sheet.active {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: none;
+}
+
+.category-sheet-title {
+  flex: none;
+  padding: 8px 14px 6px;
+  font-family: var(--font-serif);
+  font-size: 13px;
+  color: var(--ink-3);
+  letter-spacing: 0.2em;
+}
+
+.category-sheet-list {
+  overflow: auto;
+  overscroll-behavior: contain;
+  counter-reset: toc;
 }
 
 .mobile-category-item {
   counter-increment: toc;
   display: flex;
   align-items: center;
-  gap: 12px;
-  height: 42px;
-  padding: 0 12px;
-  font-size: 15px;
+  gap: 14px;
+  width: 100%;
+  height: 48px;
+  padding: 0 14px;
+  font: inherit;
+  font-size: 16px;
   color: var(--ink);
-  border-radius: var(--r-md);
+  text-align: left;
+  background: none;
+  border: none;
+  border-radius: 12px;
   cursor: pointer;
 }
 
@@ -2834,12 +2836,12 @@ html:not([data-tab="all"]) body:not(.searching) #mobile-category-menu-wrapper {
   color: var(--ink-4);
 }
 
-.mobile-category-item i {
-  display: none;
+.mobile-category-item.active,
+.mobile-category-item.active::before {
+  color: var(--accent);
 }
 
-.mobile-category-item:active,
-.mobile-category-item:hover {
+.mobile-category-item:active {
   background: var(--paper-sunk);
 }
 
@@ -3107,6 +3109,54 @@ html:not([data-tab="all"]) body:not(.searching) #mobile-category-menu-wrapper {
     color: var(--accent);
   }
 
+  /* 页眉只留搜索和账户：深浅色收进账户菜单，两个登录按钮合成一个 */
+  .header-theme-toggle,
+  #loginBtn,
+  #loginBtnGoogle {
+    display: none !important;
+  }
+
+  .login-entry:not([hidden]) {
+    position: relative;
+    display: block;
+    margin-left: 6px;
+  }
+
+  .user-menu .theme-menu-item {
+    display: flex;
+  }
+
+  .user-info {
+    margin-left: 6px;
+    padding: 0;
+    background: none;
+    border: none;
+    box-shadow: none;
+  }
+
+  .user-avatar {
+    width: 30px;
+    height: 30px;
+  }
+
+  .user-menu-btn {
+    display: none;
+  }
+
+  /* 「全部」激活时标签后加个小箭头，提示再点一次能打开目录 */
+  html[data-tab="all"] body:not(.searching) .view-tab[data-tab="all"] .tab-label-short::after {
+    content: "";
+    display: inline-block;
+    width: 5px;
+    height: 5px;
+    margin: 0 0 3px 5px;
+    vertical-align: middle;
+    border-right: 1.5px solid currentColor;
+    border-bottom: 1.5px solid currentColor;
+    transform: rotate(45deg);
+    opacity: 0.6;
+  }
+
   .version,
   .search-kbd,
   #userName {
@@ -3117,7 +3167,7 @@ html:not([data-tab="all"]) body:not(.searching) #mobile-category-menu-wrapper {
   .search-box {
     height: 40px;
     font-size: 16px;
-    padding-right: 44px;
+    padding-right: 14px;
   }
 
   .form-input,
@@ -3318,14 +3368,16 @@ html:not([data-tab="all"]) body:not(.searching) #mobile-category-menu-wrapper {
 
   /* 菜单开着时手指可能还按在遮罩上：禁止选字和系统长按气泡，
      否则 iOS 会接着进入选字手势，冒出放大镜和「拷贝 / 查询」工具条 */
-  body:has(.context-menu.active) {
+  body:has(.context-menu.active),
+  body:has(.category-sheet.active) {
     -webkit-user-select: none;
     user-select: none;
     -webkit-touch-callout: none;
   }
 
   /* 动作面板下面垫一层遮罩：点空白处只关菜单，不会误点到下面的卡片 */
-  body:has(.context-menu.active)::after {
+  body:has(.context-menu.active)::after,
+  body:has(.category-sheet.active)::after {
     content: "";
     position: fixed;
     inset: 0;
