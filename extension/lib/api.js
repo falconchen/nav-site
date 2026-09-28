@@ -21,6 +21,19 @@ export async function loadSettings() {
     };
 }
 
+// 新标签页用 iframe 嵌入导航站要有该站点的主机权限，见 newtab.js
+export function serverOriginPattern(serverUrl) {
+    return `${new URL(serverUrl).origin}/*`;
+}
+
+export async function hasServerPermission(serverUrl) {
+    try {
+        return await ext.permissions.contains({ origins: [serverOriginPattern(serverUrl)] });
+    } catch {
+        return false;
+    }
+}
+
 export async function saveNewTabEnabled(enabled) {
     await ext.storage.local.set({ newTab: Boolean(enabled) });
 }

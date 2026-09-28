@@ -6,7 +6,8 @@ import {
     loadSettings,
     normalizeServerUrl,
     saveNewTabEnabled,
-    saveSettings
+    saveSettings,
+    serverOriginPattern
 } from './lib/api.js';
 
 const $ = (id) => document.getElementById(id);
@@ -69,11 +70,22 @@ async function init() {
     $('testBtn').addEventListener('click', testConnection);
     $('settingsForm').addEventListener('submit', async (event) => {
         event.preventDefault();
+        // 新标签页嵌入自定义地址要主机权限（见 newtab.js）。申请必须趁用户点击还没过期，所以放在联网验证前面；
+        // 拒绝了也照常保存，新标签页退回跳转
+        const permission = requestServerPermission(readForm().serverUrl);
         // 保存前先验证，免得存一个用不了的令牌
         if (!await testConnection()) return;
+        await permission;
         await saveSettings(readForm());
         $('serverUrl').value = readForm().serverUrl;
         setStatus(`${$('status').textContent}，已保存`, 'success');
+    });
+}
+
+function requestServerPermission(serverUrl) {
+    if (isFirefox || !serverUrl) return Promise.resolve();
+    return ext.permissions.request({ origins: [serverOriginPattern(serverUrl)] }).catch((error) => {
+        console.warn('申请导航站主机权限失败：', error);
     });
 }
 
