@@ -96,6 +96,14 @@
     这只是视觉遮挡，标题和网址仍在 DOM 里
   - 描述只渲染占位符，真实文本存在 `privateDescriptions`（WeakMap），点击描述才填进 DOM；悬浮提示里描述点开前只显示 `••••••`；点击不记访问次数
   - `/api/v1` 的 `POST /websites` 接受 `private`，扩展弹窗有「私密收藏」勾选框；右键一键收藏不设私密
+  - 第二种私密方式「隐藏描述」（`website.hideDescription`，卡片类 `.desc-hidden-card`）：网站照常出现在所有分区、照常可搜，
+    只有描述像私密卡片一样渲染成占位符。和私密互斥，私密优先；右键「取消私密」时会把它设为 true，免得描述突然明文露出。
+    被遮住的描述统一登记在 `secretDescriptions`（WeakMap），卡片一律经 `appendCards()` 渲染才会登记；
+    搜索按登记的真实描述匹配，只在描述里匹配到时占位符加 `.desc-match` 提示，高亮跳过 `.card-secret`。
+    切换 tab 时 `remaskDescriptions()` 收起点开的描述（页面转到后台不收，方便去登录后切回来复制）。
+    右键 / 长按菜单的「查看描述」弹窗（`#descriptionModal`）显示描述和复制按钮，手机宫格不显示描述时靠它；关闭时清空内容。
+    `/api/v1` 和扩展弹窗也支持这个字段
+  - `highlightSearchResults()` 拼 HTML 前一律 `escapeHtml`、关键词转义成正则字面量：标题可能是扩展抓的网页标题，不可信
   - 分类 section 跳过私密网站后 DOM 下标和数据下标对不上，按卡片找数据一律用 `siteIndexOfCard()`，不要再写 `children.indexOf(card)`
 
 登录状态在页面启动时通过 `/api/auth/verify` 校验。只有明确收到 401 或 `valid: false` 才删除本地令牌；断网、请求异常及服务端临时故障会保留令牌，并在网络恢复或 15 秒后重试。校验未成功前不启动云端同步。修改此流程时需检查断网刷新后恢复、真正过期以及校验期间切换账号这三种情况。

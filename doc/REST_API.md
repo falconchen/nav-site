@@ -48,7 +48,7 @@ Authorization: Bearer navpat_xxxxxxxx
 | `url` | 可选，按网址查找。比较时忽略协议、`www.`、`#hash` 和末尾斜杠，扩展可以用它判断当前页是否已收藏 |
 
 返回的网站带 `category` 字段。旧版 base64 图标体积大，`imageData` 返回 `null`。
-`private: true` 表示网页端的私密收藏。这只是界面上的隐藏标记，接口照常返回完整的标题、网址和描述。
+`private: true` 表示网页端的私密收藏，`hideDescription: true` 表示只遮住描述。这些只是界面上的标记，接口照常返回完整的标题、网址和描述。
 
 ### `POST /api/v1/websites`
 
@@ -70,6 +70,7 @@ Authorization: Bearer navpat_xxxxxxxx
   "imageData": "https://example.com/favicon.png",
   "pinned": false,
   "private": false,
+  "hideDescription": false,
   "hints": {
     "title": "标签页标题",
     "description": "页面 meta 描述",
@@ -89,6 +90,7 @@ Authorization: Bearer navpat_xxxxxxxx
 | `imageData` | 可选，图片 URL 或 base64 data URL（png/jpeg/gif/webp/ico，≤256KB），不传就自动补全 |
 | `pinned` | 可选，是否加入特别关注（网页端旧称置顶、特别收藏） |
 | `private` | 可选，是否放进私密收藏。为 `true` 时忽略 `pinned`。只是界面上的隐藏标记，数据仍是明文 |
+| `hideDescription` | 可选，隐藏描述：网站照常显示、可搜索，只有描述默认遮住，适合在描述里记账号信息。`private` 为 `true` 时忽略。同样只是界面标记 |
 | `hints` | 可选，扩展从当前页拿到的信息。扩展看到的是已登录、已过反爬的页面，服务端抓不到时靠它兜底。超长会被截断（标题 200、描述 1000、正文 3000 字），不合法的字段直接忽略 |
 
 - `201`：返回 `{ website, analysis, version }`

@@ -173,6 +173,11 @@ function closeModal(modalId) {
     modal.classList.remove('active');
     document.body.style.overflow = '';
 
+    // 描述里可能有账号密码，关掉就从 DOM 里清掉
+    if (modalId === 'descriptionModal') {
+        document.getElementById('descriptionView').textContent = '';
+    }
+
     // 如果是网站模态框，清除图片上传区域
     if (modalId === 'websiteModal') {
         // 清空图片数据
@@ -250,6 +255,8 @@ function createCardHTML(website) {
     // 添加置顶样式类。私密网站不进特别关注，星星也不显示
     const pinnedClass = website.pinned && !website.private ? 'pinned' : '';
     const privateClass = website.private ? 'private-card' : '';
+    // 隐藏描述：网站照常显示、可搜索，只有描述遮住（私密网站的描述本来就遮住，不叠加）
+    const descHiddenClass = website.hideDescription && !website.private ? 'desc-hidden-card' : '';
     // 根据是否有图片决定是否添加背景去除类
     const withImgClass = website.imageData ? 'with-img' : '';
 
@@ -264,7 +271,7 @@ function createCardHTML(website) {
     }
 
     return `
-        <div class="website-card ${pinnedClass} ${privateClass}" data-weight="${weight}">
+        <div class="website-card ${pinnedClass} ${privateClass} ${descHiddenClass}" data-weight="${weight}">
             <button class="card-pin-btn" title="取消特别关注" aria-label="取消特别关注"><i class="fas fa-star"></i></button>
             <div class="card-header">
                 <div class="card-icon ${withImgClass}">
@@ -275,8 +282,8 @@ function createCardHTML(website) {
                     <div class="card-url">${cardUrlHTML(website.url)}</div>
                 </div>
             </div>
-            ${website.private
-                ? `<div class="card-description card-secret" title="点击查看描述">${PRIVATE_DESCRIPTION_MASK}</div>`
+            ${hasSecretDescription(website)
+                ? `<div class="card-description card-secret" title="点击查看描述">${SECRET_DESCRIPTION_MASK}</div>`
                 : `<div class="card-description">${escapeHtml(website.description)}</div>`}
             <div class="card-footer">
                 <button class="card-menu-btn" aria-label="菜单">
@@ -287,17 +294,35 @@ function createCardHTML(website) {
     `;
 }
 
-// 私密卡片的描述可能带密钥，默认只渲染占位符，真实文本不进 DOM，点击后才填进去
-const PRIVATE_DESCRIPTION_MASK = '•••••• 点击查看';
-const privateDescriptions = new WeakMap();
+// 私密网站和「隐藏描述」的网站，描述可能带账号密码，默认只渲染占位符，
+// 真实文本登记在 secretDescriptions（按卡片元素），点击后才填进 DOM
+const SECRET_DESCRIPTION_MASK = '•••••• 点击查看';
+const secretDescriptions = new WeakMap();
+
+function hasSecretDescription(website) {
+    return !!(website.private || website.hideDescription);
+}
+
+// 把网站渲染成卡片追加到容器末尾，描述被遮住的卡片顺手登记真实描述。返回新加的卡片
+function appendCards(container, sites) {
+    const start = container.children.length;
+    container.insertAdjacentHTML('beforeend', sites.map(createCardHTML).join(''));
+    const cards = Array.from(container.children).slice(start);
+    cards.forEach((card, index) => {
+        if (hasSecretDescription(sites[index])) {
+            secretDescriptions.set(card, sites[index].description || '');
+        }
+    });
+    return cards;
+}
 
 function togglePrivateDescription(card) {
     const description = card.querySelector('.card-description');
     if (!description) return;
     const revealed = description.classList.toggle('revealed');
     description.textContent = revealed
-        ? (privateDescriptions.get(card) || '（无描述）')
-        : PRIVATE_DESCRIPTION_MASK;
+        ? (secretDescriptions.get(card) || '（无描述）')
+        : SECRET_DESCRIPTION_MASK;
     // 描述都点开看了，图标、标题、网址也没必要再模糊；之后收起描述也保持清晰，离开分区才恢复
     if (revealed) card.classList.add('revealed');
     notifyPrivateCardChange(card);
@@ -346,9 +371,15 @@ function reblurPrivateCards() {
     document.querySelectorAll('.private-card.revealed').forEach(card => {
         card.classList.remove('revealed');
     });
-    document.querySelectorAll('.private-card .card-secret.revealed').forEach(description => {
+    remaskDescriptions();
+}
+
+// 点开过的描述收回占位符（私密和隐藏描述两类）。切换 tab 时调用，账号信息不会一直留在屏幕上。
+// 页面转到后台时不收：点开密码后常要去打开网站登录，切回来还得接着复制
+function remaskDescriptions() {
+    document.querySelectorAll('.card-secret.revealed').forEach(description => {
         description.classList.remove('revealed');
-        description.textContent = PRIVATE_DESCRIPTION_MASK;
+        description.textContent = SECRET_DESCRIPTION_MASK;
     });
 }
 
@@ -388,9 +419,7 @@ function loadWebsitesFromData() {
         websites[category] = sortedWebsites;
 
         // 创建卡片，私密网站只在私密收藏 tab 里出现
-        sortedWebsites.filter(website => !website.private).forEach(website => {
-            cardsContainer.insertAdjacentHTML('beforeend', createCardHTML(website));
-        });
+        appendCards(cardsContainer, sortedWebsites.filter(website => !website.private));
     });
 
     // 渲染访问最多、特别关注、最近添加三个视图
@@ -761,9 +790,7 @@ function refreshCategoryUI(categoryId) {
     websites[categoryId] = sortedWebsites;
 
     // 创建卡片，私密网站只在私密收藏 tab 里出现
-    sortedWebsites.filter(website => !website.private).forEach(website => {
-        cardsContainer.insertAdjacentHTML('beforeend', createCardHTML(website));
-    });
+    appendCards(cardsContainer, sortedWebsites.filter(website => !website.private));
 
     // 为所有卡片添加事件监听器
     cardsContainer.querySelectorAll('.website-card').forEach(addCardEventListeners);
@@ -774,9 +801,10 @@ function editWebsite(card) {
     const title = card.querySelector('.card-title').textContent;
     const url = card.querySelector('.card-url').textContent;
     const isPrivate = card.classList.contains('private-card');
-    // 私密卡片 DOM 里只有占位符，真实描述在渲染时存进了 privateDescriptions
-    const description = isPrivate
-        ? (privateDescriptions.get(card) || '')
+    const isDescHidden = card.classList.contains('desc-hidden-card');
+    // 描述被遮住的卡片 DOM 里只有占位符，真实描述在渲染时存进了 secretDescriptions
+    const description = card.querySelector('.card-secret')
+        ? (secretDescriptions.get(card) || '')
         : card.querySelector('.card-description').textContent.trimStart();
 
     // 检查是否有图标或图片
@@ -797,6 +825,7 @@ function editWebsite(card) {
     document.getElementById('websiteIcon').value = iconClass;
     document.getElementById('websitePinned').checked = isPinned;
     document.getElementById('websitePrivate').checked = isPrivate;
+    document.getElementById('websiteHideDescription').checked = isDescHidden;
     syncPrivateCheckbox();
 
     // 获取卡片的分类
@@ -939,6 +968,8 @@ function submitWebsiteForm() {
     const category = document.getElementById('websiteCategory').value;
     const iconUrl = document.getElementById('websiteIcon').value;
     const isPrivate = document.getElementById('websitePrivate').checked;
+    // 私密网站的描述本来就遮住，隐藏描述只对非私密网站有意义
+    const isHideDescription = !isPrivate && document.getElementById('websiteHideDescription').checked;
     // 私密网站不进特别关注
     const isPinned = !isPrivate && document.getElementById('websitePinned').checked;
     // 获取图片数据（如果有）
@@ -990,6 +1021,7 @@ function submitWebsiteForm() {
     let weightChanged = false;
     // 记录私密状态是否变更
     let privateChanged = false;
+    let hideDescriptionInvolved = false;
     // 当前时间戳，用于记录添加/编辑时间
     const currentTime = Date.now();
 
@@ -1014,6 +1046,8 @@ function submitWebsiteForm() {
         // 检查置顶状态是否变更
         pinnedChanged = oldPinned !== isPinned;
         privateChanged = currentEditingCard.classList.contains('private-card') !== isPrivate;
+        // 涉及隐藏描述时不能走 updateWebsiteCard 原地改卡片（它会把描述明文写进 DOM），一律整体重渲染
+        hideDescriptionInvolved = isHideDescription || currentEditingCard.classList.contains('desc-hidden-card');
 
         // 确保编辑的旧分类存在
         if (!oldCategoryId || !websites[oldCategoryId]) {
@@ -1067,6 +1101,7 @@ function submitWebsiteForm() {
                 weight: newWeight, // 设置新权重
                 pinned: isPinned, // 添加置顶属性
                 private: isPrivate,
+                hideDescription: isHideDescription,
                 addedTime: websiteData.addedTime || currentTime, // 保留原添加时间或使用当前时间
                 editedTime: currentTime // 记录编辑时间
             });
@@ -1113,12 +1148,13 @@ function submitWebsiteForm() {
                 weight: newSiteWeight, // 如果置顶，更新权重
                 pinned: isPinned, // 更新置顶状态
                 private: isPrivate,
+                hideDescription: isHideDescription,
                 addedTime: websites[oldCategoryId][cardIndex].addedTime || currentTime, // 保留原添加时间或使用当前时间
                 editedTime: currentTime // 记录编辑时间
             };
 
-            // 如果权重、置顶或私密状态变更，需要重新排序并刷新UI
-            if (weightChanged || pinnedChanged || privateChanged) {
+            // 如果权重、置顶、私密状态变更或涉及隐藏描述，需要重新排序并刷新UI
+            if (weightChanged || pinnedChanged || privateChanged || hideDescriptionInvolved) {
                 sortAndRefreshCategory(oldCategoryId);
             } else {
                 // 如果当前编辑的不是虚拟分类中的卡片，更新卡片UI
@@ -1167,6 +1203,7 @@ function submitWebsiteForm() {
             weight: newWeight, // 设置新权重
             pinned: isPinned, // 添加置顶属性
             private: isPrivate,
+            hideDescription: isHideDescription,
             addedTime: currentTime, // 记录添加时间
             editedTime: currentTime // 记录编辑时间（与添加时间相同）
         });
@@ -1296,14 +1333,11 @@ function renderVirtualView(sectionId, sites) {
     const container = document.getElementById(`${sectionId}-cards`);
     if (!container) return;
 
-    container.innerHTML = sites.map(createCardHTML).join('');
+    container.innerHTML = '';
 
     // 卡片记下原始分类，编辑、删除、置顶时靠它找回数据
-    container.querySelectorAll('.website-card').forEach((card, index) => {
+    appendCards(container, sites).forEach((card, index) => {
         card.dataset.originalCategory = sites[index].originalCategory;
-        if (sites[index].private) {
-            privateDescriptions.set(card, sites[index].description || '');
-        }
         addCardEventListeners(card);
     });
 
@@ -1476,6 +1510,7 @@ function updateWebsiteCard(card, name, url, description, iconUrl, isPinned) {
             weight: currentWeight, // 保留原有权重
             pinned: isPinned, // 更新置顶状态
             private: false, // 分类 section 里只有非私密网站
+            hideDescription: false, // 隐藏描述的网站不走这里，见 submitWebsiteForm 的 hideDescriptionInvolved
             addedTime: websites[categoryId][cardIndex].addedTime || currentTime, // 保留原添加时间，如果没有则使用当前时间
             editedTime: currentTime // 记录编辑时间
         };
@@ -1520,8 +1555,8 @@ function copyWebsiteUrl(card) {
     }
 }
 
-// 传统复制方法（兼容旧浏览器）
-function fallbackCopyText(text) {
+// 传统复制方法（兼容旧浏览器）。label 用在提示里，如「网址」「描述」
+function fallbackCopyText(text, label = '网址') {
     const textArea = document.createElement('textarea');
     textArea.value = text;
     textArea.style.position = 'fixed';
@@ -1535,7 +1570,7 @@ function fallbackCopyText(text) {
         const successful = document.execCommand('copy');
         if (successful) {
             if (typeof showNotification === 'function') {
-                showNotification('网址已复制到剪贴板', 'success');
+                showNotification(`${label}已复制到剪贴板`, 'success');
             }
         } else {
             if (typeof showNotification === 'function') {
@@ -1563,6 +1598,10 @@ function createContextMenu() {
             <i class="fas fa-copy"></i>
             <span>复制网址</span>
         </div>
+        <div class="context-menu-item" id="view-description-btn">
+            <i class="fas fa-file-lines"></i>
+            <span>查看描述</span>
+        </div>
         <div class="context-menu-item" id="edit-website-btn">
             <i class="fas fa-edit"></i>
             <span>编辑网站</span>
@@ -1574,6 +1613,10 @@ function createContextMenu() {
         <div class="context-menu-item" id="toggle-private-btn">
             <i class="fas fa-lock"></i>
             <span id="private-action-text">设为私密</span>
+        </div>
+        <div class="context-menu-item" id="toggle-hide-desc-btn">
+            <i class="fas fa-eye-slash"></i>
+            <span id="hide-desc-action-text">隐藏描述</span>
         </div>
         <div class="context-menu-item" id="remove-frequent-btn">
             <i class="fas fa-eye-slash"></i>
@@ -1624,6 +1667,20 @@ function createContextMenu() {
     contextMenu.querySelector('#toggle-private-btn').addEventListener('click', function () {
         if (contextMenuTarget) {
             togglePrivateStatus(contextMenuTarget);
+            hideContextMenu();
+        }
+    });
+
+    contextMenu.querySelector('#toggle-hide-desc-btn').addEventListener('click', function () {
+        if (contextMenuTarget) {
+            toggleHideDescription(contextMenuTarget);
+            hideContextMenu();
+        }
+    });
+
+    contextMenu.querySelector('#view-description-btn').addEventListener('click', function () {
+        if (contextMenuTarget) {
+            openDescriptionModal(contextMenuTarget);
             hideContextMenu();
         }
     });
@@ -1796,6 +1853,8 @@ function togglePrivateStatus(card) {
 
     site.private = !site.private;
     if (site.private) site.pinned = false;
+    // 移出私密收藏时描述继续遮住，免得账号信息突然明文露出来；想公开再点「显示描述」
+    if (!site.private) site.hideDescription = true;
 
     refreshCategoryUI(categoryId);
     renderVirtualViews();
@@ -1808,18 +1867,75 @@ function togglePrivateStatus(card) {
     }
 }
 
-// 编辑弹窗里勾了私密就禁用「特别关注」
+// 「查看描述」弹窗：手机宫格不显示描述，账号信息靠它查看和复制
+function openDescriptionModal(card) {
+    const title = card.querySelector('.card-title').textContent;
+    const description = secretDescriptions.has(card)
+        ? secretDescriptions.get(card)
+        : card.querySelector('.card-description').textContent;
+    document.getElementById('descriptionModalTitle').textContent = title;
+    const view = document.getElementById('descriptionView');
+    view.textContent = description || '（无描述）';
+    view.classList.toggle('is-empty', !description);
+    document.getElementById('descriptionCopyBtn').disabled = !description;
+    openModal('descriptionModal');
+}
+
+function copyDescriptionText() {
+    const text = document.getElementById('descriptionView').textContent;
+    if (!text || document.getElementById('descriptionView').classList.contains('is-empty')) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text)
+            .then(() => showNotification?.('描述已复制到剪贴板', 'success'))
+            .catch(() => fallbackCopyText(text, '描述'));
+    } else {
+        fallbackCopyText(text, '描述');
+    }
+}
+
+// 切换隐藏描述：和切换私密一样，改数据后整体重渲染
+function toggleHideDescription(card) {
+    const title = card.querySelector('.card-title').textContent;
+    const url = card.querySelector('.card-url').textContent;
+    const section = card.closest('.category-section');
+    const categoryId = isVirtualSection(section.id) ? card.dataset.originalCategory : section.id;
+    if (!categoryId || !websites[categoryId]) return;
+
+    const index = isVirtualSection(section.id)
+        ? websites[categoryId].findIndex(site => site.title === title && site.url === url)
+        : siteIndexOfCard(card, categoryId);
+    const site = websites[categoryId][index];
+    if (!site || site.private) return;
+
+    site.hideDescription = !site.hideDescription;
+
+    refreshCategoryUI(categoryId);
+    renderVirtualViews();
+    if (window.saveNavData) {
+        window.saveNavData();
+    }
+
+    if (typeof showNotification === 'function') {
+        showNotification(site.hideDescription ? '描述已隐藏' : '描述已公开显示', 'success');
+    }
+}
+
+// 编辑弹窗里勾了私密就禁用「特别关注」和「隐藏描述」（私密网站的描述本来就遮住）
 function syncPrivateCheckbox() {
     const privateBox = document.getElementById('websitePrivate');
-    const pinnedBox = document.getElementById('websitePinned');
-    if (!privateBox || !pinnedBox) return;
-    pinnedBox.disabled = privateBox.checked;
-    if (privateBox.checked) pinnedBox.checked = false;
-    pinnedBox.closest('.checkbox-container')?.classList.toggle('disabled', privateBox.checked);
+    if (!privateBox) return;
+    ['websitePinned', 'websiteHideDescription'].forEach(id => {
+        const box = document.getElementById(id);
+        if (!box) return;
+        box.disabled = privateBox.checked;
+        if (privateBox.checked) box.checked = false;
+        box.closest('.checkbox-container')?.classList.toggle('disabled', privateBox.checked);
+    });
 }
 
 document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('websitePrivate')?.addEventListener('change', syncPrivateCheckbox);
+    document.getElementById('descriptionCopyBtn')?.addEventListener('click', copyDescriptionText);
     document.getElementById('privateRevealBtn')?.addEventListener('click', () => setPrivateRevealed(true));
     document.getElementById('privateHideBtn')?.addEventListener('click', () => setPrivateRevealed(false));
     document.getElementById('privateRevealAllBtn')?.addEventListener('click', () => setPrivateAllRevealed(!privateAllRevealed));
@@ -1858,6 +1974,12 @@ function showContextMenu(e, card) {
     const isPrivate = card.classList.contains('private-card');
     menu.querySelector('#toggle-pin-btn').style.display = isPrivate ? 'none' : '';
     menu.querySelector('#private-action-text').textContent = isPrivate ? '取消私密' : '设为私密';
+
+    // 描述被遮住时（私密或隐藏描述）可以单独查看；隐藏描述的开关只对非私密网站有意义
+    menu.querySelector('#view-description-btn').style.display = card.querySelector('.card-secret') ? '' : 'none';
+    menu.querySelector('#toggle-hide-desc-btn').style.display = isPrivate ? 'none' : '';
+    menu.querySelector('#hide-desc-action-text').textContent =
+        card.classList.contains('desc-hidden-card') ? '显示描述' : '隐藏描述';
 
     // 「从访问最多中移除」只在访问最多视图里出现
     const inFrequent = card.closest('.category-section')?.id === 'frequent';
@@ -1925,42 +2047,35 @@ function hideContextMenu() {
     }
 }
 
-// 搜索高亮功能
+// 搜索高亮功能。文字一律转义后再拼 HTML：标题可能来自扩展抓的网页标题，不可信；
+// 关键词也要转义成正则字面量，否则输入 ( 之类会报错
 function highlightSearchResults(searchTerm) {
-    const cards = document.querySelectorAll('.website-card');
+    const pattern = searchTerm
+        ? new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
+        : null;
 
-    cards.forEach(card => {
+    // split 带捕获组时，奇数位是匹配到的关键词
+    const mark = text => pattern
+        ? text.split(pattern)
+            .map((part, index) => index % 2 ? `<span class="highlight">${escapeHtml(part)}</span>` : escapeHtml(part))
+            .join('')
+        : escapeHtml(text);
+
+    document.querySelectorAll('.website-card').forEach(card => {
         const title = card.querySelector('.card-title');
-        const description = card.querySelector('.card-description');
+        title.innerHTML = mark(title.textContent);
+
+        // 网址的协议始终包在 .card-url-protocol 里隐藏（同 cardUrlHTML），只高亮后面的部分
         const url = card.querySelector('.card-url');
+        const match = url.textContent.match(/^(https?:\/\/)(.*)$/i);
+        url.innerHTML = match
+            ? `<span class="card-url-protocol">${escapeHtml(match[1])}</span>${mark(match[2])}`
+            : mark(url.textContent);
 
-        // 清除之前的高亮
-        title.innerHTML = title.textContent;
-        description.innerHTML = description.textContent;
-        url.innerHTML = url.textContent;
-
-        if (searchTerm) {
-            // 添加高亮
-            const titleText = title.textContent;
-            const descText = description.textContent;
-            const urlText = url.textContent;
-
-            const highlightedTitle = titleText.replace(
-                new RegExp(`(${searchTerm})`, 'gi'),
-                '<span class="highlight">$1</span>'
-            );
-            const highlightedDesc = descText.replace(
-                new RegExp(`(${searchTerm})`, 'gi'),
-                '<span class="highlight">$1</span>'
-            );
-            const highlightedUrl = urlText.replace(
-                new RegExp(`(${searchTerm})`, 'gi'),
-                '<span class="highlight">$1</span>'
-            );
-
-            title.innerHTML = highlightedTitle;
-            description.innerHTML = highlightedDesc;
-            url.innerHTML = highlightedUrl;
+        // 被遮住的描述不高亮，占位符和点开的明文都原样保留
+        const description = card.querySelector('.card-description');
+        if (!description.classList.contains('card-secret')) {
+            description.innerHTML = mark(description.textContent);
         }
     });
 }
@@ -2627,13 +2742,22 @@ searchBox.addEventListener('input', function (e) {
     // 处理卡片显示/隐藏
     cards.forEach(card => {
         const title = card.querySelector('.card-title').textContent.toLowerCase();
-        const description = card.querySelector('.card-description').textContent.toLowerCase();
+        // 隐藏描述的卡片 DOM 里只有占位符，按登记的真实描述匹配，这样搜账号名也能找到
+        const description = (secretDescriptions.has(card)
+            ? secretDescriptions.get(card)
+            : card.querySelector('.card-description').textContent).toLowerCase();
         const url = card.querySelector('.card-url').textContent.toLowerCase();
 
         if (title.includes(searchTerm) || description.includes(searchTerm) || url.includes(searchTerm)) {
             card.style.display = 'block';
         } else {
             card.style.display = searchTerm === '' ? 'block' : 'none';
+        }
+        // 只在被遮住的描述里匹配到时，占位符上提示一下，否则看不出这张卡为什么出现
+        const secret = card.querySelector('.card-secret');
+        if (secret) {
+            secret.classList.toggle('desc-match', searchTerm !== '' && description.includes(searchTerm)
+                && !title.includes(searchTerm) && !url.includes(searchTerm));
         }
     });
 
@@ -2686,45 +2810,6 @@ searchBox.addEventListener('keydown', e => {
     if (e.key === 'Escape') closeSearchBar();
 });
 
-// 搜索高亮功能
-function highlightSearchResults(searchTerm) {
-    const cards = document.querySelectorAll('.website-card');
-
-    cards.forEach(card => {
-        const title = card.querySelector('.card-title');
-        const description = card.querySelector('.card-description');
-        const url = card.querySelector('.card-url');
-
-        // 清除之前的高亮
-        title.innerHTML = title.textContent;
-        description.innerHTML = description.textContent;
-        url.innerHTML = url.textContent;
-
-        if (searchTerm) {
-            // 添加高亮
-            const titleText = title.textContent;
-            const descText = description.textContent;
-            const urlText = url.textContent;
-
-            const highlightedTitle = titleText.replace(
-                new RegExp(`(${searchTerm})`, 'gi'),
-                '<span class="highlight">$1</span>'
-            );
-            const highlightedDesc = descText.replace(
-                new RegExp(`(${searchTerm})`, 'gi'),
-                '<span class="highlight">$1</span>'
-            );
-            const highlightedUrl = urlText.replace(
-                new RegExp(`(${searchTerm})`, 'gi'),
-                '<span class="highlight">$1</span>'
-            );
-
-            title.innerHTML = highlightedTitle;
-            description.innerHTML = highlightedDesc;
-            url.innerHTML = highlightedUrl;
-        }
-    });
-}
 
 // 控制浮动按钮位置
 function setupFloatingButtonPosition() {

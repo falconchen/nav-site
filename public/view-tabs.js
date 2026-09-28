@@ -34,9 +34,11 @@ function switchTab(tab, options = {}) {
     const current = getActiveTab();
     if (tab === current) return;
 
-    // 离开私密收藏时把点开过的卡片恢复模糊
+    // 离开私密收藏时把点开过的卡片恢复模糊；其它分区里点开的描述也收起来
     if (current === 'private' && typeof reblurPrivateCards === 'function') {
         reblurPrivateCards();
+    } else if (typeof remaskDescriptions === 'function') {
+        remaskDescriptions();
     }
 
     // 访问最多在点击卡片后不立即重排（免得卡片在光标下跳动），切过来时再按最新次数排

@@ -1735,6 +1735,35 @@ html[data-sidebar="compact"] .category-section {
   user-select: text;
 }
 
+/* 搜索只在被遮住的描述里匹配到时，占位符后面提示一句，明文照样不露 */
+.card-description.card-secret.desc-match:not(.revealed)::after {
+  content: " · 描述中有匹配";
+  color: var(--accent);
+  letter-spacing: normal;
+}
+
+/* 「查看描述」弹窗：按原样保留换行，账号密码这类长串允许任意处断行 */
+.description-view {
+  margin-top: 16px;
+  padding: 14px 16px;
+  max-height: 50vh;
+  overflow-y: auto;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--ink);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  background: var(--paper-sunk);
+  border-radius: var(--r-md);
+  user-select: text;
+}
+
+.description-view.is-empty {
+  color: var(--ink-3);
+  font-family: var(--font-sans);
+}
+
 /* ---------- 页脚 ---------- */
 
 .footer {

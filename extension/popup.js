@@ -61,7 +61,9 @@ function renderDuplicate(site) {
     $('dupCategory').textContent = categoryName(site.category);
     $('dupTitle').textContent = site.title;
     // 私密收藏的描述可能带密钥，弹窗里也不直接显示
-    $('dupDesc').textContent = site.private ? '私密收藏，描述已隐藏' : site.description || '';
+    // 描述里可能记着账号密码，私密和隐藏描述的网站在弹窗里也不显示
+    $('dupDesc').textContent = site.private ? '私密收藏，描述已隐藏'
+        : site.hideDescription ? '描述已隐藏' : site.description || '';
     setIcon($('dupIcon'), site.imageData);
     show('viewDuplicate');
 }
@@ -85,6 +87,7 @@ function renderForm({ website, analysis }) {
     $('description').value = website.description;
     $('pinned').checked = false;
     $('private').checked = false;
+    $('hideDescription').checked = false;
     syncPrivate();
     setIcon($('iconPreview'), website.imageData);
 
@@ -120,7 +123,8 @@ async function save(event) {
             description: $('description').value.trim(),
             imageData: suggestion.website.imageData || undefined,
             pinned: $('pinned').checked,
-            private: $('private').checked
+            private: $('private').checked,
+            hideDescription: $('hideDescription').checked
         });
         const note = website.private ? '，只在私密收藏中显示' : '';
         showMessage(`已保存到「${categoryName(website.category)}」${note}`);
@@ -141,8 +145,11 @@ async function save(event) {
 // 私密收藏不进特别关注，与网页端一致
 function syncPrivate() {
     const isPrivate = $('private').checked;
-    $('pinned').disabled = isPrivate;
-    if (isPrivate) $('pinned').checked = false;
+    // 私密网站不进特别关注，描述也本来就遮住，这两项一起禁用
+    for (const id of ['pinned', 'hideDescription']) {
+        $(id).disabled = isPrivate;
+        if (isPrivate) $(id).checked = false;
+    }
 }
 
 async function remove() {

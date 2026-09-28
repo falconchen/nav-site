@@ -255,6 +255,22 @@ describe('个人令牌 + REST API v1', () => {
             expect(saved.websites.tools.find((s) => s.title === 'Secret')).toMatchObject({ private: true, pinned: false });
         });
 
+        it('hideDescription 单独传时存上；和 private 一起传时只存 private', async () => {
+            const { token } = await createPat();
+            const post = (body) => call('/api/v1/websites', { method: 'POST', token, body });
+
+            const res = await post({ url: 'https://login.example.com', title: 'Login', category: 'tools', hideDescription: true });
+            expect(res.status).toBe(201);
+            expect((await res.json()).website).toMatchObject({ hideDescription: true, private: false });
+
+            const both = await post({ url: 'https://both.example.com', title: 'Both', category: 'tools', hideDescription: true, private: true });
+            expect((await both.json()).website).toMatchObject({ hideDescription: false, private: true });
+
+            const saved = await readUserData(redisStore);
+            expect(saved.websites.tools.find((s) => s.title === 'Login')).toMatchObject({ hideDescription: true });
+            expect(saved.websites.tools.find((s) => s.title === 'Both')).toMatchObject({ hideDescription: false, private: true });
+        });
+
         it('重复网址返回 409 和已有条目', async () => {
             const { token } = await createPat();
             const res = await call('/api/v1/websites', {

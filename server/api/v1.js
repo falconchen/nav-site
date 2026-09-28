@@ -135,6 +135,7 @@ function siteView(site, categoryId) {
         imageData,
         pinned: !!site.pinned,
         private: !!site.private,
+        hideDescription: !!site.hideDescription && !site.private,
         weight: site.weight || 100,
         addedTime: site.addedTime || null,
         editedTime: site.editedTime || null,
@@ -388,6 +389,8 @@ async function prepareWebsite(c) {
             // 私密优先于特别关注，与网页端一致
             pinned: body.pinned === true && body.private !== true,
             private: body.private === true,
+            // 隐藏描述：网站照常显示、可搜索，只遮住描述。私密网站的描述本来就遮住，不叠加
+            hideDescription: body.hideDescription === true && body.private !== true,
             category: result.category
         }
     };

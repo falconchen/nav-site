@@ -369,6 +369,12 @@
                                     <i class="fas fa-lock"></i> 私密收藏
                                 </label>
                             </div>
+                            <div class="checkbox-container">
+                                <input type="checkbox" id="websiteHideDescription" class="form-checkbox">
+                                <label for="websiteHideDescription" class="checkbox-label" title="网站照常显示、可以搜索，只有描述默认遮住，适合在描述里记账号信息">
+                                    <i class="fas fa-eye-slash"></i> 隐藏描述
+                                </label>
+                            </div>
                         </div>
                     </div>
                     <div class="icon-edit-group">
@@ -441,6 +447,25 @@
                     <i class="fas fa-rotate-left"></i> 恢复默认
                 </button>
                 <button type="button" class="btn btn-primary" onclick="closeModal('tabOrderModal')">完成</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 查看被遮住的描述（私密网站、隐藏描述的网站）。内容打开时填入，关闭时清空 -->
+    <div class="modal-overlay" id="descriptionModal">
+        <div class="modal" style="max-width: 420px;">
+            <div class="modal-header">
+                <h3 class="modal-title" id="descriptionModalTitle">描述</h3>
+                <button class="modal-close" onclick="closeModal('descriptionModal')" aria-label="关闭">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="description-view" id="descriptionView"></div>
+            <div class="form-buttons">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('descriptionModal')">关闭</button>
+                <button type="button" class="btn btn-primary" id="descriptionCopyBtn">
+                    <i class="fas fa-copy"></i> 复制
+                </button>
             </div>
         </div>
     </div>
