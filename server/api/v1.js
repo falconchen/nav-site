@@ -142,6 +142,15 @@ function siteView(site, categoryId) {
     };
 }
 
+function findSite(data, key) {
+    if (!key) return null;
+    for (const [categoryId, sites] of Object.entries(data.websites || {})) {
+        const site = (sites || []).find((item) => urlKey(item.url) === key);
+        if (site) return { site, categoryId };
+    }
+    return null;
+}
+
 function maxWeight(sites) {
     if (!Array.isArray(sites) || sites.length === 0) return 100;
     return Math.max(...sites.map((site) => site.weight || 100));
@@ -336,12 +345,9 @@ async function prepareWebsite(c) {
     }
 
     // 查重放在 AI 之前，重复的网址不白花一次抓取和两轮模型
-    const key = urlKey(url);
-    for (const [catId, sites] of Object.entries(data.websites || {})) {
-        const existing = (sites || []).find((site) => urlKey(site.url) === key);
-        if (existing) {
-            return { data, duplicate: siteView(existing, catId) };
-        }
+    const existing = findSite(data, urlKey(url));
+    if (existing) {
+        return { data, duplicate: siteView(existing.site, existing.categoryId) };
     }
 
     const provided = {
@@ -443,6 +449,48 @@ app.post('/v1/websites/analyze', async (c) => {
         website: { ...site, imageData: site.imageData || null },
         analysis
     });
+});
+
+// 重新收藏已有网址：把 addedTime 刷新成现在，让它回到「最近添加」最前面。
+// 扩展遇到已收藏的网页时调用。已经是最新添加的就不再写，免得反复打开弹窗冲掉版本历史
+app.post('/v1/websites/touch', limitWrites, async (c) => {
+    const auth = c.get('auth');
+    let body;
+    try {
+        body = await c.req.json();
+    } catch {
+        return c.json({ error: 'Invalid JSON body' }, 400);
+    }
+    const key = urlKey(body?.url);
+    if (!key) {
+        return c.json({ error: 'Field "url" must be an http(s) URL' }, 400);
+    }
+
+    const data = await loadUserData(c, auth.userId);
+    const found = data && findSite(data, key);
+    if (!found) {
+        return c.json({ error: 'Website not found' }, 404);
+    }
+
+    const { site, categoryId } = found;
+    const latest = Math.max(0, ...Object.values(data.websites || {}).flat().map((item) => item?.addedTime || 0));
+    if (site.addedTime && site.addedTime >= latest) {
+        return c.json({ success: true, touched: false, website: siteView(site, categoryId) });
+    }
+
+    const touched = { ...site, addedTime: Date.now() };
+    const websites = {
+        ...data.websites,
+        [categoryId]: data.websites[categoryId].map((item) => (item === site ? touched : item))
+    };
+
+    const via = auth.via === 'token' ? `令牌「${auth.tokenName}」` : 'API';
+    const saved = await persist(c, auth.userId, { ...data, websites }, `通过${via}重新收藏：${site.title}`);
+    if (!saved) {
+        return c.json({ error: 'Failed to save data' }, 500);
+    }
+
+    return c.json({ success: true, touched: true, website: siteView(touched, categoryId), version: saved.version });
 });
 
 // 按网址删除：DELETE /api/v1/websites?url=<网址>[&category=<id|名称>]

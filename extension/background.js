@@ -105,7 +105,9 @@ async function quickSave(url, hints, report) {
         );
     } catch (error) {
         if (error.code === 'DUPLICATE') {
-            await report('success', '已经收藏过了', error.body.website?.title || url);
+            // 刷新收藏时间，回到「最近添加」最前面；失败也照样提示已收藏
+            const touched = await client.touch(url).then(() => true, () => false);
+            await report('success', touched ? '已经收藏过了，已移到最近添加' : '已经收藏过了', error.body.website?.title || url);
             return;
         }
         await report('error', '收藏失败', describeError(error));

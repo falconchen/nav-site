@@ -66,6 +66,16 @@ function renderDuplicate(site) {
     show('viewDuplicate');
 }
 
+// 重复收藏时把收藏时间刷新成现在，方便在「最近添加」里找到。失败不影响弹窗
+async function touchDuplicate() {
+    try {
+        await client.touch(tab.url);
+        $('dupTouched').hidden = false;
+    } catch {
+        // 忽略
+    }
+}
+
 function renderForm({ website, analysis }) {
     const select = $('category');
     select.replaceChildren(...categories.map((cat) => new Option(cat.name, cat.id)));
@@ -118,6 +128,7 @@ async function save(event) {
     } catch (error) {
         if (error.code === 'DUPLICATE') {
             renderDuplicate(error.body.website);
+            touchDuplicate();
             return;
         }
         showError(error);
@@ -182,6 +193,7 @@ async function init() {
 
         if (result.duplicate) {
             renderDuplicate(result.duplicate);
+            touchDuplicate();
             return;
         }
         suggestion = result;

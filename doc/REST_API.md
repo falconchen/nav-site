@@ -151,6 +151,19 @@ Authorization: Bearer navpat_xxxxxxxx
 
 网址已收藏时直接返回 `{ "success": true, "duplicate": { ...已有条目 } }`，不抓网页也不调 AI。
 
+### `POST /api/v1/websites/touch`
+
+重新收藏已有网址：把它的 `addedTime` 刷新成现在，回到网页端「最近添加」最前面。其它字段（分类、权重、特别关注）不变。
+扩展遇到已收藏的网页（`duplicate` 或 `409 DUPLICATE`）时调用。
+
+```json
+{ "url": "https://example.com/" }
+```
+
+返回 `{ "success": true, "touched": true, "website": { ... }, "version": 1780000000000 }`。
+它已经是最新添加的网站时返回 `touched: false`，不写入也不生成版本快照，免得反复打开弹窗冲掉版本历史。
+找不到返回 `404`。
+
 ### `DELETE /api/v1/websites?url=<网址>[&category=<id|名称>]`
 
 按网址删除，返回 `{ removed, version }`；找不到返回 `404`。

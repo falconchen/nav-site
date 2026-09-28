@@ -266,6 +266,30 @@ describe('个人令牌 + REST API v1', () => {
             expect(body.website.category).toBe('social');
         });
 
+        it('重新收藏把 addedTime 刷新成现在，已经最新时不再写', async () => {
+            const { token } = await createPat();
+            const touch = (url) => call('/api/v1/websites/touch', { method: 'POST', token, body: { url } });
+
+            const before = Date.now();
+            const res = await touch('http://www.chatgpt.com');
+            expect(res.status).toBe(200);
+            const body = await res.json();
+            expect(body).toMatchObject({ touched: true, website: { title: 'ChatGPT', category: 'social' } });
+            expect(body.website.addedTime).toBeGreaterThanOrEqual(before);
+
+            const saved = await readUserData(redisStore);
+            expect(saved.websites.social[0]).toMatchObject({ title: 'ChatGPT', weight: 120, pinned: true });
+            expect(saved.websites.social[0].addedTime).toBe(body.website.addedTime);
+
+            const stored = redisStore.get(`userdata:${USER_ID}`);
+            const again = await (await touch('https://chatgpt.com/')).json();
+            expect(again.touched).toBe(false);
+            expect(redisStore.get(`userdata:${USER_ID}`)).toBe(stored);
+
+            expect((await touch('https://none.example/')).status).toBe(404);
+            expect((await touch('ftp://chatgpt.com/')).status).toBe(400);
+        });
+
         it('校验参数', async () => {
             const { token } = await createPat();
             const post = (body) => call('/api/v1/websites', { method: 'POST', token, body });

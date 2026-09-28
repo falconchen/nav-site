@@ -92,6 +92,8 @@ export function createClient({ serverUrl, token }) {
         analyze: (payload) => request('POST', '/websites/analyze', { body: payload, timeoutMs: ANALYZE_TIMEOUT_MS }),
         // 缺分类或描述时服务端会跑 AI，超时要和 analyze 一样长
         save: (payload) => request('POST', '/websites', { body: payload, timeoutMs: ANALYZE_TIMEOUT_MS }),
+        // 已收藏的网址再收藏一次：刷新收藏时间，回到「最近添加」最前面
+        touch: (url) => request('POST', '/websites/touch', { body: { url } }),
         remove: (url) => request('DELETE', '/websites', { query: { url } })
     };
 }
