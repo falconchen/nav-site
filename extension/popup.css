@@ -155,7 +155,13 @@ textarea {
     padding: 16px;
 }
 
-.view[hidden] {
+/* .btn、.view 等自带 display，会盖掉浏览器默认的 [hidden] 规则 */
+[hidden] {
+    display: none !important;
+}
+
+/* 成功提示没有操作按钮时，不留空行 */
+#viewMessage .actions:not(:has(.btn:not([hidden]))) {
     display: none;
 }
 
