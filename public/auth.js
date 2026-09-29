@@ -152,11 +152,6 @@ function showUserInfo(user) {
     document.getElementById('loginMenu').classList.remove('show');
     document.getElementById('userInfo').style.display = 'flex';
 
-    // 显示云端覆盖按钮
-    if (typeof toggleCloudOverrideButton === 'function') {
-        toggleCloudOverrideButton(true);
-    }
-
     // 设置头像，如果没有则使用默认头像
     const avatarUrl = userData.avatar_url || userData.avatar || `https://github.com/identicons/${userData.login || 'default'}.png`;
     console.log('🖼️ Setting avatar URL:', avatarUrl);
@@ -212,6 +207,8 @@ function handleAuthMessage(event) {
 
         // 保存token到localStorage
         localStorage.setItem('authToken', authToken);
+        // 新登录照旧以云端为准，别把上一个账号（或登录前）没传上去的改动传到这个账号
+        if (typeof clearPendingCloudSave === 'function') clearPendingCloudSave();
 
         // 显示用户信息
         showUserInfo(currentUser);
@@ -280,14 +277,10 @@ async function logout() {
     authToken = null;
     currentUser = null;
     localStorage.removeItem('authToken');
+    if (typeof clearPendingCloudSave === 'function') clearPendingCloudSave();
 
     // 显示登录按钮
     showLoginButton();
-
-    // 隐藏云端覆盖按钮
-    if (typeof toggleCloudOverrideButton === 'function') {
-        toggleCloudOverrideButton(false);
-    }
 
     // 关闭用户菜单
     document.getElementById('userMenu').classList.remove('show');

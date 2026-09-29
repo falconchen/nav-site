@@ -7,88 +7,31 @@ let syncCheckInterval = null;
 let lastSyncCheck = 0;
 const SYNC_CHECK_INTERVAL = 900000; // 15分钟检查一次
 const MIN_CHECK_INTERVAL = 10000; // 最小检查间隔10秒
+const KEEPALIVE_BODY_LIMIT = 60 * 1024;
 
 // 初始化保存状态标志
 window.isSavingToCloud = false;
 
-// 同步用户数据（直接覆盖到云端）
-async function syncUserData() {
-    if (!authToken) {
-        showNotification('请先登录', 'error');
-        return;
-    }
+// 本机有改动还没传到云端时记在 localStorage，值是最近一次改动的时间戳。
+// 上传失败、改完 2 秒内关掉页面都会留下它：之后联网、页面回到前台、下次打开时自动重传，
+// 期间不拿云端数据覆盖本地，免得没传上去的改动被别的设备上传的版本冲掉
+const PENDING_SAVE_KEY = 'pendingCloudSave';
 
-    const progress = showSaveProgress();
+function hasPendingCloudSave() {
+    return !!localStorage.getItem(PENDING_SAVE_KEY);
+}
 
-    try {
-        progress.update(10, '正在收集数据...');
+function clearPendingCloudSave() {
+    localStorage.removeItem(PENDING_SAVE_KEY);
+}
 
-        // 获取本地数据
-        const localData = {
-            categories: categories || [],
-            websites: websites || [],
-            settings: {
-                theme: localStorage.getItem('theme'),
-                categoriesCompactMode: localStorage.getItem('categoriesCompactMode')
-            },
-            version: Date.now(), // 使用时间戳作为版本号
-            lastUpdated: new Date().toISOString()
-        };
-
-        progress.update(30, '正在压缩数据...');
-
-        // 压缩数据
-        const compressedData = await compressData(localData);
-
-        progress.update(50, '正在上传到云端...');
-
-        // 直接保存到云端（覆盖）
-        const response = await fetch('/api/user-data/save', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${authToken}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ compressed: compressedData })
-        });
-
-        progress.update(80, '正在处理响应...');
-
-        if (response.ok) {
-            const data = await response.json();
-
-            // 更新本地版本号
-            localStorage.setItem('dataVersion', localData.version.toString());
-
-            progress.update(100, '上传完成！');
-            progress.complete(true, '数据已上传到云端！');
-        } else {
-            let errorInfo;
-            try {
-                errorInfo = await response.json();
-            } catch {
-                errorInfo = { error: await response.text() };
-            }
-
-            // 处理需要重新认证的情况
-            if (errorInfo.needReauth) {
-                console.log('🔄 Token outdated, need to re-authenticate');
-                progress.complete(false, '登录状态已过期');
-                setTimeout(() => {
-                    logout();
-                }, 2000);
-                return;
-            }
-
-            throw new Error('上传失败');
-        }
-    } catch (error) {
-        console.error('Error syncing data:', error);
-        progress.complete(false, '数据上传失败');
-    }
-
-    // 关闭用户菜单
-    document.getElementById('userMenu').classList.remove('show');
+// 有没传上去的改动就立刻重传，返回是否触发了上传
+function flushPendingCloudSave() {
+    if (!authToken || !hasPendingCloudSave()) return false;
+    if (window.isSavingToCloud || window.saveTimeout) return true;
+    console.log('📤 Retrying pending cloud save...');
+    saveUserData();
+    return true;
 }
 
 // 加载用户数据（直接覆盖本地）
@@ -174,8 +117,8 @@ function getWebsiteCounts(websites) {
 }
 
 
-// 保存用户数据到云端
-async function saveUserData() {
+// 保存用户数据到云端。keepalive 用于关页面时补传，页面卸载后请求仍会发完
+async function saveUserData({ keepalive = false } = {}) {
     if (!authToken) {
         console.log('🔐 No authToken available, skipping cloud save');
         return;
@@ -187,6 +130,9 @@ async function saveUserData() {
     // 设置正在保存的标志，防止版本检查干扰
     window.isSavingToCloud = true;
     console.log('🏁 Setting isSavingToCloud = true, preventing version checks during save');
+
+    // 上传期间又有新改动的话，这次成功也不能清掉标记
+    const pendingAt = localStorage.getItem(PENDING_SAVE_KEY);
 
     const progress = showHeaderProgress();
 
@@ -217,13 +163,16 @@ async function saveUserData() {
 
         progress.update(50);
 
+        const body = JSON.stringify({ compressed: compressedData });
         const response = await fetch('/api/user-data/save', {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${authToken}`,
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ compressed: compressedData })
+            body,
+            // keepalive 的请求体上限 64KB，超了 fetch 会直接失败，只能留给下次打开时重传
+            keepalive: keepalive && body.length < KEEPALIVE_BODY_LIMIT
         });
 
         console.log('🌐 Response status:', response.status, response.statusText);
@@ -235,6 +184,7 @@ async function saveUserData() {
             const responseData = await response.json();
             console.log('✅ Save response:', responseData);
             localStorage.setItem('dataVersion', localData.version.toString());
+            if (localStorage.getItem(PENDING_SAVE_KEY) === pendingAt) clearPendingCloudSave();
             console.log('✅ Data saved to cloud successfully, updated local version to:', localData.version);
             progress.complete(true);
         } else {
@@ -262,7 +212,7 @@ async function saveUserData() {
                 }, 2000);
             } else {
                 progress.complete(false);
-                showNotification('自动保存到云端失败', 'error');
+                showNotification('保存到云端失败，稍后会自动重试', 'error');
             }
         }
     } catch (error) {
@@ -272,7 +222,7 @@ async function saveUserData() {
             stack: error.stack
         });
         progress.complete(false);
-        showNotification('自动保存到云端失败', 'error');
+        showNotification('保存到云端失败，稍后会自动重试', 'error');
     } finally {
         // 清除正在保存的标志
         window.isSavingToCloud = false;
@@ -352,8 +302,10 @@ async function updateLocalData(cloudData) {
     window.isUpdatingFromCloud = false;
 }
 
-// 从云端强制加载数据
+// 用户菜单「历史版本」：选一个云端版本覆盖本地
 async function loadUserDataFromCloud() {
+    document.getElementById('userMenu').classList.remove('show');
+
     if (!authToken) {
         showNotification('请先登录', 'error');
         return;
@@ -558,6 +510,11 @@ async function restoreFromVersion(version) {
                 await updateLocalData(data);
             }
 
+            // 用户选了历史版本覆盖本地，本机没传上去的改动也一并放弃
+            clearTimeout(window.saveTimeout);
+            window.saveTimeout = null;
+            clearPendingCloudSave();
+
             progress.update(100, '恢复完成！');
 
             dismissVersionSelectionModal();
@@ -605,6 +562,9 @@ function startSyncDetection() {
     // 页面可见性变化时检查
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
+    // 断网期间没传上去的改动，联网后马上重传
+    window.addEventListener('online', checkForCloudUpdates);
+
     console.log('✅ Sync detection started successfully');
 }
 
@@ -619,6 +579,7 @@ function stopSyncDetection() {
 
     window.removeEventListener('focus', handleWindowFocus);
     document.removeEventListener('visibilitychange', handleVisibilityChange);
+    window.removeEventListener('online', checkForCloudUpdates);
 
     console.log('✅ Sync detection stopped');
 }
@@ -632,6 +593,10 @@ async function checkForCloudUpdates() {
         console.log('🔍 Skipping sync check - local changes are being saved');
         return;
     }
+
+    // 本机有没传上去的改动：先重传，不下载。整份覆盖模式下本机的改动优先，
+    // 被覆盖的云端版本还在历史版本里
+    if (flushPendingCloudSave()) return;
 
     // 避免频繁检查
     const now = Date.now();
@@ -668,7 +633,7 @@ async function checkForCloudUpdates() {
                 console.log('🆕 New cloud data detected!');
 
                 // 检查请求期间用户可能又改了数据，再确认一次
-                if (window.isSavingToCloud || window.saveTimeout) {
+                if (window.isSavingToCloud || window.saveTimeout || hasPendingCloudSave()) {
                     console.log('🔍 Skipping cloud update - local changes are being saved');
                     return;
                 }
@@ -716,40 +681,33 @@ function handleVisibilityChange() {
 
 
 
-// 监听数据变化，自动保存到云端
+// 监听数据变化，自动保存到云端。令牌还没校验完（比如断网打开）也先记下标记，校验通过后重传
 document.addEventListener('dataChanged', function () {
-    if (authToken) {
-        console.log('📝 Data changed event triggered, scheduling save in 2 seconds...');
-        console.log('🔍 Current isSavingToCloud status:', window.isSavingToCloud);
-        // 延迟保存，避免频繁请求
-        clearTimeout(window.saveTimeout);
-        window.saveTimeout = setTimeout(() => {
-            window.saveTimeout = null;
-            saveUserData();
-        }, 2000);
-    } else {
+    if (!localStorage.getItem('authToken')) {
         console.log('📝 Data changed event triggered, but no auth token available');
+        return;
     }
+    localStorage.setItem(PENDING_SAVE_KEY, String(Date.now()));
+    if (!authToken) return;
+
+    console.log('📝 Data changed event triggered, scheduling save in 2 seconds...');
+    // 延迟保存，避免频繁请求
+    clearTimeout(window.saveTimeout);
+    window.saveTimeout = setTimeout(() => {
+        window.saveTimeout = null;
+        saveUserData();
+    }, 2000);
 });
 
-// 页面关闭前保存数据
-window.addEventListener('beforeunload', function () {
-    if (authToken) {
-        // 使用sendBeacon进行可靠的数据发送
-        const localData = {
-            categories: categories || [],
-            websites: websites || [],
-            settings: {
-                theme: localStorage.getItem('theme'),
-                categoriesCompactMode: localStorage.getItem('categoriesCompactMode')
-            },
-            version: Date.now(), // 使用时间戳作为版本号
-            lastUpdated: new Date().toISOString()
-        };
+// 页面转到后台或关闭时，还在 2 秒等待里的改动立刻上传；没发出去的留着标记，下次打开时重传
+function saveBeforeHide() {
+    if (!authToken || !window.saveTimeout) return;
+    clearTimeout(window.saveTimeout);
+    window.saveTimeout = null;
+    saveUserData({ keepalive: true });
+}
 
-        navigator.sendBeacon('/api/user-data/save', JSON.stringify({
-            headers: { 'Authorization': `Bearer ${authToken}` },
-            data: localData
-        }));
-    }
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) saveBeforeHide();
 });
+window.addEventListener('pagehide', saveBeforeHide);
