@@ -255,6 +255,13 @@
             <div class="tab-panel" id="tab-all" role="tabpanel">
                 <!-- 分类section将由JavaScript动态加载 -->
             </div>
+            <!-- 搜索结果：不是 tab，有关键词时临时顶替当前面板 -->
+            <div class="tab-panel" id="tab-search" role="tabpanel">
+                <section class="category-section" id="search">
+                    <div class="cards-grid" id="search-cards"></div>
+                    <p class="tab-empty">没有找到匹配的网站。</p>
+                </section>
+            </div>
             <div class="tab-panel" id="tab-private" role="tabpanel">
                 <section class="category-section is-locked" id="private">
                     <div class="private-locked">

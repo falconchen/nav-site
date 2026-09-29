@@ -706,7 +706,7 @@ a {
   border-radius: var(--r-sm);
 }
 
-/* 搜索时显示的是全部网站的结果，不高亮任何 tab */
+/* 搜索时显示的是全部网站里的匹配结果，不高亮任何 tab */
 body.searching .view-tab.active {
   color: var(--ink-3);
 }
@@ -734,10 +734,11 @@ html[data-tab="pinned"] #tab-pinned,
 html[data-tab="recent"] #tab-recent,
 html[data-tab="all"] #tab-all,
 html[data-tab="private"] #tab-private,
-body.searching #tab-all {
+body.searching #tab-search {
   display: block;
 }
 
+body.searching #tab-all,
 body.searching #tab-frequent,
 body.searching #tab-pinned,
 body.searching #tab-private,
@@ -786,7 +787,7 @@ html[data-sidebar="compact"] .main-container {
   gap: 36px;
 }
 
-/* 分类侧边栏只在「全部网站」下出现（搜索结果按分类分组，也保留侧边栏） */
+/* 分类侧边栏只在「全部网站」下出现。搜索时也保留，免得边打字边跳版；点分类会结束搜索并跳过去 */
 html:not([data-tab="all"]) body:not(.searching) .categories-sidebar {
   display: none;
 }

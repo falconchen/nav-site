@@ -73,10 +73,12 @@
   点击后不立即重排，切到该 tab 或页面重新可见时再渲染；右键「从访问最多中移除」清掉该网址的记录
 - 特别关注、最近添加、访问最多都**不是分类**，是从数据派生的视图：置顶取 `website.pinned === true`，
   最近添加按 `addedTime` 倒序取前 60 个（`RECENT_LIMIT`，1～5 的最小公倍数，每行 3/4/5 张时最后一行都满）
-- 这些视图的 DOM 是 `<section class="category-section" id="frequent|pinned|recent">`，`isVirtualSection(id)` 判断；
-  编辑、删除、切换收藏靠卡片上的 `data-original-category` 找回原分类。三个视图用 `renderVirtualViews()` 一起重渲染
+- 这些视图的 DOM 是 `<section class="category-section" id="frequent|pinned|recent|private|search">`，`isVirtualSection(id)` 判断；
+  编辑、删除、切换收藏靠卡片上的 `data-original-category` 找回原分类。这些视图用 `renderVirtualViews()` 一起重渲染
 - 普通分类 section 渲染在 `#tab-all` 里；`showCategory()` 会先切到「全部网站」
-- 搜索始终搜全部网站：有关键词时加 `body.searching`，临时显示 `#tab-all`，清空后回到原 tab
+- 搜索始终搜全部网站（不含私密）：有关键词时加 `body.searching`，临时显示 `#tab-search`，清空后回到原 tab。
+  结果不按分类分组，按添加时间从新到旧平铺（`renderSearchResults()`，和最近添加共用 `compareByAddedTimeDesc`），
+  `#search` 也是虚拟视图，跟着 `renderVirtualViews()` 重渲染；搜索中点侧边栏分类会结束搜索并跳到该分类
 - 移动端左右滑动只在松手时判断一次（不跟手），每个 tab 各自记住滚动位置
 - tab 顺序可调：tab 栏右键或长按打开「调整分区顺序」弹窗，顺序只存本机 localStorage `tabOrder`（和默认顺序相同时删掉）。
   `index.html` 紧跟 tab 栏的内联脚本在首屏前重排 DOM，所以 JS 里当前顺序一律用 `getTabOrder()` 读 DOM，滑动顺序跟着变，不要再按 `VIEW_TABS` 的下标算
@@ -97,7 +99,7 @@
   - 第二种私密方式「隐藏描述」（`website.hideDescription`，卡片类 `.desc-hidden-card`）：网站照常出现在所有分区、照常可搜，
     只有描述渲染成占位符，点击才显示。和私密互斥，私密优先；右键「取消私密」时会把它设为 true，免得描述突然明文露出。
     被遮住的描述统一登记在 `secretDescriptions`（WeakMap），卡片一律经 `appendCards()` 渲染才会登记；
-    搜索按登记的真实描述匹配，只在描述里匹配到时占位符加 `.desc-match` 提示，高亮跳过 `.card-secret`。
+    搜索按数据里的真实描述匹配，只在描述里匹配到时占位符加 `.desc-match` 提示，高亮跳过 `.card-secret`。
     切换 tab 时 `remaskDescriptions()` 收起点开的描述（页面转到后台不收，方便去登录后切回来复制）。
     右键 / 长按菜单的「查看描述」弹窗（`#descriptionModal`，只对隐藏描述的网站出现）显示描述和复制按钮，手机宫格不显示描述时靠它；关闭时清空内容。
     `/api/v1` 和扩展弹窗也支持这个字段

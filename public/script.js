@@ -1281,7 +1281,7 @@ function sortAndRefreshCategory(categoryId) {
 
 // 置顶 / 最近添加 / 访问最多 这几个视图里的卡片不属于某个分类 section，
 // 编辑、删除时要靠卡片上的 data-original-category 找回原分类
-const VIRTUAL_SECTION_IDS = ['frequent', 'recent', 'pinned', 'private'];
+const VIRTUAL_SECTION_IDS = ['frequent', 'recent', 'pinned', 'private', 'search'];
 
 function isVirtualSection(id) {
     return VIRTUAL_SECTION_IDS.includes(id);
@@ -1307,6 +1307,7 @@ function renderVirtualViews() {
     renderPinnedCategory();
     renderRecentCategory();
     renderPrivateCategory();
+    renderSearchResults();
 }
 
 // 「最近添加」tab 展示的网站数量。60 是 1～5 的最小公倍数，
@@ -1395,19 +1396,48 @@ function renderPrivateCategory() {
     if (privateAllRevealed) setPrivateAllRevealed(true);
 }
 
+// 按添加时间倒序（不考虑 editedTime），没有添加时间的旧数据排在后面、按权重排。最近添加和搜索结果共用
+function compareByAddedTimeDesc(a, b) {
+    if (a.addedTime && b.addedTime) return b.addedTime - a.addedTime;
+    if (a.addedTime) return -1;
+    if (b.addedTime) return 1;
+    return (b.weight || 100) - (a.weight || 100);
+}
+
 // 渲染最近添加视图
 function renderRecentCategory() {
-    // 按添加时间倒序（不考虑 editedTime），没有添加时间的旧数据排在后面、按权重排
     const recentWebsites = collectAllWebsites()
-        .sort((a, b) => {
-            if (a.addedTime && b.addedTime) return b.addedTime - a.addedTime;
-            if (a.addedTime) return -1;
-            if (b.addedTime) return 1;
-            return (b.weight || 100) - (a.weight || 100);
-        })
+        .sort(compareByAddedTimeDesc)
         .slice(0, RECENT_LIMIT);
 
     renderVirtualView('recent', recentWebsites);
+}
+
+// 渲染搜索结果：全部网站（不含私密）里匹配标题、网址、描述的，不分分类，按添加时间从新到旧平铺。
+// 数据变化时跟着 renderVirtualViews() 重渲染，搜索中编辑、删除后结果立即更新
+function renderSearchResults() {
+    const container = document.getElementById('search-cards');
+    if (!container) return;
+    const searchTerm = (document.querySelector('.search-box')?.value || '').toLowerCase().trim();
+    if (!searchTerm) {
+        container.innerHTML = '';
+        return;
+    }
+
+    const includes = value => String(value || '').toLowerCase().includes(searchTerm);
+    const results = collectAllWebsites()
+        .filter(site => includes(site.title) || includes(site.url) || includes(site.description))
+        .sort(compareByAddedTimeDesc);
+    renderVirtualView('search', results);
+
+    // 隐藏描述的卡片只在描述里匹配到时，占位符上提示一下，否则看不出这张卡为什么出现
+    container.querySelectorAll('.website-card').forEach((card, index) => {
+        const site = results[index];
+        card.querySelector('.card-secret')?.classList.toggle('desc-match',
+            includes(site.description) && !includes(site.title) && !includes(site.url));
+    });
+
+    highlightSearchResults(container, searchTerm);
 }
 
 // 创建新网站卡片
@@ -2048,7 +2078,7 @@ function hideContextMenu() {
 
 // 搜索高亮功能。文字一律转义后再拼 HTML：标题可能来自扩展抓的网页标题，不可信；
 // 关键词也要转义成正则字面量，否则输入 ( 之类会报错
-function highlightSearchResults(searchTerm) {
+function highlightSearchResults(container, searchTerm) {
     const pattern = searchTerm
         ? new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
         : null;
@@ -2060,7 +2090,7 @@ function highlightSearchResults(searchTerm) {
             .join('')
         : escapeHtml(text);
 
-    document.querySelectorAll('.website-card').forEach(card => {
+    container.querySelectorAll('.website-card').forEach(card => {
         const title = card.querySelector('.card-title');
         title.innerHTML = mark(title.textContent);
 
@@ -2724,50 +2754,15 @@ function updateCategoryDropdown() {
 
 // 更新搜索功能
 const searchBox = document.querySelector('.search-box');
-searchBox.addEventListener('input', function (e) {
-    const searchTerm = e.target.value.toLowerCase().trim();
-    // 搜索始终针对全部网站：有关键词时临时显示「全部网站」面板，清空后回到原 tab
-    const allPanel = document.getElementById('tab-all');
-    const cards = allPanel.querySelectorAll('.website-card');
-    const categorySections = allPanel.querySelectorAll('.category-section');
-
+searchBox.addEventListener('input', function () {
+    // 搜索始终针对全部网站：有关键词时临时显示搜索结果面板，清空后回到原 tab
+    const searching = searchBox.value.trim() !== '';
     const wasSearching = document.body.classList.contains('searching');
-    document.body.classList.toggle('searching', searchTerm !== '');
-    if (wasSearching !== (searchTerm !== '')) {
+    document.body.classList.toggle('searching', searching);
+    if (wasSearching !== searching) {
         window.scrollTo({ top: 0 });
     }
-
-    // 处理卡片显示/隐藏
-    cards.forEach(card => {
-        const title = card.querySelector('.card-title').textContent.toLowerCase();
-        // 隐藏描述的卡片 DOM 里只有占位符，按登记的真实描述匹配，这样搜账号名也能找到
-        const description = (secretDescriptions.has(card)
-            ? secretDescriptions.get(card)
-            : card.querySelector('.card-description').textContent).toLowerCase();
-        const url = card.querySelector('.card-url').textContent.toLowerCase();
-
-        if (title.includes(searchTerm) || description.includes(searchTerm) || url.includes(searchTerm)) {
-            card.style.display = 'block';
-        } else {
-            card.style.display = searchTerm === '' ? 'block' : 'none';
-        }
-        // 只在被遮住的描述里匹配到时，占位符上提示一下，否则看不出这张卡为什么出现
-        const secret = card.querySelector('.card-secret');
-        if (secret) {
-            secret.classList.toggle('desc-match', searchTerm !== '' && description.includes(searchTerm)
-                && !title.includes(searchTerm) && !url.includes(searchTerm));
-        }
-    });
-
-    // 处理分类区域显示/隐藏：没有匹配卡片的分类整个隐藏
-    categorySections.forEach(section => {
-        const hasVisibleCards = searchTerm === '' ||
-            section.querySelectorAll('.website-card[style="display: block;"]').length > 0;
-        section.style.display = hasVisibleCards ? 'block' : 'none';
-    });
-
-    // 添加搜索高亮
-    highlightSearchResults(searchTerm);
+    renderSearchResults();
 });
 
 // 小屏搜索栏默认收起，点头部放大镜展开；桌面端搜索栏常驻，这里的 class 不影响它
