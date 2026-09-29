@@ -294,13 +294,14 @@ function createCardHTML(website) {
     `;
 }
 
-// 私密网站和「隐藏描述」的网站，描述可能带账号密码，默认只渲染占位符，
-// 真实文本登记在 secretDescriptions（按卡片元素），点击后才填进 DOM
+// 「隐藏描述」的网站，描述里记着账号密码，默认只渲染占位符，
+// 真实文本登记在 secretDescriptions（按卡片元素），点击后才填进 DOM。
+// 私密网站不走这套：和隐藏描述互斥，描述照常显示，只跟着卡片一起模糊
 const SECRET_DESCRIPTION_MASK = '•••••• 点击查看';
 const secretDescriptions = new WeakMap();
 
 function hasSecretDescription(website) {
-    return !!(website.private || website.hideDescription);
+    return !!website.hideDescription && !website.private;
 }
 
 // 把网站渲染成卡片追加到容器末尾，描述被遮住的卡片顺手登记真实描述。返回新加的卡片
@@ -316,15 +317,13 @@ function appendCards(container, sites) {
     return cards;
 }
 
-function togglePrivateDescription(card) {
+function toggleSecretDescription(card) {
     const description = card.querySelector('.card-description');
     if (!description) return;
     const revealed = description.classList.toggle('revealed');
     description.textContent = revealed
         ? (secretDescriptions.get(card) || '（无描述）')
         : SECRET_DESCRIPTION_MASK;
-    // 描述都点开看了，图标、标题、网址也没必要再模糊；之后收起描述也保持清晰，离开分区才恢复
-    if (revealed) card.classList.add('revealed');
     notifyPrivateCardChange(card);
 }
 
@@ -361,7 +360,7 @@ function updatePrivateRevealAllBtn() {
     if (!btn) return;
     // 文字始终是「显示全部」，打开状态靠 aria-pressed 和朱砂色描边表示
     btn.setAttribute('aria-pressed', String(privateAllRevealed));
-    btn.title = privateAllRevealed ? '重新模糊全部网站' : '显示全部网站（描述除外）';
+    btn.title = privateAllRevealed ? '重新模糊全部网站' : '显示全部网站';
 }
 
 // 离开私密收藏分区时恢复模糊，描述也收起；重新渲染出来的卡片本来就是模糊的
@@ -374,7 +373,7 @@ function reblurPrivateCards() {
     remaskDescriptions();
 }
 
-// 点开过的描述收回占位符（私密和隐藏描述两类）。切换 tab 时调用，账号信息不会一直留在屏幕上。
+// 点开过的隐藏描述收回占位符。切换 tab 时调用，账号信息不会一直留在屏幕上。
 // 页面转到后台时不收：点开密码后常要去打开网站登录，切回来还得接着复制
 function remaskDescriptions() {
     document.querySelectorAll('.card-secret.revealed').forEach(description => {
@@ -1975,7 +1974,7 @@ function showContextMenu(e, card) {
     menu.querySelector('#toggle-pin-btn').style.display = isPrivate ? 'none' : '';
     menu.querySelector('#private-action-text').textContent = isPrivate ? '取消私密' : '设为私密';
 
-    // 描述被遮住时（私密或隐藏描述）可以单独查看；隐藏描述的开关只对非私密网站有意义
+    // 隐藏描述的网站可以单独查看描述；隐藏描述的开关只对非私密网站有意义
     menu.querySelector('#view-description-btn').style.display = card.querySelector('.card-secret') ? '' : 'none';
     menu.querySelector('#toggle-hide-desc-btn').style.display = isPrivate ? 'none' : '';
     menu.querySelector('#hide-desc-action-text').textContent =
@@ -2263,9 +2262,9 @@ function handleCardClick(e) {
     // 如果点击了菜单按钮或context菜单，不执行卡片点击
     if (e.target.closest('.context-menu') || e.target.closest('.card-menu-btn') || e.target.closest('.card-pin-btn')) return;
 
-    // 点私密卡片的描述是显示/收起描述，不打开网站
+    // 点隐藏描述卡片的描述是显示/收起描述，不打开网站
     if (e.target.closest('.card-secret')) {
-        if (e.button === 0) togglePrivateDescription(this);
+        if (e.button === 0) toggleSecretDescription(this);
         return;
     }
 

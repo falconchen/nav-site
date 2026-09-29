@@ -86,21 +86,20 @@
   访问最多、特别关注和搜索（`collectAllWebsites()` 默认排除，要取私密网站得传 `{ onlyPrivate: true }`）。私密优先于特别关注。
   **这只是界面隐藏**：localStorage、云端 KV、版本历史、导出文件、`/api/v1` 里都是明文。其它规则：
   - 默认锁定、不渲染卡片 DOM；点「显示」后写 sessionStorage `privateRevealed`，本次会话有效。打开时不会停在私密收藏，左右滑动也滑不进去
-  - 图标、标题、网址默认 CSS 模糊（`.private-card:not(.revealed)`）。有鼠标的设备（`(hover: hover) and (pointer: fine)`）
+  - 图标、标题、网址、描述默认 CSS 模糊（`.private-card:not(.revealed)`）。有鼠标的设备（`(hover: hover) and (pointer: fine)`）
     悬停就清晰、移开恢复，点击直接打开，悬浮提示照常；触屏设备第一次点击先变清晰（`revealPrivateCard()`，中键也一样），
-    再点才打开网站。点开描述时整张卡片也变清晰（加 `.revealed`），之后收起描述也不再模糊。
-    离开私密收藏分区时 `reblurPrivateCards()` 恢复模糊并收起描述，重新渲染的卡片本来就是模糊的。
-    工具栏「锁定」（平时开锁图标，悬停变锁）左边的「显示全部」（`#privateRevealAllBtn`，`setPrivateAllRevealed()`）让所有卡片的图标、标题、网址变清晰，
-    描述不动；打开期间重新渲染的卡片也保持清晰，再点一次、离开分区或锁上私密收藏时关掉。
+    再点才打开网站。离开私密收藏分区时 `reblurPrivateCards()` 恢复模糊，重新渲染的卡片本来就是模糊的。
+    工具栏「锁定」（平时开锁图标，悬停变锁）左边的「显示全部」（`#privateRevealAllBtn`，`setPrivateAllRevealed()`）让所有卡片变清晰，
+    打开期间重新渲染的卡片也保持清晰，再点一次、离开分区或锁上私密收藏时关掉。
     这只是视觉遮挡，标题和网址仍在 DOM 里
-  - 描述只渲染占位符，真实文本存在 `privateDescriptions`（WeakMap），点击描述才填进 DOM；悬浮提示里描述点开前只显示 `••••••`；点击不记访问次数
+  - 描述照常渲染（跟着卡片一起模糊），悬浮提示也照常显示描述，没有「点击显示描述」和「查看描述」：那是「隐藏描述」的功能，两者互斥。点击不记访问次数
   - `/api/v1` 的 `POST /websites` 接受 `private`，扩展弹窗有「私密收藏」勾选框；右键一键收藏不设私密
   - 第二种私密方式「隐藏描述」（`website.hideDescription`，卡片类 `.desc-hidden-card`）：网站照常出现在所有分区、照常可搜，
-    只有描述像私密卡片一样渲染成占位符。和私密互斥，私密优先；右键「取消私密」时会把它设为 true，免得描述突然明文露出。
+    只有描述渲染成占位符，点击才显示。和私密互斥，私密优先；右键「取消私密」时会把它设为 true，免得描述突然明文露出。
     被遮住的描述统一登记在 `secretDescriptions`（WeakMap），卡片一律经 `appendCards()` 渲染才会登记；
     搜索按登记的真实描述匹配，只在描述里匹配到时占位符加 `.desc-match` 提示，高亮跳过 `.card-secret`。
     切换 tab 时 `remaskDescriptions()` 收起点开的描述（页面转到后台不收，方便去登录后切回来复制）。
-    右键 / 长按菜单的「查看描述」弹窗（`#descriptionModal`）显示描述和复制按钮，手机宫格不显示描述时靠它；关闭时清空内容。
+    右键 / 长按菜单的「查看描述」弹窗（`#descriptionModal`，只对隐藏描述的网站出现）显示描述和复制按钮，手机宫格不显示描述时靠它；关闭时清空内容。
     `/api/v1` 和扩展弹窗也支持这个字段
   - `highlightSearchResults()` 拼 HTML 前一律 `escapeHtml`、关键词转义成正则字面量：标题可能是扩展抓的网页标题，不可信
   - 分类 section 跳过私密网站后 DOM 下标和数据下标对不上，按卡片找数据一律用 `siteIndexOfCard()`，不要再写 `children.indexOf(card)`

@@ -1700,16 +1700,18 @@ html[data-sidebar="compact"] .category-section {
   background: var(--accent-soft);
 }
 
-/* 私密卡片的图标、标题、网址默认模糊：有鼠标的设备悬停时清晰，触屏设备第一次点击变清晰（.revealed），离开分区后恢复 */
+/* 私密卡片的图标、标题、网址、描述默认模糊：有鼠标的设备悬停时清晰，触屏设备第一次点击变清晰（.revealed），离开分区后恢复 */
 .private-card .card-icon,
 .private-card .card-title,
-.private-card .card-url {
+.private-card .card-url,
+.private-card .card-description {
   transition: filter 0.25s ease;
 }
 
 .private-card:not(.revealed) .card-icon,
 .private-card:not(.revealed) .card-title,
-.private-card:not(.revealed) .card-url {
+.private-card:not(.revealed) .card-url,
+.private-card:not(.revealed) .card-description {
   filter: blur(6px);
   user-select: none;
 }
@@ -1717,7 +1719,8 @@ html[data-sidebar="compact"] .category-section {
 @media (hover: hover) and (pointer: fine) {
   .private-card:hover .card-icon,
   .private-card:hover .card-title,
-  .private-card:hover .card-url {
+  .private-card:hover .card-url,
+  .private-card:hover .card-description {
     filter: none;
     user-select: text;
   }

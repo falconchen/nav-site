@@ -96,7 +96,7 @@
 
         const title = textOf(card, '.card-title');
         if (!title) return;
-        // 私密和隐藏描述两类卡片，描述点开前提示里也只显示掩码
+        // 隐藏描述的卡片，描述点开前提示里也只显示掩码
         const masked = !!card.querySelector('.card-secret:not(.revealed)');
         const description = masked ? '••••••' : textOf(card, '.card-description');
         data = { title, url: textOf(card, '.card-url') };
