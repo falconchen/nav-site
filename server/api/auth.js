@@ -468,31 +468,10 @@ async function generateAuthResponse(c, user) {
         const sessionKey = `user_session_${user.id}_${sessionId}`;
         await c.env.USER_SESSIONS.put(sessionKey, JSON.stringify({
             token: token,
-            userAgent: c.req.header('User-Agent') || 'Unknown',
-            createdAt: new Date().toISOString(),
-            lastUsed: new Date().toISOString()
+            createdAt: new Date().toISOString()
         }), {
             expirationTtl: jwtExpirationSeconds
         });
-
-        const sessionListKey = `user_sessions_list_${user.id}`;
-        const existingSessionList = await c.env.USER_SESSIONS.get(sessionListKey);
-        let sessionIds = [];
-
-        if (existingSessionList) {
-            try {
-                sessionIds = JSON.parse(existingSessionList);
-            } catch (parseError) {
-                sessionIds = [];
-            }
-        }
-
-        if (!sessionIds.includes(sessionId)) {
-            sessionIds.push(sessionId);
-            await c.env.USER_SESSIONS.put(sessionListKey, JSON.stringify(sessionIds), {
-                expirationTtl: jwtExpirationSeconds + 86400
-            });
-        }
     }
 
     // 构建返回给前端的用户数据
@@ -565,9 +544,7 @@ app.get('/auth/verify', async (c) => {
                         provided: token.substring(0, 30) + '...',
                         stored: sessionInfo.token.substring(0, 30) + '...',
                         match: sessionInfo.token === token,
-                        userAgent: sessionInfo.userAgent,
-                        createdAt: sessionInfo.createdAt,
-                        lastUsed: sessionInfo.lastUsed
+                        createdAt: sessionInfo.createdAt
                     });
 
                     if (sessionInfo.token !== token) {
@@ -636,132 +613,11 @@ app.post('/auth/logout', async (c) => {
             const sessionKey = `user_session_${payload.userId}_${payload.sessionId}`;
             console.log('🗑️ Removing session from KV:', sessionKey);
             await c.env.USER_SESSIONS.delete(sessionKey);
-
-            // 从session列表中移除
-            const sessionListKey = `user_sessions_list_${payload.userId}`;
-            const sessionListData = await c.env.USER_SESSIONS.get(sessionListKey);
-
-            if (sessionListData) {
-                try {
-                    const sessionIds = JSON.parse(sessionListData);
-                    const updatedSessionIds = sessionIds.filter(id => id !== payload.sessionId);
-                    await c.env.USER_SESSIONS.put(sessionListKey, JSON.stringify(updatedSessionIds));
-                    console.log('✅ Session removed from list successfully');
-                } catch (parseError) {
-                    console.error('Failed to update session list:', parseError);
-                }
-            }
-
             console.log('✅ Session removed successfully');
         } else if (c.env.USER_SESSIONS) {
             console.log('⚠️ No sessionId in token payload - cannot remove specific session');
         } else {
             console.log('⚠️ KV namespace not available, cannot remove session');
-        }
-
-        return c.json({ success: true });
-    } catch (error) {
-        return c.json({ error: 'Invalid token' }, 401);
-    }
-});
-
-// 获取用户的所有活动session
-app.get('/auth/sessions', async (c) => {
-    const authHeader = c.req.header('Authorization');
-
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return c.json({ error: 'Missing authorization header' }, 401);
-    }
-
-    const token = authHeader.split(' ')[1];
-
-    try {
-        const payload = await verify(token, c.env.JWT_SECRET);
-
-        if (!c.env.USER_SESSIONS) {
-            return c.json({ error: 'Session management not available' }, 503);
-        }
-
-        // 获取用户的所有session（这需要列举KV中的键，Cloudflare KV不直接支持，所以我们使用另一种方法）
-        // 我们需要在用户登录时维护一个session列表
-        const sessionListKey = `user_sessions_list_${payload.userId}`;
-        const sessionListData = await c.env.USER_SESSIONS.get(sessionListKey);
-
-        let sessions = [];
-        if (sessionListData) {
-            try {
-                const sessionIds = JSON.parse(sessionListData);
-
-                // 获取每个session的详细信息
-                for (const sessionId of sessionIds) {
-                    const sessionKey = `user_session_${payload.userId}_${sessionId}`;
-                    const sessionData = await c.env.USER_SESSIONS.get(sessionKey);
-
-                    if (sessionData) {
-                        try {
-                            const sessionInfo = JSON.parse(sessionData);
-                            sessions.push({
-                                sessionId: sessionId,
-                                userAgent: sessionInfo.userAgent,
-                                createdAt: sessionInfo.createdAt,
-                                lastUsed: sessionInfo.lastUsed,
-                                isCurrent: sessionId === payload.sessionId
-                            });
-                        } catch (parseError) {
-                            console.error('Failed to parse session data:', parseError);
-                        }
-                    }
-                }
-            } catch (parseError) {
-                console.error('Failed to parse session list:', parseError);
-            }
-        }
-
-        return c.json({ sessions });
-    } catch (error) {
-        return c.json({ error: 'Invalid token' }, 401);
-    }
-});
-
-// 删除指定的session（踢出其他设备）
-app.delete('/auth/sessions/:sessionId', async (c) => {
-    const authHeader = c.req.header('Authorization');
-    const targetSessionId = c.req.param('sessionId');
-
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return c.json({ error: 'Missing authorization header' }, 401);
-    }
-
-    const token = authHeader.split(' ')[1];
-
-    try {
-        const payload = await verify(token, c.env.JWT_SECRET);
-
-        if (!c.env.USER_SESSIONS) {
-            return c.json({ error: 'Session management not available' }, 503);
-        }
-
-        // 不允许删除当前session
-        if (targetSessionId === payload.sessionId) {
-            return c.json({ error: 'Cannot logout current session' }, 400);
-        }
-
-        // 删除指定的session
-        const sessionKey = `user_session_${payload.userId}_${targetSessionId}`;
-        await c.env.USER_SESSIONS.delete(sessionKey);
-
-        // 从session列表中移除
-        const sessionListKey = `user_sessions_list_${payload.userId}`;
-        const sessionListData = await c.env.USER_SESSIONS.get(sessionListKey);
-
-        if (sessionListData) {
-            try {
-                const sessionIds = JSON.parse(sessionListData);
-                const updatedSessionIds = sessionIds.filter(id => id !== targetSessionId);
-                await c.env.USER_SESSIONS.put(sessionListKey, JSON.stringify(updatedSessionIds));
-            } catch (parseError) {
-                console.error('Failed to update session list:', parseError);
-            }
         }
 
         return c.json({ success: true });

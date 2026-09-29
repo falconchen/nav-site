@@ -121,48 +121,6 @@ function showHeaderProgress() {
     };
 }
 
-// 解析用户代理字符串
-function parseUserAgent(userAgent) {
-    const parser = {
-        device: 'Unknown Device',
-        browser: 'Unknown Browser',
-        os: 'Unknown OS'
-    };
-
-    // 简单的用户代理解析
-    if (userAgent.includes('Mobile') || userAgent.includes('Android') || userAgent.includes('iPhone')) {
-        parser.device = 'Mobile Device';
-    } else if (userAgent.includes('Tablet') || userAgent.includes('iPad')) {
-        parser.device = 'Tablet';
-    } else {
-        parser.device = 'Desktop';
-    }
-
-    if (userAgent.includes('Chrome')) {
-        parser.browser = 'Chrome';
-    } else if (userAgent.includes('Firefox')) {
-        parser.browser = 'Firefox';
-    } else if (userAgent.includes('Safari') && !userAgent.includes('Chrome')) {
-        parser.browser = 'Safari';
-    } else if (userAgent.includes('Edge')) {
-        parser.browser = 'Edge';
-    }
-
-    if (userAgent.includes('Windows')) {
-        parser.os = 'Windows';
-    } else if (userAgent.includes('iOS') || userAgent.includes('iPhone') || userAgent.includes('iPad')) {
-        parser.os = 'iOS';
-    }else if (userAgent.includes('Mac')) {
-        parser.os = 'macOS';
-    } else if (userAgent.includes('Linux')) {
-        parser.os = 'Linux';
-    } else if (userAgent.includes('Android')) {
-        parser.os = 'Android';
-    }
-
-    return parser;
-}
-
 // 压缩数据（gzip）
 async function compressData(data) {
     try {

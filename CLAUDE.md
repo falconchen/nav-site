@@ -50,7 +50,6 @@
 - `public/data.js` - 默认分类和网站数据结构
 - `public/auth.js` - 前端认证和会话管理
 - `public/sync.js` - 云端同步与版本历史（直接覆盖，不合并）
-- `public/session.js` - 本地会话管理
 - `public/api-tokens.js` - 「个人令牌」弹窗
 - `public/category-edit.js` - 分类编辑 UI 和逻辑
 - `public/icon-selector.js` - 图标选择模态框
@@ -265,7 +264,7 @@ npm run deploy      # 部署到 Cloudflare Workers 生产环境
 - **目录编号**：侧边栏「目录」和分类标题的 01、02 用 CSS 计数器（`toc` / `section`）生成，两边一一对应；
   普通模式隐藏分类图标，压缩模式才显示图标
 - 所有颜色、圆角、阴影、动效都在 `styles.css` 顶部的 token 里；旧变量名（`--primary-color`、`--surface-color` 等）
-  保留为别名，sync.js、session.js 里 JS 拼的弹窗还在用
+  保留为别名，sync.js 里 JS 拼的弹窗还在用
 - 卡片网址把协议包在 `.card-url-protocol` 里用 CSS 隐藏（`cardUrlHTML()`），`textContent` 仍是完整网址，
   打开、复制、编辑都读它，所以不要改用 `innerText`
 - 通知（`showNotification`）和云端保存进度（`showSaveProgress`）只加 class，样式都在 CSS 里
