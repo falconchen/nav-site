@@ -83,7 +83,7 @@ async function init() {
 }
 
 function requestServerPermission(serverUrl) {
-    if (isFirefox || !serverUrl) return Promise.resolve();
+    if (!serverUrl) return Promise.resolve();
     return ext.permissions.request({ origins: [serverOriginPattern(serverUrl)] }).catch((error) => {
         console.warn('申请导航站主机权限失败：', error);
     });

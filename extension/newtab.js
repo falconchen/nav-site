@@ -3,14 +3,14 @@
  *
  * chrome_url_overrides 只能指向扩展自己的页面，写死在 manifest 里没法按设置开关，所以由这个页面决定显示什么。
  *
- * Chrome 用全屏 iframe 嵌入导航站：地址栏保持为空、光标停在地址栏，和自带新标签页一样能直接输入网址或搜索。
+ * 用全屏 iframe 嵌入导航站：地址栏保持为空、光标停在地址栏，和自带新标签页一样能直接输入网址或搜索。
  * 跳转过去的话地址栏会被导航站网址占住。
  * 嵌在扩展页面里的网站默认算第三方上下文，localStorage 会被分区，读不到用户在导航站上的本地数据和登录状态；
- * 但扩展有该站点的主机权限时，Chrome 让 iframe 用顶层分区（见 Chrome 文档 “Storage and cookies”）。
+ * 但扩展有该站点的主机权限时，iframe 用顶层分区（Chrome 文档 “Storage and cookies” 写明；Firefox 140 实测同样如此）。
  * 默认地址的权限写在 manifest 的 host_permissions 里，自定义地址在设置页保存时申请；没有权限就退回跳转。
  *
- * Firefox 没有这条豁免，而且不让扩展跳到自带的新标签页（about:newtab 是特权页面），
- * 但它的设置里本来就能选新标签页用谁，所以 Firefox 版不提供开关，永远跳导航站。
+ * Firefox 不让扩展跳到自带的新标签页（about:newtab 是特权页面），但它的设置里本来就能选新标签页用谁，
+ * 所以 Firefox 版不提供开关，永远显示导航站。
  */
 
 import { ext, isFirefox } from './lib/ext.js';
@@ -21,13 +21,11 @@ const CHROME_NEW_TAB = 'chrome://new-tab-page';
 
 const { serverUrl, newTab } = await loadSettings();
 
-if (isFirefox) {
-    // replace 不留历史记录，后退不会回到这个空页面
-    location.replace(serverUrl);
-} else if (newTab) {
+if (newTab || isFirefox) {
     if (await hasServerPermission(serverUrl)) {
         embed(serverUrl);
     } else {
+        // replace 不留历史记录，后退不会回到这个空页面
         location.replace(serverUrl);
     }
 } else {

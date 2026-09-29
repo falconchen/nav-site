@@ -43,7 +43,7 @@ npm run build:firefox   # 在 nav-site/ 下执行，生成 extension-firefox/（
 和 Chrome 版的区别：
 
 - 代码里调扩展 API 统一用 `lib/ext.js` 导出的 `ext`（Firefox 下是 `browser`，Chrome 下是 `chrome`），不要直接写 `chrome.*`
-- 新标签页没有开关、永远跳导航站：Firefox 不让扩展跳到自带的 `about:newtab`，但它自己的设置里（`about:preferences#home`）
+- 新标签页没有开关、永远显示导航站：Firefox 不让扩展跳到自带的 `about:newtab`，但它自己的设置里（`about:preferences#home`）
   本来就能选新标签页和首页用谁。设置页按浏览器显示不同的说明（`.only-chrome` / `.only-firefox`）
 
 ## 用法
@@ -76,10 +76,10 @@ npm run build:firefox   # 在 nav-site/ 下执行，生成 extension-firefox/（
   服务端开了 CORS，扩展不需要主机权限就能带 `Authorization` 头调 API。
   `host_permissions` 里的导航站默认地址只给新标签页嵌入用；自定义地址在设置页保存时按 `optional_host_permissions` 申请
 - **新标签页**：`chrome_url_overrides` 只能指向扩展自己的页面，所以由 `newtab.html` 读设置后决定显示什么。
-  Chrome 用全屏 iframe 嵌入导航站，地址栏保持为空、焦点在地址栏，和自带新标签页一样（跳转过去的话地址栏会被导航站网址占住）。
+  用全屏 iframe 嵌入导航站，地址栏保持为空、焦点在地址栏，和自带新标签页一样（跳转过去的话地址栏会被导航站网址占住）。
   嵌在扩展页里的网站默认是第三方上下文、localStorage 被分区，读不到本地数据和登录状态；
-  扩展有该站点的主机权限时 Chrome 让 iframe 用顶层分区，所以没有权限（自定义地址被拒）时退回 `location.replace` 跳转。
-  Firefox 没有这条豁免，永远跳转
+  扩展有该站点的主机权限时 iframe 用顶层分区（Chrome 文档写明，Firefox 140 实测同样），所以没有权限
+  （自定义地址被拒、Firefox 里在附加组件管理器撤销了权限）时退回 `location.replace` 跳转
 - **首页**：`chrome_settings_overrides.homepage` 只接受写死的 http/https 地址，不能指向扩展页面、不能按设置变，
   所以写死默认地址，和 `lib/api.js` 的 `DEFAULT_SERVER_URL` 保持一致。这个字段只在 Windows 和 macOS 上生效
 - **令牌**：存在 `chrome.storage.local`，不走 `storage.sync`，不会同步到其它设备

@@ -31,10 +31,6 @@ function toFirefoxManifest(chrome) {
     manifest.options_ui = { page: chrome.options_page, open_in_tab: true };
     delete manifest.options_page;
 
-    // 主机权限只给 Chrome 新标签页的 iframe 嵌入用（见 newtab.js），Firefox 版永远跳转，用不到
-    delete manifest.host_permissions;
-    delete manifest.optional_host_permissions;
-
     manifest.browser_specific_settings = {
         gecko: {
             id: GECKO_ID,
