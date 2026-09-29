@@ -770,7 +770,11 @@ function exportData() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `导航助手数据_${new Date().toISOString().slice(0, 10)}.json`;
+    // 按本地时间取年月日时分（toISOString 是 UTC，北京时间早上 8 点前会算成前一天）；文件名里不能有冒号
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const stamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}`;
+    a.download = `皮皮2047_${stamp}.json`;
 
     // 触发下载
     document.body.appendChild(a);
