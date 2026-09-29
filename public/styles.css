@@ -2032,6 +2032,14 @@ html[data-sidebar="compact"] .category-section {
   flex-direction: column;
 }
 
+/* 占一行和「网站名称」标签一样高的空位，让正方形上传区的顶部和名称输入框对齐 */
+.form-row .icon-edit-group::before {
+  content: "\00a0";
+  display: block;
+  margin-bottom: 6px;
+  font-size: 12.5px;
+}
+
 .form-label {
   display: block;
   margin-bottom: 6px;
@@ -2250,9 +2258,8 @@ html[data-sidebar="compact"] .category-section {
   justify-content: center;
   gap: 8px;
   width: 100%;
-  /* 高度锁死，上传中、已上传、默认三个状态切换时不跳 */
-  min-height: 156px;
-  height: 100%;
+  /* 正方形，高度跟宽度走，上传中、已上传、默认三个状态切换时不跳 */
+  aspect-ratio: 1;
   padding: 12px;
   text-align: center;
   background: var(--field);
@@ -3335,7 +3342,12 @@ html[data-sidebar="compact"] .category-section {
     width: 100%;
   }
 
+  .form-row .icon-edit-group::before {
+    display: none;
+  }
+
   .file-upload-area {
+    aspect-ratio: auto;
     min-height: 108px;
     flex-direction: row;
     gap: 14px;

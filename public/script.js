@@ -2357,7 +2357,6 @@ function renderUploadedIconPreview(imageSrc) {
                 <i class="fas fa-times"></i>
             </button>
         </div>
-        <div class="upload-text">图片已上传</div>
     `;
 }
 
