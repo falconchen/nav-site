@@ -30,7 +30,8 @@ async function buildProject() {
                 'public/category-edit.js',
                 'public/icon-selector.js',
                 'public/card-tooltip.js',
-                'public/view-tabs.js'
+                'public/view-tabs.js',
+                'public/clipboard-watch.js'
             ],
             minify: true,
             outdir: 'dist'

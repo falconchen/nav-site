@@ -59,6 +59,7 @@
 - `public/utils.js` - 共享工具函数
 - `public/view-tabs.js` - 顶部视图 tab（最近添加 / 访问最多 / 特别关注 / 全部网站）切换与移动端左右滑动手势
 - `public/visit-stats.js` - 访问统计（只存本机），给「访问最多」排序
+- `public/clipboard-watch.js` - 剪贴板网址识别，发现新网址自动弹「添加网站」（默认关）
 
 ### 视图 tab
 
@@ -109,6 +110,18 @@
   - 分类 section 跳过私密网站后 DOM 下标和数据下标对不上，按卡片找数据一律用 `siteIndexOfCard()`，不要再写 `children.indexOf(card)`
 
 登录状态在页面启动时通过 `/api/auth/verify` 校验。只有明确收到 401 或 `valid: false` 才删除本地令牌；断网、请求异常及服务端临时故障会保留令牌，并在网络恢复或 15 秒后重试。校验未成功前不启动云端同步。修改此流程时需检查断网刷新后恢复、真正过期以及校验期间切换账号这三种情况。
+
+### 剪贴板网址识别
+
+`public/clipboard-watch.js`：页面加载和切回前台（`focus` / `visibilitychange`，合并去抖）时读剪贴板，
+内容是单个 `http(s)://` 网址、没收录过（含私密，按 `visitUrlKey()` 查重）、和上次提示过的不同（localStorage `lastClipboardUrl`），
+且当前没开弹窗 / 菜单、焦点不在输入框里，就弹「添加网站」、填好网址并自动点「自动填写」。
+
+- **默认关**，账户菜单（登录后的 `#userMenu`、小屏未登录的 `#loginMenu`）里的「识别剪贴板网址」开关打开，存 localStorage `clipboardWatch`。
+  桌面端未登录没有菜单，开不了
+- 只有 Chromium 能无点击读剪贴板；`permissions.query({name:'clipboard-read'})` 抛错（Firefox / Safari）时菜单项保持 `hidden`
+- 权限只在点开关那一下（有用户手势）请求；后台检测只在权限已是 `granted` 时读，不会无故弹权限框。
+  打开开关时剪贴板里已有的网址记为已提示，不立刻弹
 
 ### AI 网站识别
 
