@@ -274,6 +274,17 @@ describe('页面解析', () => {
         expect(info.title).toBe('OpenAI | Research & Deployment — 中');
         expect(info.description).toBe('Tom\'s "site"');
     });
+
+    it('图标取 apple-touch-icon，不取 itemprop="image" 分享大图', async () => {
+        const { extractPageInfo } = await import('../server/lib/website-analyzer.js');
+        const info = extractPageInfo(
+            '<html><head><meta itemprop="image"content="https://pipi2047.eu.org/img/og-cover.png">' +
+            '<link rel="icon"href="img/seal.svg"type="image/svg+xml">' +
+            '<link rel="apple-touch-icon"href="img/apple-touch-icon.png"></head><body></body></html>',
+            'https://pipi2047.eu.org/'
+        );
+        expect(info.icon).toBe('https://pipi2047.eu.org/img/apple-touch-icon.png');
+    });
 });
 
 describe('truncateDescription', () => {

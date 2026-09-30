@@ -342,22 +342,24 @@ function resolveIconUrl(iconUrl, finalUrl) {
 }
 
 function extractIcon(html, finalUrl) {
-    // 1. 优先从meta itemprop="image"提取
-    const metaImageMatch = html.match(/<meta[^>]*content=["']?([^"'\s>]+)["']?[^>]*itemprop=["']?image["']?[^>]*>/i) ||
-        html.match(/<meta[^>]*itemprop=["']?image["']?[^>]*content=["']?([^"'\s>]+)["']?[^>]*>/i);
-    // 2. 从alt="logo"的img标签提取
-    const logoImgMatch = html.match(/<img[^>]*src=["']?([^"'\s>]+)["']?[^>]*alt=["']?logo["']?[^>]*>/i) ||
-        html.match(/<img[^>]*alt=["']?logo["']?[^>]*src=["']?([^"'\s>]+)["']?[^>]*>/i);
-    // 3. apple-touch-icon（优先于 favicon）
+    // 站点自己声明的图标优先。itemprop="image" 和 og:image 一样多半是分享大图（如 1200×630 的封面），
+    // 只在没有图标时兜底
+    // 1. apple-touch-icon（尺寸大，优先于 favicon）
     const appleTouchIconMatch = html.match(/<link\s+[^>]*?rel=["']?apple-touch-icon["']?[^>]*?href=["']?([^"'\s>]+)["']?[^>]*?>/i) ||
         html.match(/<link\s+[^>]*?href=["']?([^"'\s>]+)["']?[^>]*?rel=["']?apple-touch-icon["']?[^>]*?>/i);
-    // 4. link 标签里的 favicon
+    // 2. link 标签里的 favicon
     const faviconMatch = html.match(/<link\s+[^>]*?rel=["']?(?:icon|shortcut icon)["']?[^>]*?href=["']?([^"'\s>]+)["']?[^>]*?>/i) ||
         html.match(/<link\s+[^>]*?href=["']?([^"'\s>]+)["']?[^>]*?rel=["']?(?:icon|shortcut icon)["']?[^>]*?>/i);
+    // 3. alt="logo" 的 img 标签
+    const logoImgMatch = html.match(/<img[^>]*src=["']?([^"'\s>]+)["']?[^>]*alt=["']?logo["']?[^>]*>/i) ||
+        html.match(/<img[^>]*alt=["']?logo["']?[^>]*src=["']?([^"'\s>]+)["']?[^>]*>/i);
+    // 4. meta itemprop="image"
+    const metaImageMatch = html.match(/<meta[^>]*content=["']?([^"'\s>]+)["']?[^>]*itemprop=["']?image["']?[^>]*>/i) ||
+        html.match(/<meta[^>]*itemprop=["']?image["']?[^>]*content=["']?([^"'\s>]+)["']?[^>]*>/i);
     // 5. 第一个img标签的src（排除引号或反引号包裹的script字符串中的<img）
     const firstImgMatch = html.match(/(?:^|[^"'`])<img[^>]*src=["']?([^"'\s>]+)["']?[^>]*>/i);
 
-    const match = [metaImageMatch, logoImgMatch, appleTouchIconMatch, faviconMatch, firstImgMatch]
+    const match = [appleTouchIconMatch, faviconMatch, logoImgMatch, metaImageMatch, firstImgMatch]
         .find(m => m && m[1]);
     return match ? resolveIconUrl(match[1], finalUrl) : '';
 }
