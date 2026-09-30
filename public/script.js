@@ -186,24 +186,8 @@ function closeModal(modalId) {
             iconInput.dataset.imageData = '';
         }
 
-        // 重置图标预览
-        const iconPreview = document.getElementById('iconPreview');
-        if (iconPreview) {
-            iconPreview.innerHTML = '';
-            iconPreview.className = 'fas fa-globe';
-        }
-
         // 重置上传区域
         resetIconUpload();
-
-        // 显示图标选择器，确保下次打开时状态正确
-        toggleIconSelectorVisibility(false);
-
-        // 确保图标选择器下拉菜单关闭
-        const iconSelectorDropdown = document.getElementById('iconSelectorDropdown');
-        if (iconSelectorDropdown) {
-            iconSelectorDropdown.classList.remove('active');
-        }
     }
 
     // 重置当前编辑卡片引用
@@ -248,6 +232,20 @@ function cardUrlHTML(url) {
     return `<span class="card-url-protocol">${escapeHtml(match[1])}</span>${escapeHtml(match[2])}`;
 }
 
+// 图标图片加载失败（图床挂了、内网图片在外网打不开、链接失效）时换成首字图标，不显示破图。
+// error 事件不冒泡，只能在捕获阶段统一接；不用内联 onerror，imageData 不可信
+document.addEventListener('error', (e) => {
+    const img = e.target;
+    if (!(img instanceof HTMLImageElement)) return;
+    const cardIcon = img.parentElement;
+    if (!cardIcon || !cardIcon.classList.contains('card-icon')) return;
+    const card = cardIcon.closest('.website-card');
+    const title = card?.querySelector('.card-title')?.textContent || '';
+    const url = card?.querySelector('.card-url')?.textContent || '';
+    cardIcon.classList.remove('with-img');
+    cardIcon.innerHTML = letterIconHTML(title, url);
+}, true);
+
 // 根据数据创建卡片HTML
 function createCardHTML(website) {
     // 确保权重数据存在
@@ -260,15 +258,11 @@ function createCardHTML(website) {
     // 根据是否有图片决定是否添加背景去除类
     const withImgClass = website.imageData ? 'with-img' : '';
 
-    // 判断是否有图片数据
-    let iconContent = '';
-    if (website.imageData) {
-        // 如果有图片数据，显示图片
-        iconContent = `<img src="${escapeHtml(website.imageData)}" alt="${escapeHtml(website.title)}">`;
-    } else {
-        // 否则显示图标
-        iconContent = `<i class="${escapeHtml(website.icon || 'fas fa-globe')}"></i>`;
-    }
+    // 有图片用图片，没有就用首字图标（website.icon 的 Font Awesome 类名已不再渲染）。
+    // 图片加载失败时由 handleCardIconError 换成首字图标
+    const iconContent = website.imageData
+        ? `<img src="${escapeHtml(website.imageData)}" alt="${escapeHtml(website.title)}">`
+        : letterIconHTML(website.title, website.url);
 
     return `
         <div class="website-card ${pinnedClass} ${privateClass} ${descHiddenClass}" data-weight="${weight}">
@@ -600,7 +594,7 @@ function openAddWebsiteModal() {
     // 清空图片数据
     const iconInput = document.getElementById('websiteIcon');
     if (iconInput) {
-        iconInput.value = 'fas fa-globe'; // 设置默认图标
+        iconInput.value = '';
         iconInput.dataset.imageData = ''; // 清空图片数据
     }
 
@@ -620,14 +614,8 @@ function openAddWebsiteModal() {
         }
     }
 
-    // 重置图标预览
-    setIconPreview('fas fa-globe');
-
     // 重置上传区域
     resetIconUpload();
-
-    // 显示图标选择器
-    toggleIconSelectorVisibility(false);
 
     // 确保AI识别按钮初始状态为禁用
     const aiDetectBtn = document.getElementById('aiDetectBtn');
@@ -636,11 +624,6 @@ function openAddWebsiteModal() {
     }
 
     openModal('websiteModal');
-
-    // 在模态框打开后重新初始化图标选择器
-    if (typeof initIconSelector === 'function') {
-        initIconSelector();
-    }
 }
 
 // 删除网站功能 - 显示确认对话框
@@ -806,10 +789,6 @@ function editWebsite(card) {
         ? (secretDescriptions.get(card) || '')
         : card.querySelector('.card-description').textContent.trimStart();
 
-    // 检查是否有图标或图片
-    const iconElement = card.querySelector('.card-icon i');
-    const iconClass = iconElement ? iconElement.className : '';
-
     // 检查是否有图片
     const imgElement = card.querySelector('.card-icon img');
     let imageData = '';
@@ -821,7 +800,7 @@ function editWebsite(card) {
     document.getElementById('websiteName').value = title;
     document.getElementById('websiteUrl').value = url;
     document.getElementById('websiteDescription').value = description;
-    document.getElementById('websiteIcon').value = iconClass;
+    document.getElementById('websiteIcon').value = '';
     document.getElementById('websitePinned').checked = isPinned;
     document.getElementById('websitePrivate').checked = isPrivate;
     document.getElementById('websiteHideDescription').checked = isDescHidden;
@@ -912,25 +891,11 @@ function editWebsite(card) {
         }
     }
 
-    // 检查图片：如果有图片数据，显示图片预览；如果没有，则显示图标
+    // 有图片显示图片，没有显示首字图标预览
     if (imageData) {
-        // 更新图标预览为图片
-        setIconPreview('', imageData);
-
-        // 更新上传区域显示已上传的图片
         renderUploadedIconPreview(imageData);
-
-        // 隐藏图标选择器
-        toggleIconSelectorVisibility(true);
     } else {
-        // 更新图标预览
-        setIconPreview(iconClass);
-
-        // 重置文件上传区域
         resetIconUpload();
-
-        // 显示图标选择器
-        toggleIconSelectorVisibility(false);
     }
 
     // 更新模态框标题和按钮
@@ -942,11 +907,6 @@ function editWebsite(card) {
     card.classList.add('editing');
 
     openModal('websiteModal');
-
-    // 在模态框打开后重新初始化图标选择器
-    if (typeof initIconSelector === 'function') {
-        initIconSelector();
-    }
 
     // 手动更新AI识别按钮状态，因为URL已经填充
     const aiDetectBtn = document.getElementById('aiDetectBtn');
@@ -1459,7 +1419,7 @@ function createWebsiteCard(name, url, description, category, iconUrl, isPinned) 
             <button class="card-pin-btn" title="取消特别关注" aria-label="取消特别关注"><i class="fas fa-star"></i></button>
             <div class="card-header">
                 <div class="card-icon">
-                    <i class="${iconUrl || 'fas fa-globe'}"></i>
+                    ${letterIconHTML(name, url)}
                 </div>
                 <div>
                     <div class="card-title">${name}</div>
@@ -1492,17 +1452,12 @@ function updateWebsiteCard(card, name, url, description, iconUrl, isPinned) {
     // 获取图片数据
     const imageData = document.getElementById('websiteIcon').dataset.imageData || '';
 
-    // 更新图标或图片
+    // 更新图标：有图片用图片，没有就用首字图标
     const cardIcon = card.querySelector('.card-icon');
-    if (imageData) {
-        // 如果有图片数据，显示图片
-        cardIcon.innerHTML = `<img src="${imageData}" alt="${name}">`;
-        cardIcon.classList.add('with-img');
-    } else if (iconUrl) {
-        // 否则显示图标
-        cardIcon.innerHTML = `<i class="${iconUrl.startsWith('fa') ? iconUrl : 'fas fa-globe'}"></i>`;
-        cardIcon.classList.remove('with-img');
-    }
+    cardIcon.innerHTML = imageData
+        ? `<img src="${escapeHtml(imageData)}" alt="${escapeHtml(name)}">`
+        : letterIconHTML(name, url);
+    cardIcon.classList.toggle('with-img', !!imageData);
 
     // 更新置顶状态
     if (isPinned) {
@@ -1731,14 +1686,6 @@ function togglePinStatus(card) {
     const title = card.querySelector('.card-title').textContent;
     const url = card.querySelector('.card-url').textContent;
     const description = card.querySelector('.card-description').textContent.trimStart();
-
-    // 安全获取图标类名
-    const iconElement = card.querySelector('.card-icon i');
-    const iconClass = iconElement ? iconElement.className : 'fas fa-globe';
-
-    // 检查是否有图片
-    const cardIcon = card.querySelector('.card-icon');
-    const hasImage = cardIcon && cardIcon.querySelector('img');
 
     // 获取当前置顶状态
     const isPinned = card.classList.contains('pinned');
@@ -2332,6 +2279,10 @@ function setupFileUpload() {
     const uploadArea = document.getElementById('iconUploadArea');
     const fileInput = document.getElementById('iconFile');
 
+    // 自动填写用 .value 赋值不会触发 input，那条路径在 fillFormWithAIData 里自己刷新
+    document.getElementById('websiteName').addEventListener('input', refreshLetterIconPreview);
+    document.getElementById('websiteUrl').addEventListener('input', refreshLetterIconPreview);
+
     const modal = document.getElementById('websiteModal');
     if (modal) {
         modal.addEventListener('click', function (e) {
@@ -2401,14 +2352,8 @@ function renderIconUploadingState() {
 
 // 把表单的图标设置为一张图片。imageSrc 是图床 URL（降级时才是 base64）
 function applyUploadedIcon(imageSrc) {
-    document.getElementById('websiteIcon').value = ''; // 清空图标类
     document.getElementById('websiteIcon').dataset.imageData = imageSrc;
-
-    setIconPreview('', imageSrc);
     renderUploadedIconPreview(imageSrc);
-
-    // 隐藏图标选择器
-    toggleIconSelectorVisibility(true);
 }
 
 async function handleFileUpload(file) {
@@ -2433,47 +2378,29 @@ async function handleFileUpload(file) {
 
 // 删除已上传的图片
 function deleteUploadedImage() {
-    // 清除图片数据
     document.getElementById('websiteIcon').dataset.imageData = '';
-
-    // 恢复默认图标
-    const defaultIcon = 'fas fa-globe';
-    document.getElementById('websiteIcon').value = defaultIcon;
-
-    // 更新图标预览
-    setIconPreview(defaultIcon);
-
-    // 重置上传区域
     resetIconUpload();
-
-    // 显示图标选择器
-    toggleIconSelectorVisibility(false);
 }
 
-// 更新图标预览函数，添加对图片的支持
-function setIconPreview(iconClass, imageData) {
-    const iconPreview = document.getElementById('iconPreview');
-
-    if (iconPreview) {
-        if (imageData) {
-            // 如果有图片数据，显示图片
-            iconPreview.className = '';
-            iconPreview.innerHTML = `<img src="${imageData}" alt="图标" style="width: 100%; height: 100%; object-fit: contain;">`;
-        } else {
-            // 否则显示图标
-            iconPreview.innerHTML = '';
-            iconPreview.className = iconClass || 'fas fa-globe';
-        }
-    }
-}
-
-// 重置图标上传区域
+// 重置图标上传区域：没有图片时预览首字图标，保存后卡片上就是这个样子
 function resetIconUpload() {
     const uploadArea = document.getElementById('iconUploadArea');
     uploadArea.innerHTML = `
-        <i class="fas fa-cloud-upload-alt upload-icon"></i>
-        <div class="upload-text">点击上传图标或拖拽文件到此处<br>支持 JPG, PNG, SVG 格式</div>
+        <div class="upload-letter-preview"></div>
+        <div class="upload-text">点击或拖入图片<br>替换图标</div>
     `;
+    refreshLetterIconPreview();
+}
+
+// 标题、网址输入时同步刷新首字预览。都没填时显示上传图标
+function refreshLetterIconPreview() {
+    const preview = document.querySelector('#iconUploadArea .upload-letter-preview');
+    if (!preview) return;
+    const title = document.getElementById('websiteName').value;
+    const url = document.getElementById('websiteUrl').value;
+    preview.innerHTML = title.trim() || url.trim()
+        ? letterIconHTML(title, url)
+        : '<i class="fas fa-cloud-upload-alt upload-icon"></i>';
 }
 
 // 页面初始化
@@ -2514,11 +2441,6 @@ document.addEventListener('DOMContentLoaded', async function () {
 
     // 设置文件上传
     setupFileUpload();
-
-    // 初始化图标选择器
-    if (typeof initIconSelector === 'function') {
-        initIconSelector();
-    }
 
     // 初始化AI识别功能
     setupAIDetection();
@@ -2834,21 +2756,6 @@ function setupFloatingButtonPosition() {
     window.addEventListener('resize', checkFooterVisibility);
 }
 
-// 控制图标样式选择器的可见性
-function toggleIconSelectorVisibility(hasImage) {
-    // 为图标选择器表单分组添加一个ID以便于识别
-    const iconSelectorGroup = document.querySelector('.form-group .icon-selector-container').closest('.form-group');
-    if (iconSelectorGroup) {
-        if (hasImage) {
-            // 如果有图片，隐藏图标选择器
-            iconSelectorGroup.style.display = 'none';
-        } else {
-            // 如果没有图片，显示图标选择器
-            iconSelectorGroup.style.display = '';
-        }
-    }
-}
-
 // AI网站识别功能
 // 每个分类取几个已收录站点当样例。
 // 样例太少会覆盖不到分类内部的子簇（比如 AIGC 里既有对话类产品也有 AI 仓库），
@@ -3022,15 +2929,11 @@ function fillFormFromDomainHistory(url, reason) {
         filled.push('分类');
     }
 
-    // 图标取同分类里第一个有自定义图片的，没有就沿用 Font Awesome 图标
+    // 图标取同分类里第一个有自定义图片的，没有就留给首字图标
     if (bestIndex >= 0 && needs.icon) {
         const withImage = bestSites.find(site => site.imageData);
         if (withImage) {
             applyUploadedIcon(withImage.imageData);
-            filled.push('图标');
-        } else if (bestSites[0].icon) {
-            document.getElementById('websiteIcon').value = bestSites[0].icon;
-            setIconPreview(bestSites[0].icon);
             filled.push('图标');
         }
     }
@@ -3050,6 +2953,7 @@ function fillFormWithAIData(data) {
     // 填充网站名称
     if (data.title && needs.title) {
         document.getElementById('websiteName').value = data.title;
+        refreshLetterIconPreview();
     }
 
     // 填充描述
@@ -3079,9 +2983,9 @@ function fillFormWithAIData(data) {
         showNotification('AI 没能判断分类，请手动选择', 'info');
     }
 
-    // 设置图标：已经有图片（手动上传或原来就有）就不重新抓取上传
+    // 设置图标：已经有图片（手动上传或原来就有）就不重新抓取上传。
+    // 只认图片 URL，抓不到或转存失败时用首字图标兜底
     if (data.icon && needs.icon) {
-        // 如果是图片URL
         if (data.icon.startsWith('http')) {
             // 由 Worker 直接抓取并转存到图床，图片不经过浏览器，imageData 只存 URL
             renderIconUploadingState();
@@ -3091,18 +2995,9 @@ function fillFormWithAIData(data) {
                 })
                 .catch(error => {
                     console.error('无法转存网站图标:', error);
-                    // 使用默认图标作为备选
-                    const defaultIcon = 'fas fa-globe';
-                    document.getElementById('websiteIcon').value = defaultIcon;
                     document.getElementById('websiteIcon').dataset.imageData = '';
-                    setIconPreview(defaultIcon);
                     resetIconUpload();
-                    toggleIconSelectorVisibility(false);
                 });
-        } else {
-            // 如果是Font Awesome类名
-            document.getElementById('websiteIcon').value = data.icon;
-            setIconPreview(data.icon);
         }
     }
 }

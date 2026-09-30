@@ -52,7 +52,7 @@
 - `public/sync.js` - 云端同步与版本历史（直接覆盖，不合并）
 - `public/api-tokens.js` - 「个人令牌」弹窗
 - `public/category-edit.js` - 分类编辑 UI 和逻辑
-- `public/icon-selector.js` - 图标选择模态框
+- `public/icon-selector.js` - 分类图标选择器用的 Font Awesome 图标集合
 - `public/image-upload.js` - 图标压缩转 WebP 并上传图床
 - `public/utils.js` - 共享工具函数
 - `public/view-tabs.js` - 顶部视图 tab（最近添加 / 访问最多 / 特别关注 / 全部网站）切换与移动端左右滑动手势
@@ -159,6 +159,11 @@ v2ex 这类站点会间歇性开 Cloudflare 质询，Worker 抓取拿到 403。�
 网站卡片的自定义图标存在 `website.imageData` 字段：
 
 - **新图标存图床 URL**，两条来源共用同一套压缩：浏览器端缩放到 ≤256px 转成 WebP，再 POST 到 `/api/upload-image`。手动上传直接压；AI 识别出的远程图标先经 `/api/proxy-image` 取回字节（绕开跨域和防盗链，且 blob URL 同源不会污染 canvas），再走同一条压缩上传路径。
+- **没有图片时用首字图标兜底**（`letterIconHTML()`，`public/utils.js`）：标题第一个字（标题为空取域名首字符）配一块底色，
+  底色是 `styles.css` 里 `--tone-0..5` 六个低饱和色，按去掉 `www.` 的域名哈希挑，不存数据，各设备一致、改标题不变色。
+  图片加载失败（图床挂了、内网图片外网打不开）时 `script.js` 里捕获阶段的 `error` 监听换成首字图标。
+  网站弹窗已去掉 Font Awesome 图标选择器，`website.icon` 字段留在数据和 `/api/v1` 里但不再用于渲染；
+  `icon-selector.js` 只剩给分类图标选择器用的 `window.iconSets`
 - **历史 base64 数据原样保留**。渲染路径把 `imageData` 当成不透明的 `<img src>`，data URL 和 http URL 都能用，不需要迁移。
 - 图床不可用时降级为 base64 并提示用户，保证离线优先不被打破。
 - 图床地址和 token 都在服务端（`CF_PHOTOS_ENDPOINT` / `CF_PHOTOS_TOKEN`），换图床不用改代码。

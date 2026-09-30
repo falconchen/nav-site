@@ -43,6 +43,13 @@
   --success-rgb: 47, 122, 85;
   --icon-plate: #ffffff;
   --scrim: rgba(24, 22, 19, 0.34);
+  /* 首字图标的底色（letterIconHTML 按域名哈希挑一个）：赭黄、朱砂、青碧、靛青、松绿、茶褐，白字 */
+  --tone-0: #c38a24;
+  --tone-1: #c4412a;
+  --tone-2: #2f7c77;
+  --tone-3: #3b5b8c;
+  --tone-4: #557a46;
+  --tone-5: #8a5a3c;
 
   --shadow-1: 0 1px 1px rgba(28, 27, 25, 0.03), 0 1px 3px rgba(28, 27, 25, 0.05);
   --shadow-2: 0 1px 2px rgba(28, 27, 25, 0.04), 0 10px 28px -12px rgba(28, 27, 25, 0.2);
@@ -115,6 +122,12 @@
   --success-rgb: 92, 184, 138;
   --icon-plate: #f1efea;
   --scrim: rgba(0, 0, 0, 0.55);
+  --tone-0: #a8782a;
+  --tone-1: #b04632;
+  --tone-2: #2e6e6a;
+  --tone-3: #3d5680;
+  --tone-4: #4e6d42;
+  --tone-5: #7a5238;
 
   --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-2: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 32px -12px rgba(0, 0, 0, 0.6);
@@ -1251,6 +1264,28 @@ html[data-sidebar="compact"] .category-item.active > i {
   pointer-events: none;
 }
 
+/* 首字图标：铺满 .card-icon 这类定宽容器。字号按容器的 font-size 放大，
+   .card-icon 在普通、压缩、手机宫格下各自的字号已经定好，这里不用再分尺寸写 */
+.letter-icon {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-serif);
+  font-size: 1.2em;
+  font-weight: 600;
+  line-height: 1;
+  color: #fff;
+  background: var(--tone-0);
+  user-select: none;
+}
+
+.letter-icon[data-tone="1"] { background: var(--tone-1); }
+.letter-icon[data-tone="2"] { background: var(--tone-2); }
+.letter-icon[data-tone="3"] { background: var(--tone-3); }
+.letter-icon[data-tone="4"] { background: var(--tone-4); }
+.letter-icon[data-tone="5"] { background: var(--tone-5); }
+
 .card-icon img {
   width: 100%;
   height: 100%;
@@ -2292,6 +2327,23 @@ html[data-sidebar="compact"] .category-section {
   display: none;
 }
 
+/* 没有图片时上传区里的首字图标预览，和已上传图片的预览一样大 */
+.upload-letter-preview {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  flex: none;
+  overflow: hidden;
+  font-size: 26px;
+  border-radius: 14px;
+}
+
+.upload-letter-preview .letter-icon {
+  box-shadow: var(--shadow-2);
+}
+
 .uploaded-image-preview {
   position: relative;
   display: flex;
@@ -2591,14 +2643,6 @@ html[data-sidebar="compact"] .category-section {
   color: var(--accent);
   background: var(--accent-soft);
   border-color: rgba(var(--accent-rgb), 0.35);
-}
-
-#websiteModal .icon-grid {
-  --icon-item-size: 2rem;
-}
-
-#websiteModal .icon-item {
-  font-size: 14px;
 }
 
 /* 分类图标选择弹窗 */

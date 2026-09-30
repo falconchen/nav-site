@@ -12,6 +12,41 @@ function escapeHtml(value) {
         .replace(/'/g, '&#39;');
 }
 
+// 首字图标：网站没有图片图标（抓不到 favicon、内网地址、图片加载失败）时的兜底。
+// 取标题第一个字，底色从 styles.css 的 --tone-0..5 里按域名哈希挑一个：
+// 不存数据，同一网站在各设备、每次刷新颜色都一样，改标题也不变色
+const LETTER_ICON_TONES = 6;
+
+function letterIconHost(url) {
+    return String(url || '').trim()
+        .replace(/^[a-z][a-z0-9+.-]*:\/\//i, '')
+        .replace(/^www\./i, '')
+        .split(/[/?#]/)[0]
+        .toLowerCase();
+}
+
+function letterIconChar(title, url) {
+    // Array.from 按码点切，emoji 不会被拆成半个代理对
+    const char = Array.from(String(title || '').trim())[0]
+        || Array.from(letterIconHost(url))[0]
+        || '?';
+    return char.toUpperCase();
+}
+
+function letterIconTone(url, title) {
+    const key = letterIconHost(url) || String(title || '');
+    let hash = 0;
+    for (const ch of key) {
+        hash = (hash * 31 + ch.codePointAt(0)) >>> 0;
+    }
+    return hash % LETTER_ICON_TONES;
+}
+
+// 放进 .card-icon 这类定宽容器里，色块铺满容器
+function letterIconHTML(title, url) {
+    return `<span class="letter-icon" data-tone="${letterIconTone(url, title)}">${escapeHtml(letterIconChar(title, url))}</span>`;
+}
+
 // 显示通知：样式见 styles.css 的 .notification
 function showNotification(message, type = 'info') {
     const notification = document.createElement('div');
