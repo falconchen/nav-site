@@ -122,6 +122,9 @@
 - 只有 Chromium 能无点击读剪贴板；`permissions.query({name:'clipboard-read'})` 抛错（Firefox / Safari）时菜单项保持 `hidden`
 - 权限只在点开关那一下（有用户手势）请求；后台检测只在权限已是 `granted` 时读，不会无故弹权限框。
   打开开关时剪贴板里已有的网址记为已提示，不立刻弹
+- **扩展新标签页里不生效**（静默跳过，不是 bug）：导航站嵌在 iframe 里，剪贴板权限按顶层 `chrome-extension://` 源算，
+  网站上给的授权不通用；新标签页打开时焦点在地址栏，页面没焦点也读不了。要支持得由扩展申请 `clipboardRead`
+  （可选权限）自己读、再 `postMessage` 给 iframe，评估后觉得不实用，暂不做
 
 ### AI 网站识别
 
