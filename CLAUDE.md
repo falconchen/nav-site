@@ -125,6 +125,10 @@
 - **扩展新标签页里不生效**（静默跳过，不是 bug）：导航站嵌在 iframe 里，剪贴板权限按顶层 `chrome-extension://` 源算，
   网站上给的授权不通用；新标签页打开时焦点在地址栏，页面没焦点也读不了。要支持得由扩展申请 `clipboardRead`
   （可选权限）自己读、再 `postMessage` 给 iframe，评估后觉得不实用，暂不做
+- iOS（含主屏幕 PWA）读剪贴板必须点击、还要再点系统「粘贴」气泡，菜单项同样隐藏。iOS 走快捷指令：
+  打开 `/?add=<网址>`，`handleAddUrlParam()`（`script.js`）读完立刻 `replaceState` 去掉参数，
+  已收录只提示，否则 `openAddWebsiteWithUrl()` 弹窗并自动填写。设置步骤见 `doc/IOS_SHORTCUT.md`。
+  判断网址、查重、弹窗的 `parseHttpUrl()` / `isUrlCollected()` / `openAddWebsiteWithUrl()` 在 `script.js`，两个入口共用
 
 ### AI 网站识别
 

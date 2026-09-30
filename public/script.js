@@ -631,6 +631,61 @@ function openAddWebsiteModal() {
     openModal('websiteModal');
 }
 
+// 只认单个 http(s) 网址，不认裸域名（剪贴板识别、?add= 链接共用）
+function parseHttpUrl(text) {
+    const value = (text || '').trim();
+    if (!value || value.length > 2048 || /\s/.test(value)) return null;
+    if (!/^https?:\/\//i.test(value)) return null;
+    try {
+        new URL(value);
+        return value;
+    } catch (e) {
+        return null;
+    }
+}
+
+// 私密收藏也算已收录，查重规则同 visitUrlKey()
+function isUrlCollected(url) {
+    const key = visitUrlKey(url);
+    if (!key) return false;
+    return Object.values(websites).some(list =>
+        Array.isArray(list) && list.some(site => site.url && visitUrlKey(site.url) === key));
+}
+
+// 打开添加网站、填好网址并自动填写
+function openAddWebsiteWithUrl(url, message) {
+    openAddWebsiteModal();
+    const urlInput = document.getElementById('websiteUrl');
+    urlInput.value = url;
+    urlInput.dispatchEvent(new Event('input', { bubbles: true }));
+    if (message) showNotification(message, 'info');
+
+    const aiDetectBtn = document.getElementById('aiDetectBtn');
+    if (aiDetectBtn && !aiDetectBtn.disabled) aiDetectBtn.click();
+}
+
+// ?add=<网址>：iOS 快捷指令从分享菜单打开的入口。读完立刻从地址栏去掉，刷新和后退不会再弹
+function handleAddUrlParam() {
+    const params = new URLSearchParams(location.search);
+    if (!params.has('add')) return;
+
+    const raw = params.get('add');
+    params.delete('add');
+    const query = params.toString();
+    history.replaceState(history.state, '', `${location.pathname}${query ? `?${query}` : ''}${location.hash}`);
+
+    const url = parseHttpUrl(raw);
+    if (!url) {
+        showNotification('链接里的网址无效', 'error');
+        return;
+    }
+    if (isUrlCollected(url)) {
+        showNotification('这个网址已经收录过了', 'info');
+        return;
+    }
+    openAddWebsiteWithUrl(url);
+}
+
 // 删除网站功能 - 显示确认对话框
 let websiteToDelete = null;
 
@@ -2489,6 +2544,9 @@ document.addEventListener('DOMContentLoaded', async function () {
 
     // 添加滚动监听，控制浮动按钮位置
     setupFloatingButtonPosition();
+
+    // 数据和「自动填写」都就绪后再处理 ?add=
+    handleAddUrlParam();
 });
 
 // 滚动监听功能

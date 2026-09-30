@@ -23,27 +23,6 @@ async function queryClipboardPermission() {
     }
 }
 
-// 剪贴板里只有一个 http(s) 网址才算，不认裸域名
-function parseClipboardUrl(text) {
-    const value = (text || '').trim();
-    if (!value || value.length > 2048 || /\s/.test(value)) return null;
-    if (!/^https?:\/\//i.test(value)) return null;
-    try {
-        new URL(value);
-        return value;
-    } catch (e) {
-        return null;
-    }
-}
-
-// 私密收藏也算已收录，查重规则同 visitUrlKey()
-function isUrlCollected(url) {
-    const key = visitUrlKey(url);
-    if (!key) return false;
-    return Object.values(websites).some(list =>
-        Array.isArray(list) && list.some(site => site.url && visitUrlKey(site.url) === key));
-}
-
 // 用户正在做别的事时不打断
 function isUserBusy() {
     if (document.querySelector('.modal-overlay.active, .version-selection-modal, .context-menu.active, #categorySheet.active')) {
@@ -62,28 +41,17 @@ async function checkClipboardForUrl() {
         // 权限还没给时不在这里请求：无点击时弹权限框很突兀，开关打开那一下已经请求过
         if (await queryClipboardPermission() !== 'granted') return;
 
-        const url = parseClipboardUrl(await navigator.clipboard.readText());
+        const url = parseHttpUrl(await navigator.clipboard.readText());
         if (!url || url === localStorage.getItem(CLIPBOARD_LAST_KEY)) return;
         localStorage.setItem(CLIPBOARD_LAST_KEY, url);
 
         if (isUrlCollected(url) || isUserBusy()) return;
-        openAddWebsiteFromClipboard(url);
+        openAddWebsiteWithUrl(url, '已从剪贴板识别到网址');
     } catch (e) {
         // 页面失焦、权限被收回等都会抛错，静默跳过
     } finally {
         clipboardChecking = false;
     }
-}
-
-function openAddWebsiteFromClipboard(url) {
-    openAddWebsiteModal();
-    const urlInput = document.getElementById('websiteUrl');
-    urlInput.value = url;
-    urlInput.dispatchEvent(new Event('input', { bubbles: true }));
-    showNotification('已从剪贴板识别到网址', 'info');
-
-    const aiDetectBtn = document.getElementById('aiDetectBtn');
-    if (aiDetectBtn && !aiDetectBtn.disabled) aiDetectBtn.click();
 }
 
 // focus 和 visibilitychange 常常一起来，合并成一次
@@ -118,7 +86,7 @@ async function toggleClipboardWatch() {
         // 手势内调用一次，Chrome 在这里弹权限框
         const text = await navigator.clipboard.readText();
         // 打开时剪贴板里已有的内容不弹，免得刚打开就冒出弹窗
-        const url = parseClipboardUrl(text);
+        const url = parseHttpUrl(text);
         if (url) localStorage.setItem(CLIPBOARD_LAST_KEY, url);
     } catch (e) {
         showNotification('没有获得读取剪贴板的权限', 'error');
