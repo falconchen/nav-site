@@ -81,3 +81,48 @@ export async function uploadToPhotoHost(env, blob, filename) {
 
     return data.url;
 }
+
+// 按内容去重的映射 imghash_<sha256> → 图床地址存在 KV。图床上的文件万一被手动删了，映射最多坏这么久
+const DEDUPE_TTL_SECONDS = 180 * 24 * 60 * 60;
+
+async function sha256Hex(bytes) {
+    const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
+    return Array.from(digest, (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+/**
+ * 按图片内容去重后上传：同样的字节只在图床存一份，返回同一个地址。
+ *
+ * 映射是全局的、不分用户：拿到映射的前提是手里已经有同样的字节，不泄露什么；
+ * 地址是服务端自己上传后写进去的，调用方伪造不了。KV 出问题时退化成普通上传。
+ * 并发上传同一张图可能各传一份，之后都会命中其中一个，可以接受。
+ *
+ * @returns {Promise<{url: string, deduped: boolean}>}
+ */
+export async function uploadDedupedToPhotoHost(env, blob, filename) {
+    const bytes = await blob.arrayBuffer();
+    const kv = env.USER_SESSIONS;
+    let key = null;
+
+    try {
+        key = `imghash_${await sha256Hex(bytes)}`;
+        const cached = kv ? await kv.get(key) : null;
+        // 只认当前图床域名下的地址，换了图床旧映射自然失效
+        if (cached && new URL(cached).origin === resolvePhotoHost(env)) {
+            return { url: cached, deduped: true };
+        }
+    } catch (error) {
+        console.warn('图片去重查询失败，照常上传:', error.message);
+    }
+
+    const url = await uploadToPhotoHost(env, new Blob([bytes], { type: blob.type }), filename);
+
+    if (kv && key) {
+        try {
+            await kv.put(key, url, { expirationTtl: DEDUPE_TTL_SECONDS });
+        } catch (error) {
+            console.warn('图片去重映射写入失败:', error.message);
+        }
+    }
+    return { url, deduped: false };
+}

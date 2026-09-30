@@ -39,7 +39,7 @@
 - `server/api/proxy-image.js` - 图片代理用于解决 CORS
 - `server/api/upload-image.js` - 图标上传中转到 cf-photos 图床，返回公开 URL
 - `server/lib/fetch-remote-image.js` - 带防盗链 Referer 的远程图片抓取（代理与转存共用）
-- `server/lib/photo-host.js` - cf-photos 图床上传（网页端上传与 v1 转存共用）
+- `server/lib/photo-host.js` - cf-photos 图床上传，按内容哈希去重（网页端上传与 v1 转存共用）
 - `server/lib/rehost-icon.js` - `/api/v1` 保存时把图标转存图床
 - `server/lib/session-auth.js` - 网页登录 JWT 校验（验签 + 核对 KV 会话），user-data 和 v1 共用
 - `server/lib/personal-tokens.js` - 个人令牌的存储与校验
@@ -167,6 +167,10 @@ v2ex 这类站点会间歇性开 Cloudflare 质询，Worker 抓取拿到 403。�
   网站弹窗已去掉 Font Awesome 图标选择器，`website.icon` 字段留在数据和 `/api/v1` 里但不再用于渲染；
   `icon-selector.js` 只剩给分类图标选择器用的 `window.iconSets`
   扩展弹窗也用同一套首字图标（`extension/lib/letter-icon.js` 抄了规则，`popup.css` 抄了色板），改一边要同步另一边
+- **图床上传按内容去重**：所有上传都走 `uploadDedupedToPhotoHost()`（`server/lib/photo-host.js`），对上传的字节算 SHA-256，
+  KV 里存 `imghash_<hash>` → 图床地址（180 天 TTL，全局不分用户），命中就不再上传，`/api/upload-image` 响应带 `deduped`。
+  哈希的是交给图床的字节：浏览器压出的 WebP 同一种浏览器能命中，Chrome 和 Firefox 编码结果不同会各存一份；
+  映射只认当前图床域名下的地址，换了图床自动失效；KV 出错时退化成普通上传
 - **历史 base64 数据原样保留**。渲染路径把 `imageData` 当成不透明的 `<img src>`，data URL 和 http URL 都能用，不需要迁移。
 - 图床不可用时降级为 base64 并提示用户，保证离线优先不被打破。
 - 图床地址和 token 都在服务端（`CF_PHOTOS_ENDPOINT` / `CF_PHOTOS_TOKEN`），换图床不用改代码。

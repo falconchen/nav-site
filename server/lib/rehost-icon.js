@@ -1,5 +1,5 @@
 import { fetchRemoteImage } from './fetch-remote-image.js';
-import { ALLOWED_MIME, resolvePhotoHost, uploadToPhotoHost } from './photo-host.js';
+import { ALLOWED_MIME, resolvePhotoHost, uploadDedupedToPhotoHost } from './photo-host.js';
 
 /**
  * /api/v1 保存网站时把图标转存到图床
@@ -88,7 +88,7 @@ export async function rehostIcon(env, imageData) {
         if (!ALLOWED_MIME.has(mime)) throw new Error(`不支持的图片类型: ${mime || '未知'}`);
         if (bytes.byteLength === 0 || bytes.byteLength > MAX_ICON_BYTES) throw new Error('图标为空或太大');
 
-        const url = await uploadToPhotoHost(env, new Blob([bytes], { type: mime }), `icon.${MIME_EXTENSION[mime]}`);
+        const { url } = await uploadDedupedToPhotoHost(env, new Blob([bytes], { type: mime }), `icon.${MIME_EXTENSION[mime]}`);
         return { imageData: url, warning: null };
     } catch (error) {
         console.warn('图标转存图床失败，保留原地址:', imageData.slice(0, 120), error.message);

@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { isRateLimited } from '../lib/rate-limit.js';
-import { ALLOWED_MIME, uploadToPhotoHost } from '../lib/photo-host.js';
+import { ALLOWED_MIME, uploadDedupedToPhotoHost } from '../lib/photo-host.js';
 
 const app = new Hono();
 
@@ -71,10 +71,10 @@ app.post('/upload-image', async (c) => {
             return unsupportedTypeResponse(c, mimeCheck);
         }
 
-        const url = await uploadToPhotoHost(c.env, file, file.name || 'icon.webp');
-        console.log('图床上传成功:', url);
+        const { url, deduped } = await uploadDedupedToPhotoHost(c.env, file, file.name || 'icon.webp');
+        console.log(deduped ? '图床已有同样的图片:' : '图床上传成功:', url);
 
-        return c.json({ success: true, url });
+        return c.json({ success: true, url, deduped });
     } catch (error) {
         console.error('上传图片到图床失败:', error);
         return c.json({ success: false, error: '上传失败: ' + error.message }, 502);

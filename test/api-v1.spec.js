@@ -386,6 +386,19 @@ describe('个人令牌 + REST API v1', () => {
             expect(saved.websites.tools.find((site) => site.title === '示例').imageData).toBe(HOSTED);
         });
 
+        it('两个网站用同一个图标，图床只传一次', async () => {
+            const first = await save('https://icons.example/favicon.ico');
+            const { token } = await createPat('second');
+            const res = await call('/api/v1/websites', {
+                method: 'POST', token,
+                body: { url: 'https://d.example/', ...base, imageData: 'https://icons.example/favicon.ico' }
+            });
+            const second = await res.json();
+
+            expect(second.website.imageData).toBe(first.website.imageData);
+            expect(uploads).toHaveLength(1);
+        });
+
         it('base64 图标解码后上传', async () => {
             const body = await save('data:image/png;base64,iVBORw0KGgo=');
             expect(body.website.imageData).toBe(HOSTED);

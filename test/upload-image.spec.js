@@ -54,7 +54,8 @@ describe('POST /upload-image', () => {
         expect(res.status).toBe(200);
         await expect(res.json()).resolves.toEqual({
             success: true,
-            url: `${PHOTO_HOST}/i/2026/09/21/AbCdEf12.webp`
+            url: `${PHOTO_HOST}/i/2026/09/21/AbCdEf12.webp`,
+            deduped: false
         });
 
         // 转发到图床时带了 token，且文件字段名是 image
@@ -62,6 +63,70 @@ describe('POST /upload-image', () => {
         expect(url).toBe(`${PHOTO_HOST}/upload`);
         expect(init.headers.Authorization).toBe('Bearer test-token');
         expect(init.body.get('image')).toBeInstanceOf(Blob);
+    });
+
+    describe('按内容去重', () => {
+        function mockPhotoHost() {
+            let n = 0;
+            fetchSpy.mockImplementation(async () => Response.json(
+                { result: 'success', url: `${PHOTO_HOST}/i/${++n}.webp` }, { status: 201 }
+            ));
+        }
+
+        function upload(env, bytes) {
+            const blob = new Blob([new Uint8Array(bytes)], { type: 'image/webp' });
+            return uploadImageApi.request('/upload-image', createUploadRequest(blob), env).then((res) => res.json());
+        }
+
+        it('同样的字节第二次不再上传，返回同一个地址', async () => {
+            mockPhotoHost();
+            const env = createEnv();
+            const first = await upload(env, [1, 2, 3]);
+            const second = await upload(env, [1, 2, 3]);
+
+            expect(first).toMatchObject({ url: `${PHOTO_HOST}/i/1.webp`, deduped: false });
+            expect(second).toMatchObject({ url: `${PHOTO_HOST}/i/1.webp`, deduped: true });
+            expect(fetchSpy).toHaveBeenCalledTimes(1);
+            expect([...env.USER_SESSIONS.store.keys()].some((key) => /^imghash_[0-9a-f]{64}$/.test(key))).toBe(true);
+        });
+
+        it('不同的字节各传一份', async () => {
+            mockPhotoHost();
+            const env = createEnv();
+            await upload(env, [1, 2, 3]);
+            const other = await upload(env, [4, 5, 6]);
+
+            expect(other).toMatchObject({ url: `${PHOTO_HOST}/i/2.webp`, deduped: false });
+            expect(fetchSpy).toHaveBeenCalledTimes(2);
+        });
+
+        it('映射指向别的域名（比如换了图床）时不采用，重新上传', async () => {
+            mockPhotoHost();
+            const env = createEnv();
+            await upload(env, [1, 2, 3]);
+            for (const key of env.USER_SESSIONS.store.keys()) {
+                if (key.startsWith('imghash_')) env.USER_SESSIONS.store.set(key, 'https://old-host.example/i/x.webp');
+            }
+            const again = await upload(env, [1, 2, 3]);
+
+            expect(again).toMatchObject({ url: `${PHOTO_HOST}/i/2.webp`, deduped: false });
+        });
+
+        it('KV 出错时照常上传', async () => {
+            mockPhotoHost();
+            const kv = createKvStub();
+            kv.get = async (key) => {
+                if (key.startsWith('imghash_')) throw new Error('KV 挂了');
+                return null;
+            };
+            kv.put = async (key, value) => {
+                if (key.startsWith('imghash_')) throw new Error('KV 挂了');
+                kv.store.set(key, value);
+            };
+            const res = await upload(createEnv({ USER_SESSIONS: kv }), [1, 2, 3]);
+
+            expect(res).toMatchObject({ success: true, url: `${PHOTO_HOST}/i/1.webp`, deduped: false });
+        });
     });
 
     it('拒绝白名单外的类型（SVG 不允许直传图床）', async () => {
