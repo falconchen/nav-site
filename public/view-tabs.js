@@ -191,8 +191,11 @@ function setupTabOrder() {
 
     document.getElementById('tabOrderReset')?.addEventListener('click', () => applyTabOrder([...VIEW_TABS]));
 
+    // 只在 tab 按钮上右键 / 长按才弹出，tab 栏右边的空白处保持浏览器默认行为
     const tabBar = document.querySelector('.view-tabs');
+    const onTab = (e) => !!e.target.closest('.view-tab');
     tabBar.addEventListener('contextmenu', (e) => {
+        if (!onTab(e)) return;
         e.preventDefault();
         openTabOrderModal();
     });
@@ -204,7 +207,7 @@ function setupTabOrder() {
     tabBar.addEventListener('touchstart', (e) => {
         // 安卓长按还会触发 contextmenu，之后不一定有 click 来清标记，每次按下先清掉
         delete tabBar.dataset.longPressed;
-        if (e.touches.length !== 1) return;
+        if (e.touches.length !== 1 || !onTab(e)) return;
         pressStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
         clearTimeout(pressTimer);
         pressTimer = setTimeout(() => {

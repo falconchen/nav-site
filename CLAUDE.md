@@ -83,7 +83,7 @@
   结果不按分类分组，按添加时间从新到旧平铺（`renderSearchResults()`，和最近添加共用 `compareByAddedTimeDesc`），
   `#search` 也是虚拟视图，跟着 `renderVirtualViews()` 重渲染；搜索中点侧边栏分类会结束搜索并跳到该分类
 - 移动端左右滑动只在松手时判断一次（不跟手），每个 tab 各自记住滚动位置
-- tab 顺序可调：tab 栏右键或长按打开「调整分区顺序」弹窗，顺序只存本机 localStorage `tabOrder`（和默认顺序相同时删掉）。
+- tab 顺序可调：在 tab 按钮上右键或长按打开（tab 栏右侧空白处不弹）「调整分区顺序」弹窗，顺序只存本机 localStorage `tabOrder`（和默认顺序相同时删掉）。
   `index.html` 紧跟 tab 栏的内联脚本在首屏前重排 DOM，所以 JS 里当前顺序一律用 `getTabOrder()` 读 DOM，滑动顺序跟着变，不要再按 `VIEW_TABS` 的下标算
 - 小屏（≤768px）五个 tab 等宽、不显示图标，只显示两字简称（最近 / 常用 / 关注 / 全部 / 私密，`.tab-label-short`），桌面端显示全称（`.tab-label`）
 - 特别关注卡片右上角的星星是真实按钮（`.card-pin-btn`，每张卡都渲染，靠 `.pinned` 类显示），点击取消关注
