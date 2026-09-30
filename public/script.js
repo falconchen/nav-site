@@ -2503,6 +2503,7 @@ document.addEventListener('DOMContentLoaded', async function () {
 
             activeModals.forEach(modal => {
                 const modalId = modal.id;
+                if (modal.hasAttribute('data-required')) return;
 
                 // 根据模态框ID判断使用哪个关闭函数
                 if (modalId === 'deleteCategoryModal') {

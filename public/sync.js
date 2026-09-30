@@ -25,6 +25,62 @@ function clearPendingCloudSave() {
     localStorage.removeItem(PENDING_SAVE_KEY);
 }
 
+// 没登录时改过数据（导入、增删网站等）记在这里。登录后云端也有数据时必须让用户选留哪份：
+// 这些改动从没上传过，直接拿云端覆盖就找不回来了。选之前既不上传也不下载
+const LOGGED_OUT_CHANGES_KEY = 'loggedOutChanges';
+
+function hasLoggedOutChanges() {
+    return !!localStorage.getItem(LOGGED_OUT_CHANGES_KEY);
+}
+
+function countLocalWebsites() {
+    return Object.values(websites || {}).reduce((sum, sites) => sum + (Array.isArray(sites) ? sites.length : 0), 0);
+}
+
+// 登录后处理登录前的本机改动。云端没数据直接上传本机的；有数据弹窗二选一
+async function resolveLoggedOutChanges() {
+    if (!authToken || document.getElementById('loginDataChoiceModal').classList.contains('active')) return;
+
+    let status;
+    try {
+        const response = await fetch('/api/user-data/status', {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        if (!response.ok) return; // 留着标记，下次检查再来
+        status = await response.json();
+    } catch (error) {
+        console.error('❌ Error checking cloud data after login:', error);
+        return;
+    }
+    if (!authToken || !hasLoggedOutChanges()) return;
+
+    const useLocal = () => {
+        localStorage.removeItem(LOGGED_OUT_CHANGES_KEY);
+        localStorage.setItem(PENDING_SAVE_KEY, String(Date.now()));
+        saveUserData();
+    };
+
+    if (!status.hasData) {
+        useLocal();
+        return;
+    }
+
+    const cloudTime = status.lastUpdated ? new Date(status.lastUpdated).toLocaleString('zh-CN') : '未知时间';
+    document.getElementById('loginDataChoiceText').textContent =
+        `本机有 ${countLocalWebsites()} 个网站；云端数据最后更新于 ${cloudTime}。`;
+
+    document.getElementById('loginDataUseLocalBtn').onclick = () => {
+        closeModal('loginDataChoiceModal');
+        useLocal();
+    };
+    document.getElementById('loginDataUseCloudBtn').onclick = () => {
+        closeModal('loginDataChoiceModal');
+        localStorage.removeItem(LOGGED_OUT_CHANGES_KEY);
+        loadUserData(true);
+    };
+    openModal('loginDataChoiceModal');
+}
+
 // 有没传上去的改动就立刻重传，返回是否触发了上传
 function flushPendingCloudSave() {
     if (!authToken || !hasPendingCloudSave()) return false;
@@ -594,6 +650,12 @@ async function checkForCloudUpdates() {
         return;
     }
 
+    // 登录前本机改过数据：先让用户决定留哪份，决定之前不下载
+    if (hasLoggedOutChanges()) {
+        await resolveLoggedOutChanges();
+        return;
+    }
+
     // 本机有没传上去的改动：先重传，不下载。整份覆盖模式下本机的改动优先，
     // 被覆盖的云端版本还在历史版本里
     if (flushPendingCloudSave()) return;
@@ -685,8 +747,11 @@ function handleVisibilityChange() {
 document.addEventListener('dataChanged', function () {
     if (!localStorage.getItem('authToken')) {
         console.log('📝 Data changed event triggered, but no auth token available');
+        localStorage.setItem(LOGGED_OUT_CHANGES_KEY, String(Date.now()));
         return;
     }
+    // 登录前的改动还没决定留哪份，先不上传，免得不问就覆盖了云端
+    if (hasLoggedOutChanges()) return;
     localStorage.setItem(PENDING_SAVE_KEY, String(Date.now()));
     if (!authToken) return;
 

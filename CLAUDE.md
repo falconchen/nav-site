@@ -225,6 +225,10 @@ v2ex 这类站点会间歇性开 Cloudflare 质询，Worker 抓取拿到 403。�
 - 本机有改动没传上去时 localStorage 留着 `pendingCloudSave`（上传失败、关页面没发出去都会留下）：
   联网、页面回到前台、下次打开时重传，期间 `checkForCloudUpdates()` 不下载云端数据，免得被别的设备的版本冲掉。
   新登录、退出登录、恢复历史版本时清掉
+- 未登录时改过数据（导入、增删网站等）记 localStorage `loggedOutChanges`。登录后 `checkForCloudUpdates()` 先走
+  `resolveLoggedOutChanges()`：云端没数据直接上传本机的；有数据弹 `#loginDataChoiceModal` 让用户选「用本机 / 用云端」，
+  选之前不上传也不下载，弹窗 Esc 关不掉（`data-required`）。否则登录后会被云端整份覆盖，这些改动从没上传过，历史版本里也找不回
+- 导入数据（`importData()`）必须走 `saveNavData()`：加载时优先读 IndexedDB，只写 localStorage 刷新后会读回旧数据
 - 「历史版本」在用户菜单里（`loadUserDataFromCloud()`），选一个版本覆盖本地
 - 版本历史存储在 KV 中，30 天 TTL
 

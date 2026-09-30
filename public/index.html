@@ -479,6 +479,29 @@
         </div>
     </div>
 
+    <!-- 登录前本机有改动、云端也有数据时，让用户选留哪份。必须二选一，Esc 不关 -->
+    <div class="modal-overlay" id="loginDataChoiceModal" data-required>
+        <div class="modal" style="max-width: 420px;">
+            <div class="modal-header">
+                <h3 class="modal-title">保留哪份数据？</h3>
+            </div>
+
+            <div class="confirm-body">
+                <span class="confirm-icon"><i class="fas fa-cloud"></i></span>
+                <div>
+                    <p class="confirm-title">登录前本机的数据有改动，云端也有数据</p>
+                    <p class="confirm-text" id="loginDataChoiceText"></p>
+                    <p class="confirm-text muted">两份数据整份覆盖，不合并。选本机时，云端当前的数据会留在历史版本里，可以恢复。</p>
+                </div>
+            </div>
+
+            <div class="form-buttons">
+                <button type="button" class="btn btn-secondary" id="loginDataUseCloudBtn">用云端数据</button>
+                <button type="button" class="btn btn-primary" id="loginDataUseLocalBtn">用本机数据</button>
+            </div>
+        </div>
+    </div>
+
     <!-- 确认删除分类对话框 -->
     <div class="modal-overlay" id="deleteCategoryModal">
         <div class="modal" style="max-width: 400px;">
