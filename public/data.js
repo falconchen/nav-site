@@ -797,58 +797,39 @@ function exportData() {
 // 从JSON文件导入数据
 function importData(jsonFile) {
   return new Promise((resolve, reject) => {
-    try {
-      const reader = new FileReader();
+    const reader = new FileReader();
 
-      reader.onload = function (event) {
-        try {
-          // 解析JSON
-          const importedData = JSON.parse(event.target.result);
+    reader.onload = async function (event) {
+      try {
+        const importedData = JSON.parse(event.target.result);
 
-          // 验证数据格式
-          if (!importedData.categories || !importedData.websites) {
-            throw new Error('导入的数据格式不正确，缺少必要的字段');
-          }
-
-          // 更新全局数据
-          window.categories = importedData.categories;
-          window.websites = importedData.websites;
-          categories = importedData.categories;
-          websites = importedData.websites;
-
-          // 确保固定分类存在
-          ensureFixedCategories();
-
-          // 保存到localStorage
-          localStorage.setItem('navSiteCategories', JSON.stringify(categories));
-          localStorage.setItem('navSiteWebsites', JSON.stringify(websites));
-
-          // 刷新UI
-          if (typeof renderCategoryList === 'function') {
-            renderCategoryList();
-          }
-
-          if (typeof loadWebsitesFromData === 'function') {
-            loadWebsitesFromData();
-          }
-
-          resolve(true);
-        } catch (error) {
-          console.error('解析导入数据出错:', error);
-          reject(error);
+        if (!Array.isArray(importedData.categories) || !importedData.websites || typeof importedData.websites !== 'object') {
+          throw new Error('导入的数据格式不正确，缺少必要的字段');
         }
-      };
 
-      reader.onerror = function () {
-        reject(new Error('读取文件时出错'));
-      };
+        window.categories = importedData.categories;
+        window.websites = importedData.websites;
+        categories = importedData.categories;
+        websites = importedData.websites;
 
-      // 开始读取文件
-      reader.readAsText(jsonFile);
-    } catch (error) {
-      console.error('导入数据出错:', error);
-      reject(error);
-    }
+        ensureFixedCategories();
+
+        // 走 saveNavData：加载时优先读 IndexedDB，只写 localStorage 刷新后会读回旧数据；
+        // 它还会触发 dataChanged，登录时记下待上传标记，免得被云端旧版本冲掉
+        await saveNavData();
+
+        resolve(true);
+      } catch (error) {
+        console.error('解析导入数据出错:', error);
+        reject(error);
+      }
+    };
+
+    reader.onerror = function () {
+      reject(new Error('读取文件时出错'));
+    };
+
+    reader.readAsText(jsonFile);
   });
 }
 
@@ -874,7 +855,7 @@ function createImportExportUI() {
 
   const importBtn = document.createElement('label');
   importBtn.className = 'footer-link import-data-btn';
-  importBtn.innerHTML = '<i class="fas fa-upload"></i> 导入数据 <input type="file" id="import-file" accept=".json" style="display: none;">';
+  importBtn.innerHTML = '<span class="import-data-label"><i class="fas fa-upload"></i> 导入数据</span><input type="file" id="import-file" accept=".json" style="display: none;">';
   importBtn.style.cursor = 'pointer';
 
   // 添加到footer链接区域
@@ -887,37 +868,27 @@ function createImportExportUI() {
     exportData();
   });
 
+  // 只改文字，不重建 input，否则监听器跟着丢
+  const importLabel = importBtn.querySelector('.import-data-label');
   const importFile = importBtn.querySelector('#import-file');
+  const originalLabel = importLabel.innerHTML;
   importFile.addEventListener('change', async (event) => {
     const file = event.target.files[0];
+    // 清空后再选同一个文件也能触发 change
+    event.target.value = '';
     if (!file) return;
 
     try {
-      // 显示加载中
-      const originalText = importBtn.innerHTML;
-      importBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 导入中...';
-
-      // 导入数据
+      importLabel.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 导入中...';
       await importData(file);
+      importLabel.innerHTML = '<i class="fas fa-check"></i> 导入成功';
 
-      // 导入成功
-      importBtn.innerHTML = '<i class="fas fa-check"></i> 导入成功';
-      setTimeout(() => {
-        importBtn.innerHTML = originalText;
-      }, 2000);
-
-      // 刷新页面
       setTimeout(() => {
         window.location.reload();
       }, 1000);
     } catch (error) {
       alert('导入数据失败: ' + error.message);
-
-      // 重置按钮
-      importBtn.innerHTML = '<i class="fas fa-upload"></i> 导入数据 <input type="file" id="import-file" accept=".json" style="display: none;">';
-
-      // 重新绑定事件
-      document.getElementById('import-file').addEventListener('change', arguments.callee);
+      importLabel.innerHTML = originalLabel;
     }
   });
 }
