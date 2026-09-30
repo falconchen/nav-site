@@ -99,7 +99,8 @@ async function toggleClipboardWatch() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // 浏览器不支持就不显示开关
+    // 浏览器不支持就不显示开关。嵌在 iframe 里（扩展新标签页）也不显示：权限按顶层页面算，焦点又在地址栏，读不到
+    if (window.self !== window.top) return;
     if (await queryClipboardPermission() === null) return;
 
     document.querySelectorAll('.clipboard-menu-item').forEach(item => { item.hidden = false; });
