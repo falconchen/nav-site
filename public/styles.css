@@ -2125,7 +2125,7 @@ html[data-sidebar="compact"] .category-section {
 /* ---------- 添加 / 编辑网站弹窗 ---------- */
 
 .website-modal {
-  max-width: 560px;
+  max-width: 600px;
   padding: 28px 32px 26px;
 }
 
