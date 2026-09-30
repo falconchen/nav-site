@@ -9,7 +9,7 @@
 - 顶部五个分区：全部网站、最近添加、访问最多、特别关注、私密收藏。分区顺序可在 tab 栏右键或长按调整
 - 「全部网站」按分类展示，左侧目录可跳转，侧边栏支持普通 / 压缩两种模式
 - 「访问最多」按访问次数和最近程度（frecency）排序，访问记录只存在本机
-- 搜索始终搜全部网站，按 `/` 聚焦搜索框
+- 搜索始终搜全部网站（不含私密收藏），按 `/` 聚焦搜索框；输入关键词后用 `↓` / `↑` 选择结果，`Enter` 在新标签页打开
 - 手机端：卡片是图标宫格，长按弹出菜单，左右滑动切换分区，可添加到主屏幕
 
 **管理**
@@ -100,6 +100,7 @@ npm run build        # 构建到 dist/
 
 ## 文档
 
+- [功能待办](doc/TODO.md)
 - [REST API v1](doc/REST_API.md)、[测试记录](doc/REST_API_TESTING.md)
 - [登录配置](doc/AUTH_SETUP.md)、[快速配置](doc/QUICK_SETUP.md)
 - [环境变量](doc/ENV_VARIABLES_GUIDE.md)、[环境隔离](doc/ENVIRONMENT_ISOLATION_GUIDE.md)、[安全配置](doc/SECURITY_CONFIG_GUIDE.md)

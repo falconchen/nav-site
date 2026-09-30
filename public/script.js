@@ -1437,6 +1437,7 @@ function renderRecentCategory() {
 function renderSearchResults() {
     const container = document.getElementById('search-cards');
     if (!container) return;
+    clearSearchSelection();
     const searchTerm = (document.querySelector('.search-box')?.value || '').toLowerCase().trim();
     if (!searchTerm) {
         container.innerHTML = '';
@@ -2724,7 +2725,16 @@ function updateCategoryDropdown() {
 }
 
 // 更新搜索功能
+function clearSearchSelection() {
+    document.querySelectorAll('#search-cards .keyboard-selected').forEach(card => {
+        card.classList.remove('keyboard-selected');
+    });
+}
+
 const searchBox = document.querySelector('.search-box');
+let searchComposing = false;
+searchBox.addEventListener('compositionstart', () => { searchComposing = true; });
+searchBox.addEventListener('compositionend', () => { searchComposing = false; });
 searchBox.addEventListener('input', function () {
     // 搜索始终针对全部网站：有关键词时临时显示搜索结果面板，清空后回到原 tab
     const searching = searchBox.value.trim() !== '';
@@ -2767,11 +2777,40 @@ searchToggle.addEventListener('click', () => {
 
 // 没输入内容就离开搜索框时自动收起；有关键词时保留，方便滚动浏览结果
 searchBox.addEventListener('blur', () => {
+    clearSearchSelection();
     if (!searchBox.value) closeSearchBar();
 });
 
 searchBox.addEventListener('keydown', e => {
-    if (e.key === 'Escape') closeSearchBar();
+    // keyCode 229 兼容输入法确认时 isComposing 已提前变为 false 的浏览器。
+    if (searchComposing || e.isComposing || e.keyCode === 229) return;
+    if (e.key === 'Escape') {
+        closeSearchBar();
+        return;
+    }
+    if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+    if (!document.body.classList.contains('searching') ||
+        document.querySelector('.modal-overlay.active, .context-menu.active')) return;
+    if (!['ArrowDown', 'ArrowUp', 'Enter'].includes(e.key)) return;
+
+    const cards = [...document.querySelectorAll('#search-cards .website-card')];
+    if (!cards.length) return;
+    const index = cards.findIndex(card => card.classList.contains('keyboard-selected'));
+    if (e.key === 'Enter') {
+        if (index < 0) return;
+        e.preventDefault();
+        // 复用鼠标打开逻辑，包括新标签页打开与访问统计；长按 Enter 不重复打开。
+        if (!e.repeat) cards[index].click();
+        return;
+    }
+
+    e.preventDefault();
+    const next = index < 0
+        ? (e.key === 'ArrowDown' ? 0 : cards.length - 1)
+        : Math.max(0, Math.min(cards.length - 1, index + (e.key === 'ArrowDown' ? 1 : -1)));
+    clearSearchSelection();
+    cards[next].classList.add('keyboard-selected');
+    cards[next].scrollIntoView({ block: 'nearest', inline: 'nearest' });
 });
 
 

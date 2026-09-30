@@ -1240,6 +1240,12 @@ html[data-sidebar="compact"] .category-item.active > i {
   transition-duration: 0.1s;
 }
 
+#search-cards .website-card.keyboard-selected {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  scroll-margin-block: 120px 24px;
+}
+
 .card-header {
   display: flex;
   align-items: center;
