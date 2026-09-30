@@ -326,85 +326,74 @@
 
     <!-- 添加/编辑网站模态框 -->
     <div class="modal-overlay" id="websiteModal">
-        <div class="modal">
+        <div class="modal website-modal">
             <div class="modal-header">
                 <h3 class="modal-title" id="modalTitle">添加网站</h3>
-                <button class="modal-close" onclick="closeModal('websiteModal')">
+                <button class="modal-close" onclick="closeModal('websiteModal')" aria-label="关闭">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
 
             <form id="websiteForm" onsubmit="event.preventDefault(); submitWebsiteForm();">
                 <div class="form-group">
-                    <label class="form-label" for="websiteUrl">网址链接 *</label>
-                    <div class="input-group">
+                    <label class="form-label" for="websiteUrl">网址</label>
+                    <div class="url-row">
                         <input type="url" id="websiteUrl" class="form-input" placeholder="https://example.com" required>
                         <button type="button" id="aiDetectBtn" class="ai-detect-btn" disabled>
-                            <i class="fas fa-wand-magic"></i> 自动填写
+                            <i class="fas fa-wand-magic-sparkles"></i> 自动填写
                         </button>
                     </div>
                 </div>
 
-                <div class="form-row" style="margin-top:16px;">
-                    <div class="form-left">
-                        <div class="form-group">
-                            <label class="form-label" for="websiteName">网站名称 *</label>
-                            <input type="text" id="websiteName" class="form-input" placeholder="请输入网站名称" required>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label" for="websiteCategory">所属分类 *</label>
-                            <select id="websiteCategory" class="form-select" required>
-                                <option value="">请选择分类</option>
-                                <!-- 分类选项将由JavaScript动态加载 -->
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <div class="checkbox-container">
-                                <input type="checkbox" id="websitePinned" class="form-checkbox">
-                                <label for="websitePinned" class="checkbox-label">
-                                    <i class="fas fa-star"></i> 特别关注
-                                </label>
-                            </div>
-                            <div class="checkbox-container">
-                                <input type="checkbox" id="websitePrivate" class="form-checkbox">
-                                <label for="websitePrivate" class="checkbox-label">
-                                    <i class="fas fa-lock"></i> 私密收藏
-                                </label>
-                            </div>
-                            <div class="checkbox-container">
-                                <input type="checkbox" id="websiteHideDescription" class="form-checkbox">
-                                <label for="websiteHideDescription" class="checkbox-label" title="网站照常显示、可以搜索，只有描述默认遮住，适合在描述里记账号信息">
-                                    <i class="fas fa-eye-slash"></i> 隐藏描述
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="icon-edit-group">
-
-                        <div class="file-upload-area" id="iconUploadArea">
-                            <div class="upload-letter-preview"><i class="fas fa-cloud-upload-alt upload-icon"></i></div>
-                            <div class="upload-text">点击或拖入图片<br>替换图标</div>
-                        </div>
-                        <input type="file" id="iconFile" class="file-input" accept="image/*">
-                        <!-- 图片图标的 URL 存在 dataset.imageData 里 -->
-                        <input type="hidden" id="websiteIcon">
-                    </div>
+                <div class="form-group">
+                    <label class="form-label" for="websiteName">标题</label>
+                    <input type="text" id="websiteName" class="form-input" placeholder="网站名称" required>
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label" for="websiteDescription">简短描述</label>
-                    <textarea id="websiteDescription" class="form-textarea" placeholder="请输入网站描述（最多2行）"></textarea>
+                    <label class="form-label" for="websiteCategory">分类</label>
+                    <select id="websiteCategory" class="form-select" required>
+                        <option value="">请选择分类</option>
+                        <!-- 分类选项将由JavaScript动态加载 -->
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="websiteDescription">描述</label>
+                    <textarea id="websiteDescription" class="form-textarea" placeholder="一句话介绍这个网站"></textarea>
+                </div>
+
+                <!-- 三个标记：勾选框藏起来，整块标签当开关用。私密收藏和另外两项互斥，见 syncPrivateCheckbox() -->
+                <div class="option-chips" role="group" aria-label="标记">
+                    <label class="option-chip" for="websitePinned">
+                        <input type="checkbox" id="websitePinned">
+                        <i class="fas fa-star"></i> 特别关注
+                    </label>
+                    <label class="option-chip" for="websitePrivate" title="只在「私密收藏」里显示，卡片默认模糊">
+                        <input type="checkbox" id="websitePrivate">
+                        <i class="fas fa-lock"></i> 私密收藏
+                    </label>
+                    <label class="option-chip" for="websiteHideDescription" title="网站照常显示、可以搜索，只有描述默认遮住，适合在描述里记账号信息">
+                        <input type="checkbox" id="websiteHideDescription">
+                        <i class="fas fa-eye-slash"></i> 隐藏描述
+                    </label>
+                </div>
+
+                <!-- 图标：点色块或拖入图片替换；没有图片时是标题首字 -->
+                <div class="icon-row" id="iconRow">
+                    <button type="button" class="icon-tile" id="iconUploadArea" title="点击或拖入图片更换图标" aria-label="上传网站图标"></button>
+                    <div class="icon-row-text">
+                        <div class="icon-row-title">网站图标</div>
+                        <div class="icon-row-hint" id="iconHint"></div>
+                    </div>
+                    <input type="file" id="iconFile" class="file-input" accept="image/*">
+                    <!-- 图片图标的 URL 存在 dataset.imageData 里 -->
+                    <input type="hidden" id="websiteIcon">
                 </div>
 
                 <div class="form-buttons">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal('websiteModal')">
-                        <i class="fas fa-times"></i>
-                        取消
-                    </button>
-                    <button type="submit" class="btn btn-primary" id="submitBtn">
-                        <i class="fas fa-plus"></i>
-                        添加网站
-                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('websiteModal')">取消</button>
+                    <button type="submit" class="btn btn-primary" id="submitBtn">保存</button>
                 </div>
             </form>
         </div>

@@ -238,7 +238,13 @@ document.addEventListener('error', (e) => {
     const img = e.target;
     if (!(img instanceof HTMLImageElement)) return;
     const cardIcon = img.parentElement;
-    if (!cardIcon || !cardIcon.classList.contains('card-icon')) return;
+    if (!cardIcon) return;
+    // 弹窗里的图标预览：图片打不开就显示首字，imageData 不动（用户可以自己改用首字图标）
+    if (cardIcon.id === 'iconUploadArea') {
+        cardIcon.innerHTML = letterIconHTML(document.getElementById('websiteName').value, document.getElementById('websiteUrl').value);
+        return;
+    }
+    if (!cardIcon.classList.contains('card-icon')) return;
     const card = cardIcon.closest('.website-card');
     const title = card?.querySelector('.card-title')?.textContent || '';
     const url = card?.querySelector('.card-url')?.textContent || '';
@@ -588,7 +594,6 @@ function openAddWebsiteModal() {
     document.getElementById('websiteForm').reset();
     syncPrivateCheckbox();
     document.getElementById('modalTitle').textContent = '添加网站';
-    document.getElementById('submitBtn').innerHTML = '<i class="fas fa-plus"></i> 添加网站';
     currentEditingCard = null;
 
     // 清空图片数据
@@ -900,7 +905,6 @@ function editWebsite(card) {
 
     // 更新模态框标题和按钮
     document.getElementById('modalTitle').textContent = '编辑网站';
-    document.getElementById('submitBtn').innerHTML = '<i class="fas fa-save"></i> 保存更改';
 
     // 标记当前编辑的卡片
     currentEditingCard = card;
@@ -1905,7 +1909,7 @@ function syncPrivateCheckbox() {
         if (!box) return;
         box.disabled = privateBox.checked;
         if (privateBox.checked) box.checked = false;
-        box.closest('.checkbox-container')?.classList.toggle('disabled', privateBox.checked);
+        box.closest('.option-chip')?.classList.toggle('disabled', privateBox.checked);
     });
 }
 
@@ -2275,43 +2279,37 @@ function handleCardAuxClick(e) {
 }
 
 // 文件上传功能
+// 弹窗里的图标行：左边色块（#iconUploadArea）点击上传，整行可以拖入图片；右边一行说明随状态变化
 function setupFileUpload() {
-    const uploadArea = document.getElementById('iconUploadArea');
+    const iconTile = document.getElementById('iconUploadArea');
+    const iconRow = document.getElementById('iconRow');
     const fileInput = document.getElementById('iconFile');
 
     // 自动填写用 .value 赋值不会触发 input，那条路径在 fillFormWithAIData 里自己刷新
     document.getElementById('websiteName').addEventListener('input', refreshLetterIconPreview);
     document.getElementById('websiteUrl').addEventListener('input', refreshLetterIconPreview);
 
-    const modal = document.getElementById('websiteModal');
-    if (modal) {
-        modal.addEventListener('click', function (e) {
-            if (e.target.closest('.delete-image-btn')) {
-                deleteUploadedImage();
-                return;
-            }
-
-            const targetUploadArea = e.target.closest('#iconUploadArea');
-            if (targetUploadArea) {
-                if (!targetUploadArea.querySelector('.uploaded-image-preview')) {
-                    fileInput.click();
-                }
-            }
-        });
-    }
-
-    uploadArea.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        uploadArea.classList.add('dragover');
+    // 「改用首字图标」按钮是渲染出来的，用事件委托
+    iconRow.addEventListener('click', (e) => {
+        if (e.target.closest('.delete-image-btn')) deleteUploadedImage();
     });
 
-    uploadArea.addEventListener('dragleave', () => {
-        uploadArea.classList.remove('dragover');
+    iconTile.addEventListener('click', () => {
+        if (iconTile.dataset.state !== 'uploading') fileInput.click();
     });
 
-    uploadArea.addEventListener('drop', (e) => {
+    iconRow.addEventListener('dragover', (e) => {
         e.preventDefault();
-        uploadArea.classList.remove('dragover');
+        iconRow.classList.add('dragover');
+    });
+
+    iconRow.addEventListener('dragleave', () => {
+        iconRow.classList.remove('dragover');
+    });
+
+    iconRow.addEventListener('drop', (e) => {
+        e.preventDefault();
+        iconRow.classList.remove('dragover');
         const files = e.dataTransfer.files;
         if (files.length > 0) {
             handleFileUpload(files[0]);
@@ -2327,27 +2325,24 @@ function setupFileUpload() {
     });
 }
 
-// 渲染上传区的「已上传图片」状态
-// 删除按钮由 setupFileUpload 里的事件委托统一处理，不需要写 onclick
-function renderUploadedIconPreview(imageSrc) {
-    const uploadArea = document.getElementById('iconUploadArea');
-    uploadArea.innerHTML = `
-        <div class="uploaded-image-preview">
-            <img src="${imageSrc}" alt="上传的图标">
-            <button type="button" class="delete-image-btn">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-    `;
+// 图标行的三种状态：letter（首字图标）、uploading、image（已有图片）
+function setIconRowState(state, tileHTML, hintHTML) {
+    const tile = document.getElementById('iconUploadArea');
+    tile.dataset.state = state;
+    tile.innerHTML = tileHTML;
+    document.getElementById('iconHint').innerHTML = hintHTML;
 }
 
-// 渲染上传区的「上传中」状态
+// 渲染「已有图片」状态
+function renderUploadedIconPreview(imageSrc) {
+    setIconRowState('image',
+        `<img src="${escapeHtml(imageSrc)}" alt="网站图标">`,
+        '已上传图床 · 点击图标更换 · <button type="button" class="icon-link delete-image-btn">改用首字图标</button>');
+}
+
+// 渲染「上传中」状态
 function renderIconUploadingState() {
-    const uploadArea = document.getElementById('iconUploadArea');
-    uploadArea.innerHTML = `
-        <i class="fas fa-spinner fa-spin upload-icon"></i>
-        <div class="upload-text">正在上传图标…</div>
-    `;
+    setIconRowState('uploading', '<i class="fas fa-spinner fa-spin"></i>', '正在上传图标…');
 }
 
 // 把表单的图标设置为一张图片。imageSrc 是图床 URL（降级时才是 base64）
@@ -2382,25 +2377,21 @@ function deleteUploadedImage() {
     resetIconUpload();
 }
 
-// 重置图标上传区域：没有图片时预览首字图标，保存后卡片上就是这个样子
+// 没有图片时显示首字图标，保存后卡片上就是这个样子
 function resetIconUpload() {
-    const uploadArea = document.getElementById('iconUploadArea');
-    uploadArea.innerHTML = `
-        <div class="upload-letter-preview"></div>
-        <div class="upload-text">点击或拖入图片<br>替换图标</div>
-    `;
+    setIconRowState('letter', '', '点击或拖入图片替换图标');
     refreshLetterIconPreview();
 }
 
 // 标题、网址输入时同步刷新首字预览。都没填时显示上传图标
 function refreshLetterIconPreview() {
-    const preview = document.querySelector('#iconUploadArea .upload-letter-preview');
-    if (!preview) return;
+    const tile = document.getElementById('iconUploadArea');
+    if (tile.dataset.state !== 'letter') return;
     const title = document.getElementById('websiteName').value;
     const url = document.getElementById('websiteUrl').value;
-    preview.innerHTML = title.trim() || url.trim()
+    tile.innerHTML = title.trim() || url.trim()
         ? letterIconHTML(title, url)
-        : '<i class="fas fa-cloud-upload-alt upload-icon"></i>';
+        : '<i class="fas fa-image"></i>';
 }
 
 // 页面初始化
@@ -2876,7 +2867,7 @@ function setupAIDetection() {
             // 恢复按钮状态
             aiDetectBtn.disabled = false;
             aiDetectBtn.classList.remove('loading');
-            aiDetectBtn.innerHTML = '<i class="fas fa-wand-magic"></i> 自动填写';
+            aiDetectBtn.innerHTML = '<i class="fas fa-wand-magic-sparkles"></i> 自动填写';
         }
     });
 }

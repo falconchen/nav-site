@@ -296,6 +296,10 @@ npm run deploy      # 部署到 Cloudflare Workers 生产环境
   菜单打开时整页 `user-select: none`，否则手指停在遮罩上会进入选字手势
 - 右键菜单在小屏变成底部动作面板，下面垫遮罩（`body:has(.context-menu.active)::after`），点空白只关菜单
 - 弹窗在小屏是底部弹层，操作按钮吸底；输入框字号 16px，避免 iOS 聚焦放大
+- 添加 / 编辑网站弹窗（`.website-modal`）从上到下：网址 +「自动填写」、标题、分类、描述、三个标记、图标行、取消 / 保存。
+  三个标记是藏起勾选框的胶囊开关（`.option-chip`，选中态靠 `:has(input:checked)`），勾选框 id 不变；
+  图标行左边色块 `#iconUploadArea` 点击上传、整行 `#iconRow` 可拖入图片，状态记在 `data-state`（letter / uploading / image），
+  由 `setIconRowState()` 统一渲染，有图片时说明里有「改用首字图标」（`.delete-image-btn`）
 - 按 `/` 聚焦搜索框
 - 小屏搜索栏默认收起，头部放大镜（`#searchToggle`）展开，展开状态是 `<html class="search-open">`；搜索框为空时失焦自动收起，再点放大镜或按 Esc 收起并清空关键词
 - 小屏页眉只放品牌、放大镜、账户三样。深浅色切换收进账户菜单（`.theme-menu-item`，`syncThemeControls()` 同步图标和文案）；
