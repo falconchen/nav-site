@@ -13,6 +13,7 @@ import { getBearerToken, verifySessionToken } from '../lib/session-auth.js';
 import { isPersonalToken, verifyPersonalToken } from '../lib/personal-tokens.js';
 import { isRateLimited, getClientIp } from '../lib/rate-limit.js';
 import { analyzeWebsite } from '../lib/website-analyzer.js';
+import { rehostIcon } from '../lib/rehost-icon.js';
 import { getUserFromRedis } from './auth.js';
 import {
     loadDataFromRedis,
@@ -411,6 +412,13 @@ app.post('/v1/websites', limitWrites, async (c) => {
     if (!categoryId) {
         // 只有用户一个真实分类都没有时才会到这里，loadUserData 已经挡掉了
         return c.json(NO_CLOUD_DATA, 409);
+    }
+
+    // 图标转存到图床，只在真正保存时做：analyze 只是预览，用户可能取消。失败保留原地址
+    if (fields.imageData) {
+        const { imageData, warning } = await rehostIcon(c.env, fields.imageData);
+        fields.imageData = imageData;
+        if (warning) analysis.warnings.push(warning);
     }
 
     const websites = { ...(data.websites || {}) };

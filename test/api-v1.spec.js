@@ -344,6 +344,94 @@ describe('个人令牌 + REST API v1', () => {
             expect(res.status).toBe(404);
         });
     });
+    describe('保存时把图标转存到图床', () => {
+        const PHOTO_HOST = 'https://photo.example.test';
+        const HOSTED = `${PHOTO_HOST}/i/2026/09/30/Icon1234.ico`;
+        const base = { title: '示例', category: 'tools', description: '描述' };
+        let uploads;
+
+        beforeEach(() => {
+            env.CF_PHOTOS_ENDPOINT = PHOTO_HOST;
+            env.CF_PHOTOS_TOKEN = 'photo-token';
+            uploads = [];
+            redisStore.pageFetch.mockImplementation(async (url, init) => {
+                if (url === `${PHOTO_HOST}/upload`) {
+                    uploads.push(init.body.get('image'));
+                    return Response.json({ result: 'success', url: HOSTED }, { status: 201 });
+                }
+                if (url === 'https://icons.example/favicon.ico') {
+                    // 很多站点的 .ico 不带类型，按后缀认
+                    return new Response(new Uint8Array([0, 0, 1, 0]), { status: 200 });
+                }
+                if (url === 'https://icons.example/logo.svg') {
+                    return new Response('<svg/>', { status: 200, headers: { 'Content-Type': 'image/svg+xml' } });
+                }
+                return new Response('Not Found', { status: 404 });
+            });
+        });
+
+        async function save(imageData) {
+            const { token } = await createPat();
+            const res = await call('/api/v1/websites', { method: 'POST', token, body: { url: 'https://a.example/', ...base, imageData } });
+            expect(res.status).toBe(201);
+            return res.json();
+        }
+
+        it('远程图标抓下来上传，存图床地址', async () => {
+            const body = await save('https://icons.example/favicon.ico');
+            expect(body.website.imageData).toBe(HOSTED);
+            expect(uploads).toHaveLength(1);
+            expect(uploads[0].type).toBe('image/x-icon');
+            const saved = await readUserData(redisStore);
+            expect(saved.websites.tools.find((site) => site.title === '示例').imageData).toBe(HOSTED);
+        });
+
+        it('base64 图标解码后上传', async () => {
+            const body = await save('data:image/png;base64,iVBORw0KGgo=');
+            expect(body.website.imageData).toBe(HOSTED);
+            expect(uploads[0].type).toBe('image/png');
+        });
+
+        it('抓不到（比如内网地址）或是 SVG 时保留原地址，照常保存并给出 warning', async () => {
+            const missing = await save('https://icons.example/missing.png');
+            expect(missing.website.imageData).toBe('https://icons.example/missing.png');
+            expect(missing.analysis.warnings).toContain('icon_rehost_failed');
+
+            const svg = await call('/api/v1/websites', {
+                method: 'POST', token: (await createPat('svg')).token,
+                body: { url: 'https://b.example/', ...base, imageData: 'https://icons.example/logo.svg' }
+            });
+            expect((await svg.json()).website.imageData).toBe('https://icons.example/logo.svg');
+            expect(uploads).toHaveLength(0);
+        });
+
+        it('已经在图床上的不重复上传，没配图床时不转存', async () => {
+            const body = await save(`${PHOTO_HOST}/i/old.webp`);
+            expect(body.website.imageData).toBe(`${PHOTO_HOST}/i/old.webp`);
+
+            delete env.CF_PHOTOS_ENDPOINT;
+            const { token } = await createPat('no-host');
+            const res = await call('/api/v1/websites', {
+                method: 'POST', token,
+                body: { url: 'https://c.example/', ...base, imageData: 'https://icons.example/favicon.ico' }
+            });
+            const noHost = await res.json();
+            expect(noHost.website.imageData).toBe('https://icons.example/favicon.ico');
+            expect(noHost.analysis.warnings).not.toContain('icon_rehost_failed');
+            expect(uploads).toHaveLength(0);
+        });
+
+        it('analyze 只预览，不上传', async () => {
+            const { token } = await createPat();
+            const res = await call('/api/v1/websites/analyze', {
+                method: 'POST', token,
+                body: { url: 'https://a.example/', ...base, imageData: 'https://icons.example/favicon.ico' }
+            });
+            expect((await res.json()).website.imageData).toBe('https://icons.example/favicon.ico');
+            expect(uploads).toHaveLength(0);
+        });
+    });
+
     describe('只传 url 自动补全', () => {
         const PAGE = '<html><head><title>Claude Code</title><meta name="description" content="meta 描述"></head><body><p>正文</p></body></html>';
 

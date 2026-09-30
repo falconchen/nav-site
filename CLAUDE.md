@@ -39,6 +39,8 @@
 - `server/api/proxy-image.js` - 图片代理用于解决 CORS
 - `server/api/upload-image.js` - 图标上传中转到 cf-photos 图床，返回公开 URL
 - `server/lib/fetch-remote-image.js` - 带防盗链 Referer 的远程图片抓取（代理与转存共用）
+- `server/lib/photo-host.js` - cf-photos 图床上传（网页端上传与 v1 转存共用）
+- `server/lib/rehost-icon.js` - `/api/v1` 保存时把图标转存图床
 - `server/lib/session-auth.js` - 网页登录 JWT 校验（验签 + 核对 KV 会话），user-data 和 v1 共用
 - `server/lib/personal-tokens.js` - 个人令牌的存储与校验
 - `server/lib/rate-limit.js` - 按 IP 的固定窗口限流（图床上传与 AI 识别共用）
@@ -164,6 +166,7 @@ v2ex 这类站点会间歇性开 Cloudflare 质询，Worker 抓取拿到 403。�
   图片加载失败（图床挂了、内网图片外网打不开）时 `script.js` 里捕获阶段的 `error` 监听换成首字图标。
   网站弹窗已去掉 Font Awesome 图标选择器，`website.icon` 字段留在数据和 `/api/v1` 里但不再用于渲染；
   `icon-selector.js` 只剩给分类图标选择器用的 `window.iconSets`
+  扩展弹窗也用同一套首字图标（`extension/lib/letter-icon.js` 抄了规则，`popup.css` 抄了色板），改一边要同步另一边
 - **历史 base64 数据原样保留**。渲染路径把 `imageData` 当成不透明的 `<img src>`，data URL 和 http URL 都能用，不需要迁移。
 - 图床不可用时降级为 base64 并提示用户，保证离线优先不被打破。
 - 图床地址和 token 都在服务端（`CF_PHOTOS_ENDPOINT` / `CF_PHOTOS_TOKEN`），换图床不用改代码。
@@ -182,6 +185,8 @@ v2ex 这类站点会间歇性开 Cloudflare 质询，Worker 抓取拿到 403。�
 - 写接口是读-改-写整份云端数据，并照常生成版本快照（描述里带令牌名）。云端没有分类数据时拒绝写入：
   否则网页端会把残缺数据当成更新下载，覆盖本地
 - 网址查重忽略协议、`www.`、`#hash` 和末尾斜杠
+- 扩展弹窗拿到分析结果后立刻转存图标（`extension/lib/icon-upload.js`：经 `/api/proxy-image` 取回、压成 ≤256px WebP、传 `/api/upload-image`），预览换成图床地址；同一图标地址记在 `storage.session` 里不重复传，用户取消会在图床留一个几 KB 的文件。保存时最多等它 5 秒。
+  弹窗没传成、或者是右键一键收藏时，由服务端兜底：扩展只把标签页的 `favIconUrl` 作为 `hints.icon` 传上来，`POST /websites` 保存前由 `rehostIcon()` 转存图床（Worker 没有 canvas，按原格式传、不压成 WebP，SVG 不收），失败保留原地址并记 `icon_rehost_failed`，不影响保存；`/websites/analyze` 只是预览，不上传，免得用户取消后在图床留垃圾
 - 扩展遇到已收藏的网址（弹窗和右键一键收藏都算）会调 `POST /websites/touch` 把 `addedTime` 刷新成现在，
   让它回到「最近添加」最前面；已经是最新添加的就不写，避免反复打开弹窗冲掉版本历史
 - 卡片渲染（`createCardHTML`）对标题、网址、描述、图标做了 HTML 转义，扩展写入的网页标题不可信

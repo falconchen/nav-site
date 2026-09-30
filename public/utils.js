@@ -15,6 +15,7 @@ function escapeHtml(value) {
 // 首字图标：网站没有图片图标（抓不到 favicon、内网地址、图片加载失败）时的兜底。
 // 取标题第一个字，底色从 styles.css 的 --tone-0..5 里按域名哈希挑一个：
 // 不存数据，同一网站在各设备、每次刷新颜色都一样，改标题也不变色
+// 扩展的 extension/lib/letter-icon.js 抄了同一套规则，改一边要同步另一边
 const LETTER_ICON_TONES = 6;
 
 function letterIconHost(url) {

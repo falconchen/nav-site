@@ -25,6 +25,13 @@
     --success-rgb: 47, 122, 85;
     --warn: #9a6408;
     --warn-rgb: 207, 145, 25;
+    /* 首字图标底色，抄自网站 styles.css 的 --tone-0..5 */
+    --tone-0: #c38a24;
+    --tone-1: #c4412a;
+    --tone-2: #2f7c77;
+    --tone-3: #3b5b8c;
+    --tone-4: #557a46;
+    --tone-5: #8a5a3c;
     --ring: 0 0 0 3px rgba(var(--accent-rgb), 0.14);
 
     --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Hiragino Sans GB",
@@ -57,6 +64,12 @@
         --success-rgb: 92, 184, 138;
         --warn: #e4ac3a;
         --warn-rgb: 228, 172, 58;
+        --tone-0: #a8782a;
+        --tone-1: #b04632;
+        --tone-2: #2e6e6a;
+        --tone-3: #3d5680;
+        --tone-4: #4e6d42;
+        --tone-5: #7a5238;
     }
 }
 
@@ -373,20 +386,51 @@ select {
 }
 
 .site-icon {
+    position: relative;
     width: 36px;
     height: 36px;
     flex-shrink: 0;
-    padding: 0;
-    object-fit: cover;
+    overflow: hidden;
+    font-size: 18px;
     border-radius: 9px;
     background: #fff;
-    color-scheme: light;
     box-shadow: 0 0 0 1px rgba(28, 27, 25, 0.07);
 }
+
+.site-icon:empty {
+    display: none;
+}
+
+.site-icon img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    color-scheme: light;
+}
+
+.letter-icon {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    font-family: var(--font-serif);
+    font-weight: 600;
+    line-height: 1;
+    color: #fff;
+    background: var(--tone-0);
+}
+
+.letter-icon[data-tone="1"] { background: var(--tone-1); }
+.letter-icon[data-tone="2"] { background: var(--tone-2); }
+.letter-icon[data-tone="3"] { background: var(--tone-3); }
+.letter-icon[data-tone="4"] { background: var(--tone-4); }
+.letter-icon[data-tone="5"] { background: var(--tone-5); }
 
 .row .site-icon {
     width: 32px;
     height: 32px;
+    font-size: 16px;
     border-radius: 8px;
 }
 

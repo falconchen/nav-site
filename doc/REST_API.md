@@ -107,11 +107,12 @@ Authorization: Bearer navpat_xxxxxxxx
 | 标题 | 请求里的 `title` → `hints.title` → 网页 `<title>` → `og:site_name` → 域名 |
 | 分类 | 请求里的 `category` → AI（置信度 high/medium）→ 同域名：已收录网址里同域名最多的分类 → 「未分类」（没有就取排在最前的分类） |
 | 描述 | 请求里的 `description` → AI 摘要 → 网页 meta 描述 → `hints.description` → 第一段正文 → 空 |
-| 图标 | 请求里的 `imageData` → `hints.icon` → 网页里的图标 → `/favicon.ico` → 不设（前端显示默认图标） |
+| 图标 | 请求里的 `imageData` → `hints.icon` → 网页里的图标 → `/favicon.ico` → 不设（前端显示首字图标） |
 
 - 标题、分类、描述都给了就不抓网页；分类和描述都给了就不调 AI
 - 抓网页超时 6 秒，两轮 AI 并行、各 10 秒超时，最坏约 16 秒
 - AI 分类用的候选和样例由服务端从你的云端数据构造（每个分类按权重取前 12 个站点），调用方不用传
+- `POST /websites` 保存前会把图标（远程地址或 base64）转存到图床，存图床地址；已经在图床上的不重复传。按原格式上传（不压缩），SVG 不收；抓不到（5 秒超时、内网地址、超过 1MB）时保留原值并给出 `icon_rehost_failed`。`/websites/analyze` 只预览，返回的仍是原地址
 
 #### `analysis`
 
@@ -139,6 +140,7 @@ Authorization: Bearer navpat_xxxxxxxx
 | `ai_category_failed` | AI 分类报错或超时 |
 | `ai_category_low_confidence` | AI 没把握，没采用 |
 | `ai_description_failed` | AI 描述报错、超时、返回空，或返回的是「无相关信息」之类的拒答 |
+| `icon_rehost_failed` | 只出现在 `POST /websites`：图标没能转存到图床，存的是原地址 |
 | `ai_description_skipped` | 抓不到网页内容也没有 hints，不让 AI 凭空写描述（分类照跑，模型凭域名和标题也能判断知名站点） |
 
 扩展可以在 `sources.category` 为 `domain` 或 `fallback` 时提示「已放入 xx，可在网页端调整」。

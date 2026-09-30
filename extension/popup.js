@@ -1,6 +1,8 @@
 import { ext } from './lib/ext.js';
 import { createClient, describeError, loadSettings } from './lib/api.js';
 import { getPageHints, isSavableUrl } from './lib/page.js';
+import { createLetterIcon } from './lib/letter-icon.js';
+import { uploadIconToPhotoHost } from './lib/icon-upload.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -23,6 +25,10 @@ let client;
 let tab;
 let categories = [];
 let suggestion = null;
+let serverUrl = '';
+// 弹窗打开后在后台转存图标，保存时先等它（最多等 ICON_UPLOAD_WAIT_MS）
+let iconUpload = null;
+const ICON_UPLOAD_WAIT_MS = 5000;
 
 function show(viewId) {
     for (const view of document.querySelectorAll('.view')) {
@@ -52,9 +58,18 @@ function categoryName(id) {
     return categories.find((cat) => cat.id === id)?.name || id;
 }
 
-function setIcon(img, src) {
-    img.hidden = !src;
-    if (src) img.src = src;
+// 有图片显示图片，没有或加载失败时显示首字图标（和导航站卡片一样）
+function setIcon(box, src, title, url) {
+    const letter = () => createLetterIcon(title, url);
+    if (!src) {
+        box.replaceChildren(letter());
+        return;
+    }
+    const img = new Image();
+    img.alt = '';
+    img.addEventListener('error', () => box.replaceChildren(letter()), { once: true });
+    img.src = src;
+    box.replaceChildren(img);
 }
 
 function renderDuplicate(site) {
@@ -64,7 +79,7 @@ function renderDuplicate(site) {
     // 描述里可能记着账号密码，私密和隐藏描述的网站在弹窗里也不显示
     $('dupDesc').textContent = site.private ? '私密收藏，描述已隐藏'
         : site.hideDescription ? '描述已隐藏' : site.description || '';
-    setIcon($('dupIcon'), site.imageData);
+    setIcon($('dupIcon'), site.imageData, site.title, site.url);
     show('viewDuplicate');
 }
 
@@ -89,7 +104,7 @@ function renderForm({ website, analysis }) {
     $('private').checked = false;
     $('hideDescription').checked = false;
     syncPrivate();
-    setIcon($('iconPreview'), website.imageData);
+    setIcon($('iconPreview'), website.imageData, website.title, tab.url);
 
     // 分类不是 AI 有把握给出的，提醒用户确认
     const notice = $('categoryNotice');
@@ -107,6 +122,20 @@ function renderForm({ website, analysis }) {
 
     show('viewForm');
     $('title').focus();
+
+    if (website.imageData) startIconUpload(website.imageData);
+}
+
+// 图标一拿到就转存图床，成功后预览换成图床地址，保存时直接用。
+// 失败就保留原地址，保存时服务端还会再试一次
+function startIconUpload(src) {
+    iconUpload = uploadIconToPhotoHost(serverUrl, src)
+        .then((url) => {
+            if (suggestion?.website.imageData !== src) return;
+            suggestion.website.imageData = url;
+            setIcon($('iconPreview'), url, $('title').value, tab.url);
+        })
+        .catch((error) => console.warn('图标转存图床失败，保存时由服务端再试：', error));
 }
 
 async function save(event) {
@@ -116,6 +145,10 @@ async function save(event) {
     button.textContent = '保存中…';
 
     try {
+        // 图标还在上传就等一会儿，等不到就先用原地址保存
+        if (iconUpload) {
+            await Promise.race([iconUpload, new Promise((resolve) => setTimeout(resolve, ICON_UPLOAD_WAIT_MS))]);
+        }
         const { website } = await client.save({
             url: tab.url,
             title: $('title').value.trim(),
@@ -176,6 +209,12 @@ async function init() {
     $('viewForm').addEventListener('submit', save);
     $('removeBtn').addEventListener('click', remove);
     $('private').addEventListener('change', syncPrivate);
+    // 没有图片时预览的首字跟着标题变
+    $('title').addEventListener('input', () => {
+        if (suggestion && !suggestion.website.imageData) {
+            setIcon($('iconPreview'), '', $('title').value, tab.url);
+        }
+    });
 
     const settings = await loadSettings();
     if (!settings.serverUrl || !settings.token) {
@@ -183,6 +222,7 @@ async function init() {
         return;
     }
     client = createClient(settings);
+    serverUrl = settings.serverUrl;
 
     [tab] = await ext.tabs.query({ active: true, currentWindow: true });
     if (!tab || !isSavableUrl(tab.url)) {
