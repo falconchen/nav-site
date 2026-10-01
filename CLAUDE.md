@@ -97,6 +97,8 @@
     工具栏「锁定」（平时开锁图标，悬停变锁）左边的「显示全部」（`#privateRevealAllBtn`，`setPrivateAllRevealed()`）让所有卡片变清晰，
     打开期间重新渲染的卡片也保持清晰，再点一次、离开分区或锁上私密收藏时关掉。
     这只是视觉遮挡，标题和网址仍在 DOM 里
+  - 排序按最近一次修改或添加的时间从新到旧（`compareByModifiedTimeDesc`，取 `editedTime` 和 `addedTime` 较大的），
+    右键移入 / 移出私密时 `togglePrivateStatus()` 会写 `editedTime`，所以刚移进来的排最前；两个时间都没有的旧数据排最后、按权重
   - 描述照常渲染（跟着卡片一起模糊），悬浮提示也照常显示描述，没有「点击显示描述」和「查看描述」：那是「隐藏描述」的功能，两者互斥。点击不记访问次数
   - `/api/v1` 的 `POST /websites` 接受 `private`，扩展弹窗有「私密收藏」勾选框；右键一键收藏不设私密
   - 第二种私密方式「隐藏描述」（`website.hideDescription`，卡片类 `.desc-hidden-card`）：网站照常出现在所有分区、照常可搜，

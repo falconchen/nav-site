@@ -1407,12 +1407,21 @@ function renderPrivateCategory() {
     section.classList.toggle('is-locked', !revealed);
 
     const privateWebsites = revealed
-        ? collectAllWebsites({ onlyPrivate: true })
-            .sort((a, b) => (b.weight || 100) - (a.weight || 100))
+        ? collectAllWebsites({ onlyPrivate: true }).sort(compareByModifiedTimeDesc)
         : [];
     renderVirtualView('private', privateWebsites);
     if (!revealed) section.classList.remove('is-empty');
     if (privateAllRevealed) setPrivateAllRevealed(true);
+}
+
+// 按最近一次修改或添加的时间倒序（扩展重新收藏只刷新 addedTime，所以取两者较大的），都没有的旧数据排在后面、按权重排。私密收藏用
+function compareByModifiedTimeDesc(a, b) {
+    const ta = Math.max(a.editedTime || 0, a.addedTime || 0);
+    const tb = Math.max(b.editedTime || 0, b.addedTime || 0);
+    if (ta && tb) return tb - ta;
+    if (ta) return -1;
+    if (tb) return 1;
+    return (b.weight || 100) - (a.weight || 100);
 }
 
 // 按添加时间倒序（不考虑 editedTime），没有添加时间的旧数据排在后面、按权重排。最近添加和搜索结果共用
@@ -1888,6 +1897,8 @@ function togglePrivateStatus(card) {
     if (!site) return;
 
     site.private = !site.private;
+    // 私密收藏按修改时间排，刚移进来的排最前
+    site.editedTime = Date.now();
     if (site.private) site.pinned = false;
     // 移出私密收藏时描述继续遮住，免得账号信息突然明文露出来；想公开再点「显示描述」
     if (!site.private) site.hideDescription = true;
