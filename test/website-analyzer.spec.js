@@ -1,5 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { analyzeWebsite, categoryByDomain, fetchPageViaReader, truncateDescription } from '../server/lib/website-analyzer.js';
+import {
+    analyzeWebsite,
+    categoryByDomain,
+    fetchPageViaReader,
+    parseReaderKeys,
+    resetReaderKeyCooldowns,
+    truncateDescription
+} from '../server/lib/website-analyzer.js';
 
 const PAGE_HTML = `
 <html>
@@ -465,6 +472,96 @@ describe('Jina Reader 兜底', () => {
         expect(result.analysis.warnings).toContain('fetch_blocked');
         expect(result.analysis.warnings).not.toContain('fetched_via_reader');
         expect(result.analysis.sources.title).toBe('domain');
+    });
+
+    describe('多个 key', () => {
+        let randomSpy;
+
+        beforeEach(() => {
+            resetReaderKeyCooldowns();
+            // 固定从第一个 key 开始，测试才有确定的顺序
+            randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0);
+        });
+
+        afterEach(() => {
+            randomSpy.mockRestore();
+        });
+
+        // 按 key 决定 Jina 的返回：状态码，或 'ok'
+        function stubReader(byKey) {
+            fetchSpy.mockImplementation(async (_input, init) => {
+                const key = init.headers.Authorization.replace('Bearer ', '');
+                const outcome = byKey[key];
+                if (outcome === 'ok') {
+                    return new Response(JSON.stringify(READER_DATA), { headers: { 'Content-Type': 'application/json' } });
+                }
+                if (outcome instanceof Error) throw outcome;
+                return new Response('{}', { status: outcome });
+            });
+        }
+
+        const usedKeys = () => fetchSpy.mock.calls.map(([, init]) => init.headers.Authorization.replace('Bearer ', ''));
+        const read = (keys) => fetchPageViaReader('https://example.com/', { JINA_API_KEY: keys });
+
+        it('JINA_API_KEY 支持逗号、空格、换行分隔，去重', () => {
+            expect(parseReaderKeys({ JINA_API_KEY: ' jina_a, jina_b\njina_c  jina_a ;jina_d,' }))
+                .toEqual(['jina_a', 'jina_b', 'jina_c', 'jina_d']);
+            expect(parseReaderKeys({ JINA_API_KEY: 'jina_only' })).toEqual(['jina_only']);
+            expect(parseReaderKeys({})).toEqual([]);
+        });
+
+        it('额度用完（402）时换下一个 key', async () => {
+            stubReader({ jina_a: 402, jina_b: 'ok' });
+
+            const page = await read('jina_a,jina_b');
+
+            expect(page.title).toBe('Claude Code 仓库');
+            expect(usedKeys()).toEqual(['jina_a', 'jina_b']);
+        });
+
+        it('无效（401）和限流（429）也换 key', async () => {
+            stubReader({ jina_a: 401, jina_b: 429, jina_c: 'ok' });
+
+            expect(await read('jina_a jina_b jina_c')).not.toBeNull();
+            expect(usedKeys()).toEqual(['jina_a', 'jina_b', 'jina_c']);
+        });
+
+        it('所有 key 都不可用时返回 null', async () => {
+            stubReader({ jina_a: 402, jina_b: 401 });
+
+            expect(await read('jina_a,jina_b')).toBeNull();
+            expect(usedKeys()).toEqual(['jina_a', 'jina_b']);
+        });
+
+        it('Jina 服务端错误或网络错误不换 key，换了也没用', async () => {
+            stubReader({ jina_a: 503, jina_b: 'ok' });
+            expect(await read('jina_a,jina_b')).toBeNull();
+            expect(usedKeys()).toEqual(['jina_a']);
+
+            fetchSpy.mockClear();
+            stubReader({ jina_a: new Error('network'), jina_b: 'ok' });
+            expect(await read('jina_a,jina_b')).toBeNull();
+            expect(usedKeys()).toEqual(['jina_a']);
+        });
+
+        it('出过问题的 key 在冷却期内排到最后，不再每次先撞一遍', async () => {
+            stubReader({ jina_a: 402, jina_b: 'ok' });
+            await read('jina_a,jina_b');
+
+            fetchSpy.mockClear();
+            await read('jina_a,jina_b');
+
+            expect(usedKeys()).toEqual(['jina_b']);
+        });
+
+        it('从随机一个 key 开始，把用量摊开', async () => {
+            stubReader({ jina_a: 'ok', jina_b: 'ok', jina_c: 'ok' });
+            randomSpy.mockReturnValue(0.7);
+
+            await read('jina_a,jina_b,jina_c');
+
+            expect(usedKeys()).toEqual(['jina_c']);
+        });
     });
 });
 

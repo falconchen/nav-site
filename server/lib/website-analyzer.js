@@ -48,6 +48,8 @@ const DESCRIPTION_REFUSAL_PATTERN = /无相关信息|没有(足够的?|相关的
 // 所以只在失败时调用，并且要 JSON 格式（Markdown 正文）：同一页 HTML 格式要贵十几倍
 const READER_ENDPOINT = 'https://r.jina.ai/';
 const READER_TIMEOUT_MS = 10000;
+// key 本身出问题的状态码：换一个 key 可能就好了。无效 / 额度用完冷却久一点，限流很快恢复
+const READER_KEY_COOLDOWN_MS = { 401: 30 * 60 * 1000, 402: 30 * 60 * 1000, 429: 60 * 1000 };
 
 // 反爬质询页的标题特征，这类页面状态码可能是 200
 const CHALLENGE_TITLE_PATTERN = /just a moment|attention required|access denied|请稍候|安全验证|verify you are human/i;
@@ -192,30 +194,97 @@ function readerText(value) {
 }
 
 /**
+ * JINA_API_KEY 里可以放多个 key，用逗号、空格或换行分隔
+ */
+export function parseReaderKeys(env = {}) {
+    const raw = typeof env.JINA_API_KEY === 'string' ? env.JINA_API_KEY : '';
+    return [...new Set(raw.split(/[\s,;]+/).filter(Boolean))];
+}
+
+// 出过问题的 key → 冷却到什么时候。只存在当前 isolate 的内存里，重启就清空，
+// 作用只是别每次请求都先撞一遍已经用完的 key
+const readerKeyCooldowns = new Map();
+
+/** 测试用：清掉冷却记录 */
+export function resetReaderKeyCooldowns() {
+    readerKeyCooldowns.clear();
+}
+
+/**
+ * 决定这次按什么顺序试 key：从随机一个开始轮一圈，把用量摊开；还在冷却的排到最后
+ * （全都在冷却时照样试，免得冷却记录过时了却一直不用）
+ */
+function orderReaderKeys(keys, now = Date.now()) {
+    const start = Math.floor(Math.random() * keys.length);
+    const rotated = keys.map((_, i) => keys[(start + i) % keys.length]);
+    const cooling = (key) => (readerKeyCooldowns.get(key) || 0) > now;
+    return [...rotated.filter(key => !cooling(key)), ...rotated.filter(cooling)];
+}
+
+/**
  * 通过 Jina Reader 抓取网页，返回和 extractPageInfo() 同结构的信息（多一个 finalUrl）
  * 没配 JINA_API_KEY、请求失败或 Jina 那边也被拦截时返回 null
+ *
+ * 配了多个 key 时，遇到 key 本身的问题（401 无效、402 额度用完、429 限流）换下一个；
+ * 超时、网络错误、Jina 服务端错误换 key 也没用，直接放弃。所有 key 共用一个总时限
  */
 export async function fetchPageViaReader(url, env = {}, { timeoutMs = READER_TIMEOUT_MS } = {}) {
-    if (!env.JINA_API_KEY) return null;
+    const keys = parseReaderKeys(env);
+    if (keys.length === 0) return null;
 
+    const deadline = Date.now() + timeoutMs;
     let data;
-    try {
-        const response = await fetch(READER_ENDPOINT + url, {
-            headers: {
-                'Authorization': `Bearer ${env.JINA_API_KEY}`,
-                'Accept': 'application/json',
-                // 图片对分类和描述没用，还占 token
-                'X-Retain-Images': 'none'
-            },
-            signal: AbortSignal.timeout(timeoutMs)
-        });
+    let answered = false;
+    for (const key of orderReaderKeys(keys)) {
+        const remaining = deadline - Date.now();
+        if (remaining <= 0) {
+            console.log('Jina Reader 超时:', url);
+            return null;
+        }
+        // 日志里只写第几个 key，不写 key 本身
+        const label = keys.length > 1 ? `key #${keys.indexOf(key) + 1}` : 'key';
+
+        let response;
+        try {
+            response = await fetch(READER_ENDPOINT + url, {
+                headers: {
+                    'Authorization': `Bearer ${key}`,
+                    'Accept': 'application/json',
+                    // 图片对分类和描述没用，还占 token
+                    'X-Retain-Images': 'none'
+                },
+                signal: AbortSignal.timeout(remaining)
+            });
+        } catch (error) {
+            console.log('Jina Reader 失败:', url, error && error.message);
+            return null;
+        }
+
+        const cooldown = READER_KEY_COOLDOWN_MS[response.status];
+        if (cooldown) {
+            readerKeyCooldowns.set(key, Date.now() + cooldown);
+            console.log(`Jina Reader ${label} 不可用 (HTTP ${response.status})，换下一个:`, url);
+            response.body?.cancel().catch(() => {});
+            continue;
+        }
         if (!response.ok) {
             console.log(`Jina Reader 失败 (HTTP ${response.status}):`, url);
             return null;
         }
-        ({ data } = await response.json());
-    } catch (error) {
-        console.log('Jina Reader 失败:', url, error && error.message);
+
+        readerKeyCooldowns.delete(key);
+        try {
+            ({ data } = await response.json());
+        } catch (error) {
+            console.log('Jina Reader 返回的不是 JSON:', url, error && error.message);
+            return null;
+        }
+        answered = true;
+        break;
+    }
+
+    if (!answered) {
+        console.log(`Jina Reader 的 ${keys.length} 个 key 都不可用:`, url);
         return null;
     }
 

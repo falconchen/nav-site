@@ -96,7 +96,7 @@ npm run build        # 构建到 dist/
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google OAuth 应用 |
 | `JWT_SECRET` | JWT 签名密钥 |
 | `CF_PHOTOS_ENDPOINT` / `CF_PHOTOS_TOKEN` | 图床地址和令牌；不可用时图标降级为 base64 |
-| `JINA_API_KEY` | 可选，网页抓取被拦截时的兜底 |
+| `JINA_API_KEY` | 可选，网页抓取被拦截时的兜底。可以填多个 key，用逗号分隔，额度用完自动换下一个 |
 
 ## 文档
 

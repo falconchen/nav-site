@@ -191,7 +191,10 @@ v2ex 这类站点会间歇性开 Cloudflare 质询，Worker 抓取拿到 403。�
 
 1. 先自己抓（`fetchPage`），失败或拿到质询页时，配了 `JINA_API_KEY` 就改走 Jina Reader（`fetchPageViaReader`）。
    Jina 按输出 token 计费，所以只在失败时调用，且用 JSON 格式（Markdown 正文）：同一页要 HTML 格式贵十几倍。
-   Jina 那边也被拦（`httpStatus` ≥ 400 或质询页）时当作失败；`/api/v1` 带了足够的 `hints.content` 时不调 Jina
+   Jina 那边也被拦（`httpStatus` ≥ 400 或质询页）时当作失败；`/api/v1` 带了足够的 `hints.content` 时不调 Jina。
+   `JINA_API_KEY` 可以放多个 key（逗号、空格或换行分隔，`parseReaderKeys()`）：每次从随机一个开始，
+   遇到 key 本身的问题（401 无效、402 额度用完、429 限流）换下一个，并在当前 isolate 里冷却（30 分钟 / 1 分钟）、排到最后；
+   超时、网络错误、Jina 服务端错误换 key 没用，直接放弃。所有 key 共用 10 秒总时限，日志只写第几个 key
 2. 仍然失败：网页端接口返回 502 + `fetchFailed`，前端 `fillFormFromDomainHistory()` 按同域名已收录网址预填分类和图标；
    `/api/v1` 走原有兜底链（hints、同域名归类）
 
@@ -296,7 +299,7 @@ npm run deploy      # 部署到 Cloudflare Workers 生产环境
 - `JWT_SECRET` - JWT 签名密钥
 - `CF_PHOTOS_ENDPOINT` - 图床地址（如 `https://your-photo-host`）
 - `CF_PHOTOS_TOKEN` - 图床的 AUTH_TOKEN
-- `JINA_API_KEY` - Jina Reader 的 key，抓取被拦截时的兜底（可选，不配就不走 Jina）
+- `JINA_API_KEY` - Jina Reader 的 key，抓取被拦截时的兜底（可选，不配就不走 Jina）。可以填多个，用逗号分隔，额度用完自动换下一个
 
 图床地址走 secret 而不是 `wrangler.jsonc` 的 vars，是为了不把自己的图床域名硬编码进仓库。
 换图床只改环境变量即可，代码不用动；只填域名时会按 https 补全。
