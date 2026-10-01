@@ -79,6 +79,50 @@ function removeVisitStats(url) {
     if (!key || !visitStats[key]) return;
     delete visitStats[key];
     scheduleVisitStatsSave();
+
+    const pins = getFrequentPins();
+    if (key in pins) {
+        delete pins[key];
+        setFrequentPins(pins);
+    }
+}
+
+// 「访问最多」里亲手拖过的网站固定在拖到的位置：{ 归一化网址: 第几位（从 0 数） }。
+// 没拖过的继续按访问得分浮动，填进剩下的位置。和访问统计一样只存本机（localStorage），不走云端同步
+const FREQUENT_PINS_KEY = 'frequentPins';
+
+function getFrequentPins() {
+    try {
+        const pins = JSON.parse(localStorage.getItem(FREQUENT_PINS_KEY) || '{}');
+        return pins && typeof pins === 'object' && !Array.isArray(pins) ? pins : {};
+    } catch {
+        return {};
+    }
+}
+
+// 传空对象表示恢复自动排序
+function setFrequentPins(pins) {
+    try {
+        if (Object.keys(pins).length) {
+            localStorage.setItem(FREQUENT_PINS_KEY, JSON.stringify(pins));
+        } else {
+            localStorage.removeItem(FREQUENT_PINS_KEY);
+        }
+    } catch {
+        // 隐私模式下写不进去，只是这次拖的位置刷新后不保留
+    }
+}
+
+// 按访问得分排好的列表里，把固定的网站放回各自的位置，其余的保持得分顺序填空。
+// 位置从小到大依次插入，先插的不会被后插的挤走；位置超出列表长度的排到末尾
+function applyFrequentPins(sites) {
+    const pins = getFrequentPins();
+    const slotOf = site => pins[visitUrlKey(site.url)];
+    const result = sites.filter(site => slotOf(site) == null);
+    sites.filter(site => slotOf(site) != null)
+        .sort((a, b) => slotOf(a) - slotOf(b))
+        .forEach(site => result.splice(Math.min(slotOf(site), result.length), 0, site));
+    return result;
 }
 
 // 页面关闭前把防抖中的写入落盘

@@ -121,6 +121,8 @@
 
     function scheduleShow(card) {
         clearTimeout(showTimer);
+        // 模糊着的私密卡片不出提示，否则悬停就把标题、网址、描述露出来了
+        if (card.matches('.private-card:not(.revealed)')) return;
         showTimer = setTimeout(() => show(card), SHOW_DELAY);
     }
 

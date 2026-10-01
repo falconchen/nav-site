@@ -2,12 +2,14 @@
  * 整理模式：拖拽调整卡片顺序（SortableJS）
  *
  * 卡片菜单里点「调整顺序」进入，整理的是当前 tab：「全部网站」下每个分类各自可拖（不能跨分类），
- * 特别关注、私密收藏各是一个列表。最近添加、访问最多、搜索结果是算出来的顺序，不支持。
- * 三种分区各有排序键，数值越大越靠前，拖完整个分区重新编号：
+ * 特别关注、私密收藏、访问最多各是一个列表。最近添加、搜索结果是算出来的顺序，不支持。
+ * 前三种分区各有排序键，数值越大越靠前，拖完整个分区重新编号：
  *   分类 -> weight，特别关注 -> pinnedOrder，私密收藏 -> privateOrder
+ * 访问最多不改网站数据：只有亲手拖过的网站固定在拖到的位置，其余继续按访问得分浮动，
+ * 固定的位置只存本机（visit-stats.js 的 setFrequentPins）
  */
 
-const REORDER_TABS = ['all', 'pinned', 'private'];
+const REORDER_TABS = ['all', 'pinned', 'private', 'frequent'];
 
 // 整理中的状态：{ tab, sortables, siteOf: WeakMap<卡片, 网站数据>, dirty, blurAfter }
 let reorderState = null;
@@ -18,7 +20,7 @@ function isReordering() {
 
 // 卡片所在分区能不能整理（菜单里据此显示「调整顺序」）
 function canReorderSection(sectionId) {
-    return !!sectionId && (!isVirtualSection(sectionId) || sectionId === 'pinned' || sectionId === 'private');
+    return !!sectionId && (!isVirtualSection(sectionId) || REORDER_TABS.includes(sectionId));
 }
 
 function reorderKeysDescending(sites, field) {
@@ -64,13 +66,38 @@ function freezePinnedOrder() {
     });
 }
 
+// 访问最多：只把这次拖的那张固定到新位置。以前固定过的卡片可能被这次拖动挤了一格，
+// 按现在看到的位置更新；没固定的不记，下次渲染仍按得分排。当前不在榜上的固定记录原样留着，重新上榜时回到原位
+function pinFrequentCard(cards, sites, draggedCard) {
+    const pins = getFrequentPins();
+    const draggedSite = reorderState.siteOf.get(draggedCard);
+    if (!draggedSite) return;
+    const draggedKey = visitUrlKey(draggedSite.url);
+    sites.forEach((site, index) => {
+        const key = visitUrlKey(site.url);
+        if (key === draggedKey || key in pins) pins[key] = index;
+    });
+    setFrequentPins(pins);
+    cards.forEach((card, index) => {
+        card.classList.toggle('frequent-fixed', visitUrlKey(sites[index].url) in pins);
+    });
+}
+
 // 按 DOM 里的新顺序改写数据
-function applyReorder(sectionId, container) {
+function applyReorder(sectionId, container, evt) {
     if (!reorderState) return;
     const cards = Array.from(container.querySelectorAll('.website-card'));
     const sites = cards.map(card => reorderState.siteOf.get(card)).filter(Boolean);
     if (sites.length !== cards.length) return;
 
+    if (sectionId === 'frequent') {
+        // 只存本机，不动网站数据，所以不标 dirty、不触发云端保存。放回原位不算拖过
+        if (evt.oldIndex !== evt.newIndex) {
+            pinFrequentCard(cards, sites, evt.item);
+            updateReorderResetBtn();
+        }
+        return;
+    }
     if (sectionId === 'pinned') {
         reorderKeysDescending(sites, 'pinnedOrder');
     } else if (sectionId === 'private') {
@@ -87,6 +114,18 @@ function applyReorder(sectionId, container) {
         });
     }
     reorderState.dirty = true;
+}
+
+// 「恢复自动排序」只在访问最多里、且有固定的网站时出现
+function updateReorderResetBtn() {
+    const show = !!reorderState && reorderState.tab === 'frequent' && Object.keys(getFrequentPins()).length > 0;
+    document.getElementById('reorderResetBtn').hidden = !show;
+}
+
+function resetFrequentOrder() {
+    setFrequentPins({});
+    // 重新渲染访问最多时会顺带退出整理模式
+    renderFrequentCategory();
 }
 
 function enterReorderMode() {
@@ -115,7 +154,7 @@ function enterReorderMode() {
             ghostClass: 'reorder-ghost',
             chosenClass: 'reorder-chosen',
             dragClass: 'reorder-drag',
-            onEnd: () => applyReorder(sectionId, container)
+            onEnd: (evt) => applyReorder(sectionId, container, evt)
         }));
     });
     if (state.sortables.length === 0) return;
@@ -129,6 +168,7 @@ function enterReorderMode() {
     reorderState = state;
     document.body.classList.add('reordering');
     document.getElementById('reorderBar').hidden = false;
+    updateReorderResetBtn();
 }
 
 // 退出并保存。拖动期间不保存：每次上传都生成一份版本快照，历史只留 5 份，连拖几下就冲掉了
@@ -163,6 +203,7 @@ function saveReorderBeforeHide() {
 
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('reorderDoneBtn').addEventListener('click', exitReorderMode);
+    document.getElementById('reorderResetBtn').addEventListener('click', resetFrequentOrder);
 
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && isReordering()) exitReorderMode();

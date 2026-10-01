@@ -332,16 +332,8 @@ function notifyPrivateCardChange(card) {
     card.dispatchEvent(new CustomEvent('private-card-change', { bubbles: true }));
 }
 
-// 私密卡片的图标、标题、网址默认模糊（CSS 按 .revealed 切换）。
-// 有鼠标的设备悬停就变清晰（CSS :hover），点击直接打开；触屏设备第一次点击先变清晰，再点才打开
-const canHoverPrivateCards = window.matchMedia('(hover: hover) and (pointer: fine)');
-
-function revealPrivateCard(card) {
-    card.classList.add('revealed');
-    notifyPrivateCardChange(card);
-}
-
-// 工具栏「显示全部」：所有私密卡片的图标、标题、网址一起变清晰，描述不动。
+// 私密卡片的图标、标题、网址、描述默认模糊（CSS 按 .revealed 切换），只有这里能让它们变清晰。
+// 工具栏「显示全部」：所有私密卡片一起变清晰。
 // 打开期间重新渲染的卡片也保持清晰，离开分区或隐藏私密收藏时关掉
 let privateAllRevealed = false;
 
@@ -1327,7 +1319,15 @@ function renderFrequentCategory() {
         .sort((a, b) => b.visitScore - a.visitScore)
         .slice(0, FREQUENT_LIMIT);
 
-    renderVirtualView('frequent', frequentWebsites);
+    // 亲手拖过的固定在拖到的位置，其余按得分浮动
+    const ordered = applyFrequentPins(frequentWebsites);
+    renderVirtualView('frequent', ordered);
+
+    // 标出固定的卡片，整理模式下用强调色描边区分
+    const pins = getFrequentPins();
+    document.querySelectorAll('#frequent-cards .website-card').forEach((card, index) => {
+        card.classList.toggle('frequent-fixed', visitUrlKey(ordered[index].url) in pins);
+    });
 }
 
 function renderVirtualViews() {
@@ -2384,9 +2384,10 @@ function handleCardClick(e) {
 
     }
 
-    // 触屏设备上模糊着的私密卡片先变清晰，不打开网站（中键也一样）；有鼠标时悬停已经清晰了，直接打开
-    if (this.classList.contains('private-card') && !this.classList.contains('revealed') && !canHoverPrivateCards.matches) {
-        revealPrivateCard(this);
+    // 模糊着的私密卡片点了不打开（中键也一样），悬停、单击都不会让它变清晰，免得误触；
+    // 只有工具栏「显示全部」之后才能点开
+    if (this.classList.contains('private-card') && !this.classList.contains('revealed')) {
+        if (typeof showNotification === 'function') showNotification('先点「显示全部」再打开', 'info');
         return;
     }
 

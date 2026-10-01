@@ -1758,7 +1758,8 @@ html[data-sidebar="compact"] .category-section {
   background: var(--accent-soft);
 }
 
-/* 私密卡片的图标、标题、网址、描述默认模糊：有鼠标的设备悬停时清晰，触屏设备第一次点击变清晰（.revealed），离开分区后恢复 */
+/* 私密卡片的图标、标题、网址、描述默认模糊，只有工具栏「显示全部」能让它们变清晰（.revealed），离开分区后恢复。
+   悬停、单击都不显示，免得误触 */
 .private-card .card-icon,
 .private-card .card-title,
 .private-card .card-url,
@@ -1774,14 +1775,21 @@ html[data-sidebar="compact"] .category-section {
   user-select: none;
 }
 
-@media (hover: hover) and (pointer: fine) {
-  .private-card:hover .card-icon,
-  .private-card:hover .card-title,
-  .private-card:hover .card-url,
-  .private-card:hover .card-description {
-    filter: none;
-    user-select: text;
+/* 模糊时点了也不打开，悬停不浮起、不给手型光标 */
+.private-card:not(.revealed) {
+  cursor: default;
+}
+
+@media (hover: hover) {
+  .private-card:not(.revealed):hover {
+    border-color: var(--line);
+    box-shadow: none;
+    transform: none;
   }
+}
+
+.private-card:not(.revealed):active {
+  transform: none;
 }
 
 .card-description.card-secret {
@@ -3954,6 +3962,26 @@ html[data-sidebar="compact"] .category-section {
   border-radius: 999px;
 }
 
+.reorder-bar .btn[hidden] {
+  display: none;
+}
+
+/* 两个按钮挨着，间距比文字和按钮之间小 */
+.reorder-bar #reorderResetBtn {
+  margin-right: -8px;
+}
+
+/* 小屏放不下说明文字加两个按钮，有「恢复自动排序」时收起文字 */
+@media (max-width: 480px) {
+  .reorder-bar:has(#reorderResetBtn:not([hidden])) {
+    padding-left: 8px;
+  }
+
+  .reorder-bar:has(#reorderResetBtn:not([hidden])) .reorder-bar-text {
+    display: none;
+  }
+}
+
 /* 整理时不能添加网站，右下角的「+」让位给提示条 */
 body.reordering .add-website-btn {
   display: none;
@@ -3982,6 +4010,11 @@ body.reordering .website-card {
 /* 卡片里的按钮、描述占位符在整理时都不可点 */
 body.reordering .website-card * {
   pointer-events: none;
+}
+
+/* 访问最多里固定住的卡片（亲手拖过的），其余的仍按访问次数浮动 */
+body.reordering .website-card.frequent-fixed {
+  border-color: var(--accent);
 }
 
 /* 留在原位的占位 */
