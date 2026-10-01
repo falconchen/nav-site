@@ -53,6 +53,7 @@
 - `public/auth.js` - 前端认证和会话管理
 - `public/sync.js` - 云端同步与版本历史（直接覆盖，不合并）
 - `public/api-tokens.js` - 「个人令牌」弹窗
+- `public/card-reorder.js` - 整理模式：拖拽调整卡片顺序（SortableJS）
 - `public/category-edit.js` - 分类编辑 UI 和逻辑
 - `public/icon-selector.js` - 分类图标选择器用的 Font Awesome 图标集合
 - `public/image-upload.js` - 图标压缩转 WebP 并上传图床
@@ -97,8 +98,9 @@
     工具栏「锁定」（平时开锁图标，悬停变锁）左边的「显示全部」（`#privateRevealAllBtn`，`setPrivateAllRevealed()`）让所有卡片变清晰，
     打开期间重新渲染的卡片也保持清晰，再点一次、离开分区或锁上私密收藏时关掉。
     这只是视觉遮挡，标题和网址仍在 DOM 里
-  - 排序按最近一次修改或添加的时间从新到旧（`compareByModifiedTimeDesc`，取 `editedTime` 和 `addedTime` 较大的），
-    右键移入 / 移出私密时 `togglePrivateStatus()` 会写 `editedTime`，所以刚移进来的排最前；两个时间都没有的旧数据排最后、按权重
+  - 排序看 `privateOrder`（`compareByPrivateOrderDesc`，越大越靠前）：移入私密时写当前时间戳，所以刚移进来的排最前；
+    拖拽排序后整个分区重新编号。没有这个键的（没拖过的旧数据、扩展新加的）回退到 `editedTime` 和 `addedTime` 里较大的，
+    再没有就排最后、按权重。编辑描述不改变位置
   - 描述照常渲染（跟着卡片一起模糊），悬浮提示也照常显示描述，没有「点击显示描述」和「查看描述」：那是「隐藏描述」的功能，两者互斥。点击不记访问次数
   - `/api/v1` 的 `POST /websites` 接受 `private`，扩展弹窗有「私密收藏」勾选框；右键一键收藏不设私密
   - 第二种私密方式「隐藏描述」（`website.hideDescription`，卡片类 `.desc-hidden-card`）：网站照常出现在所有分区、照常可搜，
@@ -110,6 +112,23 @@
     `/api/v1` 和扩展弹窗也支持这个字段
   - `highlightSearchResults()` 拼 HTML 前一律 `escapeHtml`、关键词转义成正则字面量：标题可能是扩展抓的网页标题，不可信
   - 分类 section 跳过私密网站后 DOM 下标和数据下标对不上，按卡片找数据一律用 `siteIndexOfCard()`，不要再写 `children.indexOf(card)`
+
+### 拖拽排序（整理模式）
+
+`public/card-reorder.js` + `public/vendor/Sortable.min.js`（SortableJS，本地托管，构建时原样复制到 `dist/vendor/`）。
+
+- 卡片右键 / 长按菜单的「调整顺序」进入，整理的是当前 tab：「全部网站」下每个分类各自可拖（不能跨分类），
+  特别关注、私密收藏各是一个列表。最近添加、访问最多、搜索结果是算出来的顺序，菜单里不出现这一项
+- 三种分区各有排序键，数值越大越靠前，拖完整个分区重新编号（100、110、120…）：
+  分类 → `weight`，特别关注 → `pinnedOrder`（没有时回退 `weight`），私密收藏 → `privateOrder`。
+  特别关注不直接用 `weight`，否则在特别关注里拖动会打乱原分类里的顺序；分类第一次重新编号前 `freezePinnedOrder()` 把现有顺序固定到 `pinnedOrder` 上
+- 新设为特别关注的 `pinnedOrder` 取当前最大 +10（`nextPinnedOrder()`，`/api/v1` 的 `POST /websites` 同规则，改一边要同步另一边）。
+  表单保存会重建网站对象，两个键靠 `carryOrderFields()` 带过去，新加字段时别漏；编辑已是特别关注的网站不再把它顶到分类最前
+- 整理中 `<body class="reordering">`、底部显示提示条 `#reorderBar`：点击 / 中键不打开网站、不弹菜单、不出悬浮提示、左右滑不切 tab、
+  右下角「+」隐藏；私密收藏临时「显示全部」，退出时恢复模糊。「完成」、Esc、切 tab、开始搜索、该分区被重新渲染（`exitReorderModeFor()`）都会退出
+- 拖动只改内存数据，退出时才 `saveNavData()` 一次（页面转到后台时也存）：每次上传都生成版本快照，历史只留 5 份，每次松手都存会冲掉历史
+- 进入时用 WeakMap 记下卡片 → 网站数据的对应，拖动后 DOM 下标对不上数据，别在整理中用 `siteIndexOfCard()`
+- Sortable 用 `forceFallback`（鼠标触屏同一套实现）、触屏按住 150ms 才开始拖，快速划动仍是滚动页面
 
 登录状态在页面启动时通过 `/api/auth/verify` 校验。只有明确收到 401 或 `valid: false` 才删除本地令牌；断网、请求异常及服务端临时故障会保留令牌，并在网络恢复或 15 秒后重试。校验未成功前不启动云端同步。修改此流程时需检查断网刷新后恢复、真正过期以及校验期间切换账号这三种情况。
 
@@ -379,7 +398,7 @@ npm run deploy      # 部署到 Cloudflare Workers 生产环境
     name: string,
     icon: string,
     order: number,
-    websites: [{ id, name, url, icon, description, pinned, addedTime }]
+    websites: [{ id, name, url, icon, description, pinned, addedTime, weight, pinnedOrder, privateOrder }]
   }],
   version: timestamp,
   lastUpdated: ISO string

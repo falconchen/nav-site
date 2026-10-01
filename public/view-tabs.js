@@ -34,6 +34,8 @@ function switchTab(tab, options = {}) {
     const current = getActiveTab();
     if (tab === current) return;
 
+    if (typeof exitReorderMode === 'function') exitReorderMode();
+
     // 离开私密收藏时把点开过的卡片恢复模糊；其它分区里点开的描述也收起来
     if (current === 'private' && typeof reblurPrivateCards === 'function') {
         reblurPrivateCards();
@@ -88,6 +90,8 @@ function setupTabSwipe() {
         start = null;
         if (e.touches.length !== 1) return;
         if (document.body.classList.contains('searching')) return;
+        // 整理模式下手指在拖卡片，不切 tab
+        if (document.body.classList.contains('reordering')) return;
         if (document.querySelector('.modal-overlay.active')) return;
         if (e.target.closest('input, textarea, select, .header, .category-sheet, .context-menu')) return;
 

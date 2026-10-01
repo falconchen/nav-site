@@ -3919,3 +3919,81 @@ html[data-sidebar="compact"] .category-section {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ---- 整理模式：拖拽调整卡片顺序（card-reorder.js） ---- */
+
+.reorder-bar {
+  position: fixed;
+  left: 50%;
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 995;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 8px 8px 18px;
+  background: var(--card);
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  box-shadow: var(--shadow-2);
+  font-size: 14px;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.reorder-bar[hidden] {
+  display: none;
+}
+
+.reorder-bar-text i {
+  margin-right: 6px;
+  color: var(--ink-3);
+}
+
+.reorder-bar .btn {
+  border-radius: 999px;
+}
+
+/* 整理时不能添加网站，右下角的「+」让位给提示条 */
+body.reordering .add-website-btn {
+  display: none;
+}
+
+/* 提示条浮在底部，给最后一行卡片留出位置 */
+body.reordering .main-container {
+  padding-bottom: 96px;
+}
+
+body.reordering {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* 悬停浮起、按下缩小都关掉：Sortable 用行内 transform 做位移动画，和它们叠在一起会跳 */
+body.reordering .website-card {
+  cursor: grab;
+  border-style: dashed;
+  border-color: var(--line-strong);
+  box-shadow: none;
+  transform: none;
+  transition: none;
+}
+
+/* 卡片里的按钮、描述占位符在整理时都不可点 */
+body.reordering .website-card * {
+  pointer-events: none;
+}
+
+/* 留在原位的占位 */
+body.reordering .website-card.reorder-ghost {
+  opacity: 0.35;
+}
+
+/* 跟着指针走的那张 */
+body.reordering .website-card.reorder-drag {
+  cursor: grabbing;
+  border-style: solid;
+  border-color: var(--ink-3);
+  box-shadow: var(--shadow-2);
+  opacity: 0.96;
+}

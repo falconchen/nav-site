@@ -411,6 +411,12 @@
         </div>
     </div>
 
+    <!-- 整理模式（拖拽调整卡片顺序）的提示条 -->
+    <div class="reorder-bar" id="reorderBar" hidden>
+        <span class="reorder-bar-text"><i class="fas fa-up-down-left-right"></i> 拖动卡片调整顺序</span>
+        <button type="button" class="btn btn-primary" id="reorderDoneBtn">完成</button>
+    </div>
+
     <!-- 调整分区顺序 -->
     <div class="modal-overlay" id="tabOrderModal">
         <div class="modal" style="max-width: 360px;">
@@ -578,6 +584,8 @@
     <script src="auth.js"></script>
     <script src="image-upload.js"></script>
     <script src="visit-stats.js"></script>
+    <script src="vendor/Sortable.min.js"></script>
+    <script src="card-reorder.js"></script>
     <script src="script.js"></script>
     <script src="category-edit.js"></script>
     <script src="icon-selector.js"></script>

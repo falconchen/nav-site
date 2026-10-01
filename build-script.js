@@ -27,6 +27,7 @@ async function buildProject() {
                 'public/image-upload.js',
                 'public/visit-stats.js',
                 'public/script.js',
+                'public/card-reorder.js',
                 'public/category-edit.js',
                 'public/icon-selector.js',
                 'public/card-tooltip.js',
@@ -41,6 +42,10 @@ async function buildProject() {
         console.log('🖼️ 复制图片资源...');
         if (fs.existsSync('public/img')) {
             fs.cpSync('public/img', 'dist/img', { recursive: true });
+        }
+        // 第三方库（SortableJS）已经是压缩版，原样复制
+        if (fs.existsSync('public/vendor')) {
+            fs.cpSync('public/vendor', 'dist/vendor', { recursive: true });
         }
         // PWA 清单（分享到手机、添加到主屏幕用）
         if (fs.existsSync('public/manifest.webmanifest')) {

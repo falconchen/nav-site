@@ -392,6 +392,8 @@ function siteIndexOfCard(card, categoryId) {
 
 // 从数据加载网站卡片
 function loadWebsitesFromData() {
+    exitReorderModeFor('all');
+
     // 验证置顶状态的一致性
     validatePinnedStatus();
 
@@ -821,6 +823,8 @@ function refreshCategoryUI(categoryId) {
     const categoryWebsites = websites[categoryId];
     if (!categoryWebsites || !Array.isArray(categoryWebsites)) return;
 
+    exitReorderModeFor('all');
+
     // 清空容器
     cardsContainer.innerHTML = '';
 
@@ -1121,7 +1125,8 @@ function submitWebsiteForm() {
                 private: isPrivate,
                 hideDescription: isHideDescription,
                 addedTime: websiteData.addedTime || currentTime, // 保留原添加时间或使用当前时间
-                editedTime: currentTime // 记录编辑时间
+                editedTime: currentTime, // 记录编辑时间
+                ...carryOrderFields(websiteData, isPinned, isPrivate, currentTime)
             });
 
             // 如果当前正在编辑非虚拟分类中的卡片，先隐藏旧卡片，准备移除
@@ -1153,7 +1158,9 @@ function submitWebsiteForm() {
         } else if (cardIndex >= 0) {
             // 分类没有变化，只更新卡片内容
             // 计算新权重
-            const newSiteWeight = isPinned ? newWeight : (websites[oldCategoryId][cardIndex].weight || 100);
+            // 只有新设为特别关注才顶到分类最前；原来就是关注的保持位置，免得每次编辑都打乱拖好的顺序
+            const oldSite = websites[oldCategoryId][cardIndex];
+            const newSiteWeight = isPinned && !oldSite.pinned ? newWeight : (oldSite.weight || 100);
             // 检查权重是否变更
             weightChanged = newSiteWeight !== oldWeight;
 
@@ -1167,8 +1174,9 @@ function submitWebsiteForm() {
                 pinned: isPinned, // 更新置顶状态
                 private: isPrivate,
                 hideDescription: isHideDescription,
-                addedTime: websites[oldCategoryId][cardIndex].addedTime || currentTime, // 保留原添加时间或使用当前时间
-                editedTime: currentTime // 记录编辑时间
+                addedTime: oldSite.addedTime || currentTime, // 保留原添加时间或使用当前时间
+                editedTime: currentTime, // 记录编辑时间
+                ...carryOrderFields(oldSite, isPinned, isPrivate, currentTime)
             };
 
             // 如果权重、置顶、私密状态变更或涉及隐藏描述，需要重新排序并刷新UI
@@ -1223,7 +1231,8 @@ function submitWebsiteForm() {
             private: isPrivate,
             hideDescription: isHideDescription,
             addedTime: currentTime, // 记录添加时间
-            editedTime: currentTime // 记录编辑时间（与添加时间相同）
+            editedTime: currentTime, // 记录编辑时间（与添加时间相同）
+            ...carryOrderFields(null, isPinned, isPrivate, currentTime)
         });
 
         // 对分类进行排序并刷新UI
@@ -1352,6 +1361,8 @@ function renderVirtualView(sectionId, sites) {
     const container = document.getElementById(`${sectionId}-cards`);
     if (!container) return;
 
+    exitReorderModeFor(sectionId);
+
     container.innerHTML = '';
 
     // 卡片记下原始分类，编辑、删除、置顶时靠它找回数据
@@ -1366,11 +1377,33 @@ function renderVirtualView(sectionId, sites) {
     }
 }
 
+// 特别关注的排序键：拖拽排序写 pinnedOrder，没拖过的回退到 weight。数值越大越靠前
+function pinnedSortKey(site) {
+    return site.pinnedOrder ?? site.weight ?? 100;
+}
+
+// 新设为特别关注的排最前
+function nextPinnedOrder() {
+    return Math.max(90, ...collectAllWebsites().filter(site => site.pinned).map(pinnedSortKey)) + 10;
+}
+
+// 表单保存会重建网站对象，两个排序键要带过去：新设为关注 / 私密的排到最前，原来就是的保持位置
+function carryOrderFields(oldSite, isPinned, isPrivate, now) {
+    const fields = {};
+    if (isPinned) {
+        fields.pinnedOrder = oldSite && oldSite.pinned ? oldSite.pinnedOrder : nextPinnedOrder();
+    }
+    if (isPrivate) {
+        fields.privateOrder = oldSite && oldSite.private ? oldSite.privateOrder : now;
+    }
+    return fields;
+}
+
 // 渲染置顶视图
 function renderPinnedCategory() {
     const pinnedWebsites = collectAllWebsites()
         .filter(website => website.pinned === true)
-        .sort((a, b) => (b.weight || 100) - (a.weight || 100));
+        .sort((a, b) => pinnedSortKey(b) - pinnedSortKey(a));
 
     renderVirtualView('pinned', pinnedWebsites);
 }
@@ -1407,20 +1440,21 @@ function renderPrivateCategory() {
     section.classList.toggle('is-locked', !revealed);
 
     const privateWebsites = revealed
-        ? collectAllWebsites({ onlyPrivate: true }).sort(compareByModifiedTimeDesc)
+        ? collectAllWebsites({ onlyPrivate: true }).sort(compareByPrivateOrderDesc)
         : [];
     renderVirtualView('private', privateWebsites);
     if (!revealed) section.classList.remove('is-empty');
     if (privateAllRevealed) setPrivateAllRevealed(true);
 }
 
-// 按最近一次修改或添加的时间倒序（扩展重新收藏只刷新 addedTime，所以取两者较大的），都没有的旧数据排在后面、按权重排。私密收藏用
-function compareByModifiedTimeDesc(a, b) {
-    const ta = Math.max(a.editedTime || 0, a.addedTime || 0);
-    const tb = Math.max(b.editedTime || 0, b.addedTime || 0);
-    if (ta && tb) return tb - ta;
-    if (ta) return -1;
-    if (tb) return 1;
+// 私密收藏的顺序：拖拽排序写 privateOrder，移入私密时写当前时间戳所以排最前；
+// 没有这个键的（没拖过的旧数据、扩展新加的）回退到修改 / 添加时间里较晚的，再没有就排最后、按权重
+function compareByPrivateOrderDesc(a, b) {
+    const ka = a.privateOrder ?? Math.max(a.editedTime || 0, a.addedTime || 0);
+    const kb = b.privateOrder ?? Math.max(b.editedTime || 0, b.addedTime || 0);
+    if (ka && kb) return kb - ka;
+    if (ka) return -1;
+    if (kb) return 1;
     return (b.weight || 100) - (a.weight || 100);
 }
 
@@ -1565,7 +1599,8 @@ function updateWebsiteCard(card, name, url, description, iconUrl, isPinned) {
             private: false, // 分类 section 里只有非私密网站
             hideDescription: false, // 隐藏描述的网站不走这里，见 submitWebsiteForm 的 hideDescriptionInvolved
             addedTime: websites[categoryId][cardIndex].addedTime || currentTime, // 保留原添加时间，如果没有则使用当前时间
-            editedTime: currentTime // 记录编辑时间
+            editedTime: currentTime, // 记录编辑时间
+            ...carryOrderFields(websites[categoryId][cardIndex], isPinned, false, currentTime)
         };
 
         // 保存数据到localStorage
@@ -1671,6 +1706,10 @@ function createContextMenu() {
             <i class="fas fa-eye-slash"></i>
             <span id="hide-desc-action-text">隐藏描述</span>
         </div>
+        <div class="context-menu-item" id="reorder-btn">
+            <i class="fas fa-up-down-left-right"></i>
+            <span>调整顺序</span>
+        </div>
         <div class="context-menu-item" id="remove-frequent-btn">
             <i class="fas fa-eye-slash"></i>
             <span>从访问最多中移除</span>
@@ -1736,6 +1775,11 @@ function createContextMenu() {
             openDescriptionModal(contextMenuTarget);
             hideContextMenu();
         }
+    });
+
+    contextMenu.querySelector('#reorder-btn').addEventListener('click', function () {
+        hideContextMenu();
+        enterReorderMode();
     });
 
     contextMenu.querySelector('#remove-frequent-btn').addEventListener('click', function () {
@@ -1818,6 +1862,7 @@ function togglePinStatus(card) {
     const imageData = websites[categoryId][websiteIndex].imageData || '';
 
     // 更新网站数据
+    if (newPinStatus) websites[categoryId][websiteIndex].pinnedOrder = nextPinnedOrder();
     websites[categoryId][websiteIndex].pinned = newPinStatus;
     websites[categoryId][websiteIndex].weight = newWeight;
 
@@ -1897,9 +1942,12 @@ function togglePrivateStatus(card) {
     if (!site) return;
 
     site.private = !site.private;
-    // 私密收藏按修改时间排，刚移进来的排最前
     site.editedTime = Date.now();
-    if (site.private) site.pinned = false;
+    if (site.private) {
+        site.pinned = false;
+        // 刚移进来的排最前（见 compareByPrivateOrderDesc）
+        site.privateOrder = site.editedTime;
+    }
     // 移出私密收藏时描述继续遮住，免得账号信息突然明文露出来；想公开再点「显示描述」
     if (!site.private) site.hideDescription = true;
 
@@ -2029,8 +2077,12 @@ function showContextMenu(e, card) {
         card.classList.contains('desc-hidden-card') ? '显示描述' : '隐藏描述';
 
     // 「从访问最多中移除」只在访问最多视图里出现
-    const inFrequent = card.closest('.category-section')?.id === 'frequent';
-    menu.querySelector('#remove-frequent-btn').style.display = inFrequent ? '' : 'none';
+    const sectionId = card.closest('.category-section')?.id;
+    menu.querySelector('#remove-frequent-btn').style.display = sectionId === 'frequent' ? '' : 'none';
+
+    // 「调整顺序」只在能手动排序的分区出现；搜索时分类 section 里是筛选后的结果，也不给排
+    const canReorder = canReorderSection(sectionId) && !document.body.classList.contains('searching');
+    menu.querySelector('#reorder-btn').style.display = canReorder ? '' : 'none';
 
     // 隐藏其他可能显示的菜单
     hideContextMenu();
@@ -2219,7 +2271,7 @@ function bindCardLongPress(card) {
     card.addEventListener('touchstart', (e) => {
         // 新的一次触摸开始，上一次长按留下的拦截不再需要
         disarmGhostClickGuard();
-        if (e.touches.length !== 1) return cancel();
+        if (e.touches.length !== 1 || isReordering()) return cancel();
         fired = false;
         const touch = e.touches[0];
         startX = touch.clientX;
@@ -2273,11 +2325,17 @@ function bindCardLongPress(card) {
 // 处理卡片图钉点击
 function handlePinBtnClick(e) {
     e.stopPropagation();
+    if (isReordering()) return;
     togglePinStatus(this.closest('.website-card'));
 }
 
 // 处理卡片右键菜单事件
 function handleContextMenu(e) {
+    // 整理模式下不弹菜单，也不让浏览器弹自带的
+    if (isReordering()) {
+        e.preventDefault();
+        return;
+    }
     showContextMenu(e, this);
 }
 
@@ -2307,6 +2365,9 @@ function handleMenuBtnClick(e) {
 
 // 处理卡片点击事件
 function handleCardClick(e) {
+    // 整理模式下点击、中键都不打开网站
+    if (isReordering()) return;
+
     // 如果点击了菜单按钮或context菜单，不执行卡片点击
     if (e.target.closest('.context-menu') || e.target.closest('.card-menu-btn') || e.target.closest('.card-pin-btn')) return;
 

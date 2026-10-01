@@ -249,6 +249,8 @@
 
         const card = e.target.closest && e.target.closest('.website-card');
         if (!card || card === hoverCard) return;
+        // 整理模式下在拖卡片，不弹提示
+        if (document.body.classList.contains('reordering')) return;
 
         hoverCard = card;
         if (card === activeCard) {

@@ -430,6 +430,13 @@ app.post('/v1/websites', limitWrites, async (c) => {
 
     const now = Date.now();
     const site = { ...fields, weight, addedTime: now, editedTime: now };
+    // 特别关注有自己的排序键（网页端拖拽排序写入），新关注的排最前，规则同网页端 nextPinnedOrder()
+    if (site.pinned) {
+        const pinnedKeys = Object.values(websites).flat()
+            .filter((item) => item?.pinned)
+            .map((item) => item.pinnedOrder ?? item.weight ?? 100);
+        site.pinnedOrder = Math.max(90, ...pinnedKeys) + 10;
+    }
     websites[categoryId] = [...(websites[categoryId] || []), site];
 
     const via = auth.via === 'token' ? `令牌「${auth.tokenName}」` : 'API';
