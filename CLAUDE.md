@@ -171,7 +171,12 @@
   输入长度时（`input`）只重新生成，失焦（`change`）才把修正后的值写回输入框
 - Base64 按 UTF-8 编码，两个框实时互转；解码同时认标准和 URL 安全写法，容忍空白和缺掉的 `=`，解不出来时保留原文、只显示行内错误
 - UUID 是 v4，切换大写 / 去掉连字符只换写法、不重新生成
-- 新增工具：`tools.html` 加一个 `<section class="tool-section">`（01、02 编号由 CSS 计数器 `tool` 生成），样式在 `styles.css` 的「工具页」一节。
+- 每个工具一个 tab（`.tool-tabs`，按钮沿用首页的 `.view-tab` 样式，小屏显示简称），一次只显示一个面板。
+  当前工具写在 `<html data-tool>` 上，由 `tools.html` 头部内联脚本在首屏前设好（防闪烁）：网址里的 `#base64` / `#password` / `#uuid` 优先，
+  其次是上次用的（localStorage `toolsTab`），都没有就是第一个（Base64，顺序看内联脚本的 `tools` 列表和 tab 按钮的 DOM 顺序，两处要一致）。切换时 `replaceState` 改 hash，不往历史里加记录。
+  面板 id 是 `tool-<名字>`，故意和 hash 不同名，免得带 hash 打开时浏览器自动滚过去
+- 新增工具要改四处：`tools.html` 的 tab 按钮和 `<section class="tool-section" id="tool-xxx">`、头部内联脚本的 `tools` 列表、
+  `styles.css`「工具页」一节的 `html[data-tool="xxx"] #tool-xxx` 规则。
   新增的 JS 文件要加进 `build-script.js` 的 `entryPoints`（HTML 是扫目录的，JS 不是）
 - 复制统一用 `utils.js` 的 `copyText()`（返回 Promise，不带提示），首页的卡片悬浮提示也用它
 

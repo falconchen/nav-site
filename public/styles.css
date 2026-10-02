@@ -3922,30 +3922,40 @@ html[data-sidebar="compact"] .category-section {
 
 /* ---------- 工具页：密码生成器 / Base64 / UUID ---------- */
 
-/* 没有 tab 栏，通知贴着页眉出现 */
+/* 页眉下面没有吸顶的 tab 栏，通知贴着页眉出现 */
 .tools-page {
   --tabs-h: 0px;
 }
 
-.tools-container {
-  counter-reset: tool;
+/* 分隔线交给下面的 tab 栏 */
+.tools-container .about-header {
+  margin-bottom: 20px;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+/* 每个工具一个 tab，按钮沿用首页的 .view-tab；当前工具写在 <html data-tool> 上 */
+.tool-tabs {
+  display: flex;
+  gap: 4px;
+  margin: 0 -12px 32px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.tool-tabs .view-tab {
+  height: 46px;
+  cursor: pointer;
 }
 
 .tool-section {
-  counter-increment: tool;
-  margin-bottom: 56px;
-  scroll-margin-top: calc(var(--header-h, 60px) + 20px);
+  display: none;
 }
 
-.tool-section .section-title::before {
-  content: counter(tool, decimal-leading-zero);
-  flex: none;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.04em;
-  color: var(--accent);
-  transform: translateY(-2px);
+html[data-tool="password"] #tool-password,
+html[data-tool="base64"] #tool-base64,
+html[data-tool="uuid"] #tool-uuid {
+  display: block;
 }
 
 /* 结果框：左边等宽文字，右边图标按钮 */
@@ -4145,8 +4155,14 @@ html[data-sidebar="compact"] .category-section {
 }
 
 @media (max-width: 768px) {
-  .tool-section {
-    margin-bottom: 44px;
+  .tool-tabs {
+    gap: 0;
+    margin: 0 0 24px;
+    padding: 0;
+  }
+
+  .tool-tabs .view-tab {
+    height: 44px;
   }
 
   .tool-row-2 {

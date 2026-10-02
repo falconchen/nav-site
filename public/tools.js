@@ -6,6 +6,7 @@
     const PASSWORD_MAX_MIN_COUNT = 9;
     const UUID_MAX_COUNT = 100;
     const PASSWORD_OPTIONS_KEY = 'toolsPasswordOptions';
+    const TOOL_TAB_KEY = 'toolsTab';
     const COPIED_FEEDBACK_MS = 1500;
 
     // 易混淆的 I O l 0 1 单独放，勾了「避免易混淆的字符」就不拼进去
@@ -385,7 +386,50 @@
         regenerate();
     }
 
+    // 当前工具写在 <html data-tool> 上（tools.html 头部内联脚本先设好），显示哪个面板由 CSS 决定
+    function setupToolTabs() {
+        const tabs = Array.from(document.querySelectorAll('.tool-tabs .view-tab'));
+        const names = tabs.map(tab => tab.dataset.tool);
+
+        function updateButtons() {
+            const current = document.documentElement.dataset.tool;
+            tabs.forEach(tab => {
+                const active = tab.dataset.tool === current;
+                tab.classList.toggle('active', active);
+                tab.setAttribute('aria-selected', active);
+                tab.tabIndex = active ? 0 : -1;
+            });
+        }
+
+        function switchTool(name) {
+            if (!names.includes(name)) return;
+            document.documentElement.dataset.tool = name;
+            updateButtons();
+            // 用 replaceState 记进网址，方便收藏某个工具，又不往历史里塞记录
+            history.replaceState(null, '', `#${name}`);
+            try {
+                localStorage.setItem(TOOL_TAB_KEY, name);
+            } catch (error) {}
+        }
+
+        tabs.forEach((tab, index) => {
+            tab.addEventListener('click', () => switchTool(tab.dataset.tool));
+            tab.addEventListener('keydown', e => {
+                if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+                e.preventDefault();
+                const step = e.key === 'ArrowRight' ? 1 : -1;
+                const next = tabs[(index + step + tabs.length) % tabs.length];
+                switchTool(next.dataset.tool);
+                next.focus();
+            });
+        });
+        window.addEventListener('hashchange', () => switchTool(location.hash.slice(1)));
+
+        updateButtons();
+    }
+
     function init() {
+        setupToolTabs();
         setupPassword();
         setupBase64();
         setupUuid();

@@ -32,6 +32,14 @@
           document.documentElement.setAttribute('data-accent', accent);
         }
       } catch(e) {}
+      // 首屏前定好显示哪个工具，防闪烁：网址里的 #uuid 优先，其次是上次用的
+      var tools = ['base64', 'password', 'uuid'];
+      var tool = location.hash.slice(1);
+      try {
+        if (tools.indexOf(tool) < 0) tool = localStorage.getItem('toolsTab');
+      } catch(e) {}
+      if (tools.indexOf(tool) < 0) tool = tools[0];
+      document.documentElement.setAttribute('data-tool', tool);
     })();
     </script>
 </head>
@@ -54,9 +62,21 @@
             <p class="tagline">几样随手用的小工具，都在浏览器里算，不上传任何内容。</p>
         </div>
 
+        <!-- 每个工具一个 tab；增减工具时，头部内联脚本的列表和 styles.css 的 html[data-tool] 规则要一起改 -->
+        <nav class="tool-tabs" role="tablist" aria-label="工具">
+            <button type="button" class="view-tab" role="tab" id="tool-tab-base64" data-tool="base64" aria-controls="tool-base64">
+                <i class="fas fa-code"></i><span class="tab-label">Base64 编码 / 解码</span><span class="tab-label-short">Base64</span>
+            </button>
+            <button type="button" class="view-tab" role="tab" id="tool-tab-password" data-tool="password" aria-controls="tool-password">
+                <i class="fas fa-key"></i><span class="tab-label">密码生成器</span><span class="tab-label-short">密码</span>
+            </button>
+            <button type="button" class="view-tab" role="tab" id="tool-tab-uuid" data-tool="uuid" aria-controls="tool-uuid">
+                <i class="fas fa-fingerprint"></i><span class="tab-label">UUID 生成器</span><span class="tab-label-short">UUID</span>
+            </button>
+        </nav>
+
         <!-- 密码生成器 -->
-        <section class="tool-section" id="password">
-            <h2 class="section-title">密码生成器</h2>
+        <section class="tool-section" id="tool-password" role="tabpanel" aria-labelledby="tool-tab-password">
 
             <div class="tool-result">
                 <div class="tool-output" id="passwordOutput" aria-live="polite" aria-label="生成的密码"></div>
@@ -105,8 +125,7 @@
         </section>
 
         <!-- Base64 -->
-        <section class="tool-section" id="base64">
-            <h2 class="section-title">Base64 编码 / 解码</h2>
+        <section class="tool-section" id="tool-base64" role="tabpanel" aria-labelledby="tool-tab-base64">
 
             <div class="tool-row tool-row-2">
                 <div class="form-group">
@@ -142,8 +161,7 @@
         </section>
 
         <!-- UUID -->
-        <section class="tool-section" id="uuid">
-            <h2 class="section-title">UUID 生成器</h2>
+        <section class="tool-section" id="tool-uuid" role="tabpanel" aria-labelledby="tool-tab-uuid">
 
             <ul class="uuid-list" id="uuidList" aria-live="polite"></ul>
 
