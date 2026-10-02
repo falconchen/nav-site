@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>记事本 · 皮皮2047</title>
+    <meta name="description" content="皮皮2047 的记事本：登录后保存到云端，支持 Markdown、文件夹和公开发布。">
+    <meta name="robots" content="noindex">
+    <meta name="color-scheme" content="light dark">
+    <meta name="theme-color" content="#f4f2ed" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#121110" media="(prefers-color-scheme: dark)">
+    <link rel="icon" href="/img/seal.svg" type="image/svg+xml">
+    <link rel="icon" href="/img/favicon-32.png" sizes="32x32" type="image/png">
+    <link rel="apple-touch-icon" href="/img/apple-touch-icon.png">
+    <link rel="stylesheet" href="https://cdnjs.snrat.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha384-iw3OoTErCYJJB9mCa8LNS2hbsQ7M3C0EpIsO/H5+EGAkPGc6rk+V8i04oW/K5xq0" crossorigin="anonymous">
+    <link rel="stylesheet" href="/styles.css">
+    <script>
+    (function() {
+      try {
+        var theme = localStorage.getItem('theme');
+        if (theme !== 'dark' && theme !== 'light') {
+          theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        document.documentElement.setAttribute('data-theme', theme);
+        var accent = localStorage.getItem('accent');
+        if (accent) {
+          document.documentElement.setAttribute('data-accent', accent);
+        }
+      } catch(e) {}
+    })();
+    </script>
+</head>
+<body class="doc-page notes-page">
+    <header class="header doc-header">
+        <div class="header-container">
+            <a href="/" class="logo" aria-label="返回皮皮2047首页">
+                <span class="accent-swatch" aria-hidden="true"><span class="seal-glyph">皮</span></span>
+                <span class="brand-name">皮皮<span class="brand-num">2047</span></span>
+            </a>
+            <a href="/" class="doc-back"><i class="fas fa-arrow-left"></i>返回首页</a>
+        </div>
+    </header>
+
+    <main class="about-container notes-container">
+        <!-- 列表、查看、编辑三种视图都由 notes.js 按网址 hash 画在这里 -->
+        <div id="notesApp"><p class="notes-empty">加载中…</p></div>
+        <p class="doc-colophon">© <span class="copyright-year">2026</span> 皮皮2047 · 私人网址簿<script>document.currentScript.parentNode.querySelector('.copyright-year').textContent = new Date().getFullYear();</script></p>
+    </main>
+
+    <script src="/utils.js"></script>
+    <script src="/vendor/marked.min.js"></script>
+    <script src="/vendor/purify.min.js"></script>
+    <script src="/note-render.js"></script>
+    <script src="/notes.js"></script>
+</body>
+</html>

@@ -22,7 +22,7 @@
 
 - **运行时**: Cloudflare Workers + Hono 框架
 - **前端**: 原生 JavaScript（无框架）、HTML5、CSS3
-- **存储**: Cloudflare KV 用于用户会话和数据存储
+- **存储**: Upstash Redis（REST）存收藏数据、版本历史、用户档案和记事本；Cloudflare KV 存登录会话、个人令牌、限流计数和图床去重
 - **AI**: Cloudflare AI 绑定用于网站分析
 - **构建**: esbuild 用于压缩，html-minifier-terser 用于 HTML
 - **测试**: Vitest + @cloudflare/vitest-pool-workers
@@ -44,6 +44,9 @@
 - `server/lib/session-auth.js` - 网页登录 JWT 校验（验签 + 核对 KV 会话），user-data 和 v1 共用
 - `server/lib/personal-tokens.js` - 个人令牌的存储与校验
 - `server/lib/rate-limit.js` - 按 IP 的固定窗口限流（图床上传与 AI 识别共用）
+- `server/api/notes.js` - 记事本接口（只接受网页登录 JWT）和公开记事的只读接口
+- `server/lib/notes-store.js` - 记事本的存储与校验（Redis）
+- `server/lib/redis.js` - Upstash Redis 的 get / set / del 薄封装，失败抛 `RedisError`
 
 **前端 (`public/`)：**
 - `public/index.html` - 主 HTML 结构，包含内联主题脚本
@@ -62,6 +65,9 @@
 - `public/visit-stats.js` - 访问统计（只存本机），给「访问最多」排序
 - `public/clipboard-watch.js` - 剪贴板网址识别，发现新网址自动弹「添加网站」（默认关）
 - `public/tools.html` + `public/tools.js` - 独立的「常用工具」页（Base64、密码生成器、UUID、URL 编码、二维码）
+- `public/notes.html` + `public/notes.js` - 独立的「记事本」页（列表、查看、编辑、文件夹、公开发布）
+- `public/note-public.html` + `public/note-public.js` - 公开发布的记事的只读页，网址是 `/n/<公开 id>`
+- `public/note-render.js` - 记事正文渲染（Markdown 过滤、纯文本转义），上面两个页面共用
 
 ### 视图 tab
 
@@ -91,7 +97,7 @@
 - 特别关注卡片右上角的星星是真实按钮（`.card-pin-btn`，每张卡都渲染，靠 `.pinned` 类显示），点击取消关注
 - 第五个 tab「私密收藏」（`data-tab="private"`）放 `website.private === true` 的网站，它们不进分类 section、最近添加、
   访问最多、特别关注和搜索（`collectAllWebsites()` 默认排除，要取私密网站得传 `{ onlyPrivate: true }`）。私密优先于特别关注。
-  **这只是界面隐藏**：localStorage、云端 KV、版本历史、导出文件、`/api/v1` 里都是明文。其它规则：
+  **这只是界面隐藏**：localStorage、云端、版本历史、导出文件、`/api/v1` 里都是明文。其它规则：
   - 默认锁定、不渲染卡片 DOM；点「显示」后写 sessionStorage `privateRevealed`，本次会话有效。打开时不会停在私密收藏，左右滑动也滑不进去
   - 图标、标题、网址、描述默认 CSS 模糊（`.private-card:not(.revealed)`），**只有「显示全部」能让卡片变清晰**。
     模糊时悬停不变清晰、不出悬浮提示（`card-tooltip.js` 的 `scheduleShow()` 里拦掉）、不浮起，点击和中键都不打开网站，只提示先点「显示全部」；
@@ -187,6 +193,44 @@
   `styles.css`「工具页」一节的 `html[data-tool="xxx"] #tool-xxx` 规则。
   新增的 JS 文件要加进 `build-script.js` 的 `entryPoints`（HTML 是扫目录的，JS 不是）
 - 复制统一用 `utils.js` 的 `copyText()`（返回 Promise，不带提示），首页的卡片悬浮提示也用它
+
+### 记事本
+
+复刻 V2EX 的记事本。`/notes.html` 是独立页面，入口在登录后的用户菜单（`#userMenu`，桌面和小屏都显示）。
+**必须登录、只存云端**，和收藏的「离线优先」不同；和收藏数据完全独立，不进 `saveNavData`、版本历史、导出文件和 `/api/v1`。
+
+**存储**（`server/lib/notes-store.js`，Redis）：
+- `notes:<userId>` 是索引：记事的元数据（`id, title, syntax, folderId, length, createdAt, updatedAt, publicId`）和文件夹列表，不含正文；
+  `note:<userId>:<noteId>` 存正文；`note_public:<publicId>` 是公开链接到 `{ userId, noteId }` 的反查表
+- key 不能用 `user:` 开头：`auth.js` 的 `findUserByEmail` 会 `KEYS user:*` 把它们当用户记录扫
+- 读写走 `server/lib/redis.js`，**失败要抛错**（接口返回 503）：索引是读-改-写，读失败若当成「没有数据」，下一步写回会把索引清空
+- 没有标题字段，标题取正文第一个非空行（去掉 Markdown 的 `#`，截 100 字），和 V2EX 一样
+- 上限在 `LIMITS`：500 条记事、50 个文件夹、单条 10 万字符、公开 50 条。超限返回 4xx + `code`，不截断正文
+- 只改正文或格式才刷新 `updatedAt`，移动文件夹不算修改。删文件夹不删记事，里面的记事回到未归档
+
+**接口**（`server/api/notes.js`）：`/api/notes` 下的只接受网页登录 JWT（`requireSession`），个人令牌不能用；写接口按用户限流 60 次/分钟。
+`PUT /api/notes/:id` 带 `baseUpdatedAt` 时，云端已被别处改过返回 409 `NOTE_CONFLICT`，前端让用户选择是否覆盖。
+文件夹路由要注册在 `/notes/:id` 前面。
+
+**公开发布**：`POST /api/notes/:id/publish` 生成随机 `publicId`（和记事 id 无关），公开页是 `/n/<publicId>`。
+- `server/index.js` 的 `/n/:id` 路由对任何 id 都返回静态页 `note-public.html`（带 `X-Robots-Tag: noindex`），页面再请求
+  `GET /api/public/notes/:publicId`（不鉴权、按 IP 限流、`no-store`）。这个接口只返回标题、正文、格式、更新时间，不带作者和内部 id
+- 公开接口读取时会核对索引里的 `publicId`，所以取消发布或删除记事后旧链接立即失效（反查表没删干净也读不到）；再次发布换新链接
+- 公开页在 `/n/` 下，资源一律用绝对路径
+
+**前端**：
+- 记事本页**不加载 `auth.js`**（它硬依赖首页页眉的 DOM），自己读 localStorage `authToken`。没有令牌显示「请先登录」；
+  收到 401 只提示回首页重新登录，**不删令牌**——是否真过期由首页的校验流程判断
+- 视图按 hash 切：`#/`、`#/f/<文件夹 id | none>` 列表，`#/new`、`#/n/<id>/edit` 编辑，`#/n/<id>` 查看。视图整块用 innerHTML 重画，
+  事件在 `#notesApp` 上委托（`data-action`）。异步结果回来时用 `routeSerial` 判断用户是否已经切走
+- **手动保存**（按钮和 Ctrl/Cmd+S），不自动保存。没保存的内容去抖写到 localStorage `noteDraft:<id | new>`，下次打开自动恢复并提示，
+  保存成功或确认放弃后清掉；有未保存改动时 `beforeunload` 提醒
+- 删除、公开、取消发布、放弃修改、删文件夹都是 3 秒内点两次确认（`confirmTwice()`，和个人令牌的「吊销」一样），不用确认框
+- 正文渲染一律走 `note-render.js` 的 `renderNoteContent()`：Markdown 是 `marked` → `DOMPurify`（禁 `style` / `class` / `id`、表单类标签，
+  输入框只留禁用的勾选框，链接加 `rel="noopener nofollow ugc"`）；纯文本是 `escapeHtml` + 网址变链接。库没加载上时退回纯文本，不显示没过滤的 HTML。
+  **公开页渲染的是别人写的内容，不要绕过这个函数直接往 innerHTML 塞正文**
+- `public/vendor/marked.min.js`（marked 18.0.14，MIT，包里的 `lib/marked.umd.js`）和 `purify.min.js`（DOMPurify 3.4.16，MPL-2.0 / Apache-2.0，
+  包里的 `dist/purify.min.js`），原样放进来只去掉了 sourceMappingURL 那一行，只在记事本两个页面加载
 
 ### AI 网站识别
 
@@ -291,7 +335,7 @@ v2ex 这类站点会间歇性开 Cloudflare 质询，Worker 抓取拿到 403。�
   选之前不上传也不下载，弹窗 Esc 关不掉（`data-required`）。否则登录后会被云端整份覆盖，这些改动从没上传过，历史版本里也找不回
 - 导入数据（`importData()`）必须走 `saveNavData()`：加载时优先读 IndexedDB，只写 localStorage 刷新后会读回旧数据
 - 「历史版本」在用户菜单里（`loadUserDataFromCloud()`），选一个版本覆盖本地
-- 版本历史存储在 KV 中，30 天 TTL
+- 版本历史存储在 Redis 中，靠数量裁剪（`MAX_USER_VERSIONS`，默认 5），没有过期时间
 
 ### 构建系统
 
@@ -336,6 +380,7 @@ npm run deploy      # 部署到 Cloudflare Workers 生产环境
 - `JWT_SECRET` - JWT 签名密钥
 - `CF_PHOTOS_ENDPOINT` - 图床地址（如 `https://your-photo-host`）
 - `CF_PHOTOS_TOKEN` - 图床的 AUTH_TOKEN
+- `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` - Upstash Redis 的 REST 地址和令牌，收藏数据和记事本都存这里
 - `JINA_API_KEY` - Jina Reader 的 key，抓取被拦截时的兜底（可选，不配就不走 Jina）。可以填多个，用逗号分隔，额度用完自动换下一个
 
 图床地址走 secret 而不是 `wrangler.jsonc` 的 vars，是为了不把自己的图床域名硬编码进仓库。
@@ -352,7 +397,7 @@ npm run deploy      # 部署到 Cloudflare Workers 生产环境
 `wrangler.jsonc` 中的关键绑定：
 - `ASSETS` - 从 public/ 或 dist/ 提供静态文件
 - `AI` - Cloudflare AI 绑定用于网站分析
-- `USER_SESSIONS` - KV 命名空间用于会话和数据
+- `USER_SESSIONS` - KV 命名空间，存会话、个人令牌、限流计数、图床去重（收藏数据和记事本在 Redis）
 
 ## 架构模式
 
@@ -458,5 +503,5 @@ npm run deploy      # 部署到 Cloudflare Workers 生产环境
 - 应用支持离线优先：所有数据存储在 localStorage，云端同步可选
 - AI 分析使用 Cloudflare 的 `@cf/meta/llama-3.3-70b-instruct-fp8-fast` 模型（常量 `AI_MODEL`，分类和描述共用）
 - 图片代理是必需的，因为许多网站不允许直接嵌入
-- 版本管理仅保留最近 5 个版本（30 天 TTL）
+- 版本管理仅保留最近 5 个版本
 - 构建版本格式在 `index.html` 中：`<span id="version">dev</span>` → 被替换为时间戳

@@ -33,7 +33,10 @@ async function buildProject() {
                 'public/card-tooltip.js',
                 'public/view-tabs.js',
                 'public/clipboard-watch.js',
-                'public/tools.js'
+                'public/tools.js',
+                'public/note-render.js',
+                'public/notes.js',
+                'public/note-public.js'
             ],
             minify: true,
             outdir: 'dist'

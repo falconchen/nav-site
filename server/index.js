@@ -17,6 +17,7 @@ import authApi from './api/auth.js';
 import userDataApi from './api/user-data.js';
 import tokensApi from './api/tokens.js';
 import v1Api from './api/v1.js';
+import notesApi from './api/notes.js';
 
 // 创建 Hono 应用
 const app = new Hono();
@@ -77,6 +78,18 @@ app.route('/api', authApi);
 app.route('/api', userDataApi);
 app.route('/api', tokensApi);
 app.route('/api', v1Api);
+app.route('/api', notesApi);
+
+// 公开发布的记事：/n/<公开 id> 都返回同一个静态页，页面自己按 id 去取内容。
+// 是用户发布的内容，不让搜索引擎收录
+app.get('/n/:id', async (c) => {
+	const url = new URL(c.req.url);
+	url.pathname = '/note-public';
+	const asset = await c.env.ASSETS.fetch(new Request(url, c.req.raw));
+	const response = new Response(asset.body, asset);
+	response.headers.set('X-Robots-Tag', 'noindex, nofollow');
+	return response;
+});
 
 // 添加：处理所有静态资源请求
 app.get('/*', async (c) => {
