@@ -1962,7 +1962,7 @@ function togglePrivateStatus(card) {
     }
 }
 
-// 「查看描述」弹窗：手机宫格不显示描述，账号信息靠它查看和复制
+// 「查看描述」弹窗：压缩视图和手机宫格不显示描述，靠它查看和复制
 function openDescriptionModal(card) {
     const title = card.querySelector('.card-title').textContent;
     const description = secretDescriptions.has(card)
@@ -2070,8 +2070,13 @@ function showContextMenu(e, card) {
     menu.querySelector('#toggle-pin-btn').style.display = isPrivate ? 'none' : '';
     menu.querySelector('#private-action-text').textContent = isPrivate ? '取消私密' : '设为私密';
 
-    // 隐藏描述的网站可以单独查看描述；隐藏描述的开关只对非私密网站有意义
-    menu.querySelector('#view-description-btn').style.display = card.querySelector('.card-secret') ? '' : 'none';
+    // 「查看描述」：隐藏描述的网站始终有；压缩视图和手机宫格卡片上不显示描述，也靠它看。
+    // 私密卡片还模糊着时不给，只有「显示全部」能让它变清晰。隐藏描述的开关只对非私密网站有意义
+    const descriptionEl = card.querySelector('.card-description');
+    const descriptionOffCard = !!descriptionEl && getComputedStyle(descriptionEl).display === 'none';
+    const blurred = isPrivate && !card.classList.contains('revealed');
+    const canViewDescription = card.querySelector('.card-secret') || (descriptionOffCard && !blurred);
+    menu.querySelector('#view-description-btn').style.display = canViewDescription ? '' : 'none';
     menu.querySelector('#toggle-hide-desc-btn').style.display = isPrivate ? 'none' : '';
     menu.querySelector('#hide-desc-action-text').textContent =
         card.classList.contains('desc-hidden-card') ? '显示描述' : '隐藏描述';
