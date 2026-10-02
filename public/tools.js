@@ -1,4 +1,4 @@
-// 常用工具页（tools.html）：密码生成器、Base64 编解码、UUID 生成器
+// 常用工具页（tools.html）：Base64 编解码、密码生成器、UUID 生成器、URL 编解码
 // 全部在浏览器本地计算，不发请求。纯函数挂在 NavTools 上，test/tools.spec.js 直接导入测试
 (function () {
     const PASSWORD_MIN_LENGTH = 5;
@@ -161,6 +161,26 @@
         }
     }
 
+    // ---- URL 编码（百分号编码） ----
+
+    // 默认把 : / ? # & = 这些也编码，适合编码参数值；keepStructure 时保留它们，适合编码整条网址
+    function encodeUrl(text, { keepStructure = false } = {}) {
+        try {
+            return keepStructure ? encodeURI(String(text)) : encodeURIComponent(String(text));
+        } catch (error) {
+            // 落单的代理项（半个 emoji）没法按 UTF-8 编码
+            throw new Error('含有不完整的字符');
+        }
+    }
+
+    function decodeUrl(text) {
+        try {
+            return decodeURIComponent(String(text));
+        } catch (error) {
+            throw new Error('% 后面不是合法的编码，内容可能不完整');
+        }
+    }
+
     // ---- UUID ----
 
     function randomUuid() {
@@ -190,6 +210,8 @@
         generatePassword,
         encodeBase64,
         decodeBase64,
+        encodeUrl,
+        decodeUrl,
         formatUuid,
         generateUuid
     };
@@ -295,51 +317,76 @@
         refresh();
     }
 
-    function setupBase64() {
-        const plain = byId('base64Plain');
-        const encoded = byId('base64Encoded');
-        const urlSafe = byId('base64UrlSafe');
-        const errorText = byId('base64Error');
+    // 「原文」和「编码结果」两个框实时互转，Base64 和 URL 编码共用。
+    // 元素 id 按前缀约定：<prefix>Plain / Encoded / Error / Clear / CopyPlain / CopyEncoded，option 是那个开关的 id
+    function setupConverter({ prefix, option, encode, decode }) {
+        const plain = byId(`${prefix}Plain`);
+        const encoded = byId(`${prefix}Encoded`);
+        const optionBox = byId(option);
+        const errorText = byId(`${prefix}Error`);
 
-        function setError(message) {
+        function setError(message, field) {
             errorText.textContent = message;
             errorText.hidden = !message;
-            encoded.classList.toggle('has-error', Boolean(message));
+            plain.classList.toggle('has-error', Boolean(message) && field === plain);
+            encoded.classList.toggle('has-error', Boolean(message) && field === encoded);
         }
 
-        function encode() {
-            encoded.value = plain.value ? encodeBase64(plain.value, { urlSafe: urlSafe.checked }) : '';
-            setError('');
+        function runEncode() {
+            try {
+                encoded.value = plain.value ? encode(plain.value, optionBox.checked) : '';
+                setError('');
+            } catch (error) {
+                setError(`无法编码：${error.message}`, plain);
+            }
         }
 
         // 解不出来时保留原文不动，只提示
-        function decode() {
+        function runDecode() {
             if (!encoded.value.trim()) {
                 plain.value = '';
                 setError('');
                 return;
             }
             try {
-                plain.value = decodeBase64(encoded.value);
+                plain.value = decode(encoded.value);
                 setError('');
             } catch (error) {
-                setError(`无法解码：${error.message}`);
+                setError(`无法解码：${error.message}`, encoded);
             }
         }
 
-        plain.addEventListener('input', encode);
-        encoded.addEventListener('input', decode);
-        urlSafe.addEventListener('change', () => {
-            if (plain.value) encode();
+        plain.addEventListener('input', runEncode);
+        encoded.addEventListener('input', runDecode);
+        optionBox.addEventListener('change', () => {
+            if (plain.value) runEncode();
         });
-        byId('base64Clear').addEventListener('click', () => {
+        byId(`${prefix}Clear`).addEventListener('click', () => {
             plain.value = '';
             encoded.value = '';
             setError('');
             plain.focus();
         });
-        byId('base64CopyPlain').addEventListener('click', e => copyWithFeedback(e.currentTarget, plain.value));
-        byId('base64CopyEncoded').addEventListener('click', e => copyWithFeedback(e.currentTarget, encoded.value));
+        byId(`${prefix}CopyPlain`).addEventListener('click', e => copyWithFeedback(e.currentTarget, plain.value));
+        byId(`${prefix}CopyEncoded`).addEventListener('click', e => copyWithFeedback(e.currentTarget, encoded.value));
+    }
+
+    function setupBase64() {
+        setupConverter({
+            prefix: 'base64',
+            option: 'base64UrlSafe',
+            encode: (text, urlSafe) => encodeBase64(text, { urlSafe }),
+            decode: decodeBase64
+        });
+    }
+
+    function setupUrlCodec() {
+        setupConverter({
+            prefix: 'url',
+            option: 'urlKeepStructure',
+            encode: (text, keepStructure) => encodeUrl(text, { keepStructure }),
+            decode: decodeUrl
+        });
     }
 
     function setupUuid() {
@@ -432,6 +479,7 @@
         setupToolTabs();
         setupPassword();
         setupBase64();
+        setupUrlCodec();
         setupUuid();
     }
 

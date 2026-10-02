@@ -6,6 +6,8 @@ const {
 	generatePassword,
 	encodeBase64,
 	decodeBase64,
+	encodeUrl,
+	decodeUrl,
 	generateUuid,
 	randomInt
 } = globalThis.NavTools;
@@ -119,6 +121,31 @@ describe('Base64', () => {
 		expect(() => decodeBase64('abcde')).toThrow();
 		// 合法 Base64，但字节不是 UTF-8
 		expect(() => decodeBase64('/w==')).toThrow();
+	});
+});
+
+describe('URL 编码', () => {
+	it('默认连网址符号一起编码', () => {
+		expect(encodeUrl('你好 world')).toBe('%E4%BD%A0%E5%A5%BD%20world');
+		expect(encodeUrl('https://a.com/搜索?q=1&b=2#x')).toBe('https%3A%2F%2Fa.com%2F%E6%90%9C%E7%B4%A2%3Fq%3D1%26b%3D2%23x');
+	});
+
+	it('保留网址符号时只编码非 ASCII 和空格', () => {
+		expect(encodeUrl('https://a.com/搜索 页?q=1&b=2#x', { keepStructure: true }))
+			.toBe('https://a.com/%E6%90%9C%E7%B4%A2%20%E9%A1%B5?q=1&b=2#x');
+	});
+
+	it('两种写法都能解回来', () => {
+		const text = 'https://a.com/搜索?q=皮皮 2047&emoji=🧧';
+		expect(decodeUrl(encodeUrl(text))).toBe(text);
+		expect(decodeUrl(encodeUrl(text, { keepStructure: true }))).toBe(text);
+		expect(decodeUrl('没有编码的内容')).toBe('没有编码的内容');
+	});
+
+	it('编码不完整时抛错', () => {
+		expect(() => decodeUrl('%E4%BD')).toThrow();
+		expect(() => decodeUrl('100%')).toThrow();
+		expect(() => encodeUrl('\uD83E')).toThrow();
 	});
 });
 

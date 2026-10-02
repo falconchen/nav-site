@@ -3954,7 +3954,8 @@ html[data-sidebar="compact"] .category-section {
 
 html[data-tool="password"] #tool-password,
 html[data-tool="base64"] #tool-base64,
-html[data-tool="uuid"] #tool-uuid {
+html[data-tool="uuid"] #tool-uuid,
+html[data-tool="url"] #tool-url {
   display: block;
 }
 

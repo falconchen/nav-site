@@ -4,14 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>常用工具 · 皮皮2047</title>
-    <meta name="description" content="密码生成器、Base64 编码解码、UUID 生成器，全部在浏览器本地计算，不上传任何内容。">
+    <meta name="description" content="Base64 编码解码、密码生成器、UUID 生成器、URL 编码解码，全部在浏览器本地计算，不上传任何内容。">
     <meta name="color-scheme" content="light dark">
     <meta name="theme-color" content="#f4f2ed" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#121110" media="(prefers-color-scheme: dark)">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="皮皮2047">
     <meta property="og:title" content="常用工具 · 皮皮2047">
-    <meta property="og:description" content="密码生成器、Base64 编码解码、UUID 生成器，全部在浏览器本地计算，不上传任何内容。">
+    <meta property="og:description" content="Base64 编码解码、密码生成器、UUID 生成器、URL 编码解码，全部在浏览器本地计算，不上传任何内容。">
     <meta property="og:image" content="https://pipi2047.eu.org/img/og-cover.png">
     <meta name="twitter:card" content="summary_large_image">
     <link rel="icon" href="img/seal.svg" type="image/svg+xml">
@@ -33,7 +33,7 @@
         }
       } catch(e) {}
       // 首屏前定好显示哪个工具，防闪烁：网址里的 #uuid 优先，其次是上次用的
-      var tools = ['base64', 'password', 'uuid'];
+      var tools = ['base64', 'password', 'uuid', 'url'];
       var tool = location.hash.slice(1);
       try {
         if (tools.indexOf(tool) < 0) tool = localStorage.getItem('toolsTab');
@@ -72,6 +72,9 @@
             </button>
             <button type="button" class="view-tab" role="tab" id="tool-tab-uuid" data-tool="uuid" aria-controls="tool-uuid">
                 <i class="fas fa-fingerprint"></i><span class="tab-label">UUID 生成器</span><span class="tab-label-short">UUID</span>
+            </button>
+            <button type="button" class="view-tab" role="tab" id="tool-tab-url" data-tool="url" aria-controls="tool-url">
+                <i class="fas fa-link"></i><span class="tab-label">URL 编码 / 解码</span><span class="tab-label-short">URL</span>
             </button>
         </nav>
 
@@ -190,7 +193,43 @@
             <p class="tool-hint">版本 4（随机）UUID，一次最多 100 个。</p>
         </section>
 
-        <p class="doc-colophon">© 2026 皮皮2047 · 私人网址簿</p>
+        <!-- URL 编码 -->
+        <section class="tool-section" id="tool-url" role="tabpanel" aria-labelledby="tool-tab-url">
+
+            <div class="tool-row tool-row-2">
+                <div class="form-group">
+                    <div class="tool-field-head">
+                        <label class="form-label" for="urlPlain">原文</label>
+                        <button type="button" class="tool-text-btn" id="urlCopyPlain">
+                            <i class="fas fa-copy"></i> 复制
+                        </button>
+                    </div>
+                    <textarea class="form-textarea tool-textarea" id="urlPlain" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="输入文字或网址，自动编码"></textarea>
+                </div>
+                <div class="form-group">
+                    <div class="tool-field-head">
+                        <label class="form-label" for="urlEncoded">URL 编码</label>
+                        <button type="button" class="tool-text-btn" id="urlCopyEncoded">
+                            <i class="fas fa-copy"></i> 复制
+                        </button>
+                    </div>
+                    <textarea class="form-textarea tool-textarea" id="urlEncoded" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="粘贴带 %E4%BD%A0 这类编码的内容，自动解码" aria-describedby="urlError"></textarea>
+                    <p class="tool-error" id="urlError" role="alert" hidden></p>
+                </div>
+            </div>
+
+            <div class="tool-actions">
+                <div class="option-chips">
+                    <label class="option-chip" for="urlKeepStructure" title="不编码 : / ? # & = 等符号，适合编码整条网址">
+                        <input type="checkbox" id="urlKeepStructure"> 保留网址符号
+                    </label>
+                </div>
+                <button type="button" class="btn btn-secondary" id="urlClear">清空</button>
+            </div>
+            <p class="tool-hint">也叫百分号编码，按 UTF-8 处理。默认连 : / ? # &amp; = 一起编码，适合处理参数值；要编码整条网址时打开「保留网址符号」。</p>
+        </section>
+
+        <p class="doc-colophon">© <span class="copyright-year">2026</span> 皮皮2047 · 私人网址簿<script>document.currentScript.parentNode.querySelector('.copyright-year').textContent = new Date().getFullYear();</script></p>
     </main>
 
     <script src="utils.js"></script>
