@@ -53,9 +53,11 @@ function enterCategoryEditMode() {
     // 更改编辑按钮
     const editBtn = document.getElementById('category-edit-btn');
     editBtn.innerHTML = '<i class="fas fa-check"></i>';
-    editBtn.title = '完成编辑';
+    editBtn.title = '完成编辑（Esc）';
     editBtn.onclick = saveCategoryChanges;
-    
+    titleContainer.querySelector('.categories-title').textContent = '编辑目录';
+    document.getElementById('category-done-btn').hidden = false;
+
     // 显示添加分类按钮
     const addCategoryBtn = document.getElementById('add-category-btn');
     addCategoryBtn.style.display = 'flex';
@@ -69,6 +71,8 @@ function enterCategoryEditMode() {
 
 // 退出分类编辑模式并保存更改
 function saveCategoryChanges() {
+    // 按钮、Esc、回车都会走到这里，已经退出就不再存一遍
+    if (!isEditingCategories) return;
     isEditingCategories = false;
     
     // 收集所有分类数据
@@ -137,7 +141,9 @@ function saveCategoryChanges() {
     editBtn.innerHTML = '<i class="fas fa-edit"></i>';
     editBtn.title = '编辑分类';
     editBtn.onclick = enterCategoryEditMode;
-    
+    titleContainer.querySelector('.categories-title').textContent = '目录';
+    document.getElementById('category-done-btn').hidden = true;
+
     // 隐藏添加分类按钮
     const addCategoryBtn = document.getElementById('add-category-btn');
     addCategoryBtn.style.display = 'none';
@@ -866,4 +872,24 @@ function applyCategoryIcon() {
     currentEditingCategoryItem = null;
 }
 
-// 页面加载完成后不需要做额外初始化，因为data.js已经初始化了分类数据
+// 退出编辑的几种方式：「完成」按钮、名称框里回车、Esc，都是保存后退出
+document.addEventListener('DOMContentLoaded', function () {
+    document.getElementById('category-done-btn')?.addEventListener('click', saveCategoryChanges);
+
+    // 委托在列表上：「添加分类」新插入的行也要生效
+    document.querySelector('.categories-list')?.addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter' || !e.target.classList.contains('category-name-input')) return;
+        // keyCode 229 兼容输入法确认时 isComposing 已提前变为 false 的浏览器
+        if (e.isComposing || e.keyCode === 229) return;
+        e.preventDefault();
+        saveCategoryChanges();
+    });
+});
+
+// 捕获阶段：赶在 script.js 关弹窗之前判断。删除确认、图标选择器开着时 Esc 只关弹窗，不退出编辑
+document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape' || !isEditingCategories) return;
+    if (e.isComposing || e.keyCode === 229) return;
+    if (document.querySelector('.modal-overlay.active')) return;
+    saveCategoryChanges();
+}, true);

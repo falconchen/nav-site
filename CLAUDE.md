@@ -405,6 +405,9 @@ npm run deploy      # 部署到 Cloudflare Workers 生产环境
 - **层次**：靠留白、发丝线（`--line`）和字重，卡片静止时没有阴影，悬停才浮起
 - **目录编号**：侧边栏「目录」和分类标题的 01、02 用 CSS 计数器（`toc` / `section`）生成，两边一一对应；
   普通模式隐藏分类图标，压缩模式才显示图标
+- **分类编辑**（`category-edit.js`）：点「目录」右侧铅笔进入，标题变成「编辑目录」。没有「取消」，退出时自动保存（`saveCategoryChanges()`）：
+  列表末尾的整行「完成」（`#category-done-btn`）是主入口，标题行的勾号故意保持不醒目；Esc、名称框里回车也是保存退出。
+  删除确认、图标选择器开着时 Esc 只关弹窗（Esc 监听挂在捕获阶段，赶在 `script.js` 关弹窗之前判断）
 - 所有颜色、圆角、阴影、动效都在 `styles.css` 顶部的 token 里；旧变量名（`--primary-color`、`--surface-color` 等）
   保留为别名，sync.js 里 JS 拼的弹窗还在用
 - 卡片网址把协议包在 `.card-url-protocol` 里用 CSS 隐藏（`cardUrlHTML()`），`textContent` 仍是完整网址，
