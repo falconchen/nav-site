@@ -639,23 +639,6 @@ a.user-menu-item {
   color: var(--ink-3);
 }
 
-/* 开关类菜单项右侧的「开 / 关」 */
-.user-menu-item .menu-item-state {
-  margin-left: auto;
-  padding-left: 12px;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  color: var(--ink-4);
-}
-
-.user-menu-item.is-on .menu-item-state {
-  color: var(--accent);
-}
-
-.user-menu-item[hidden] {
-  display: none;
-}
-
 .user-menu-item:last-child {
   margin-top: 4px;
   border-top: 1px solid var(--line);

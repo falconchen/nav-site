@@ -63,7 +63,6 @@
 - `public/utils.js` - 共享工具函数
 - `public/view-tabs.js` - 顶部视图 tab（最近添加 / 访问最多 / 特别关注 / 全部网站）切换与移动端左右滑动手势
 - `public/visit-stats.js` - 访问统计（只存本机），给「访问最多」排序
-- `public/clipboard-watch.js` - 剪贴板网址识别，发现新网址自动弹「添加网站」（默认关）
 - `public/tools.html` + `public/tools.js` - 独立的「常用工具」页（Base64、密码生成器、UUID、URL 编码、二维码）
 - `public/notes.html` + `public/notes.js` - 独立的「记事本」页（列表、查看、编辑、文件夹、公开发布）
 - `public/note-public.html` + `public/note-public.js` - 公开发布的记事的只读页，网址是 `/n/<公开 id>`
@@ -145,24 +144,14 @@
 
 登录状态在页面启动时通过 `/api/auth/verify` 校验。只有明确收到 401 或 `valid: false` 才删除本地令牌；断网、请求异常及服务端临时故障会保留令牌，并在网络恢复或 15 秒后重试。校验未成功前不启动云端同步。修改此流程时需检查断网刷新后恢复、真正过期以及校验期间切换账号这三种情况。
 
-### 剪贴板网址识别
+### 从链接添加网站（`?add=`）
 
-`public/clipboard-watch.js`：页面加载和切回前台（`focus` / `visibilitychange`，合并去抖）时读剪贴板，
-内容是单个 `http(s)://` 网址、没收录过（含私密，按 `visitUrlKey()` 查重）、和上次提示过的不同（localStorage `lastClipboardUrl`），
-且当前没开弹窗 / 菜单、焦点不在输入框里，就弹「添加网站」、填好网址并自动点「自动填写」。
+打开 `/?add=<网址>`，`handleAddUrlParam()`（`script.js`）读完立刻 `replaceState` 去掉参数，
+已收录只提示，否则 `openAddWebsiteWithUrl()` 弹窗并自动点「自动填写」。只认单个 `http(s)://` 网址（`parseHttpUrl()`），
+查重含私密收藏、按 `visitUrlKey()`（`isUrlCollected()`）。
 
-- **默认关**，账户菜单（登录后的 `#userMenu`、小屏未登录的 `#loginMenu`）里的「识别剪贴板网址」开关打开，存 localStorage `clipboardWatch`。
-  桌面端未登录没有菜单，开不了
-- 只有 Chromium 能无点击读剪贴板；`permissions.query({name:'clipboard-read'})` 抛错（Firefox / Safari）时菜单项保持 `hidden`
-- 权限只在点开关那一下（有用户手势）请求；后台检测只在权限已是 `granted` 时读，不会无故弹权限框。
-  打开开关时剪贴板里已有的网址记为已提示，不立刻弹
-- **扩展新标签页里不生效**，页面在 iframe 里时菜单项保持隐藏、不做检测，免得开关显示「开」却没反应：导航站嵌在 iframe 里，剪贴板权限按顶层 `chrome-extension://` 源算，
-  网站上给的授权不通用；新标签页打开时焦点在地址栏，页面没焦点也读不了。要支持得由扩展申请 `clipboardRead`
-  （可选权限）自己读、再 `postMessage` 给 iframe，评估后觉得不实用，暂不做
-- iOS（含主屏幕 PWA）读剪贴板必须点击、还要再点系统「粘贴」气泡，菜单项同样隐藏。iOS 走快捷指令：
-  打开 `/?add=<网址>`，`handleAddUrlParam()`（`script.js`）读完立刻 `replaceState` 去掉参数，
-  已收录只提示，否则 `openAddWebsiteWithUrl()` 弹窗并自动填写。设置步骤见 `doc/IOS_SHORTCUT.md`。
-  判断网址、查重、弹窗的 `parseHttpUrl()` / `isUrlCollected()` / `openAddWebsiteWithUrl()` 在 `script.js`，两个入口共用
+主要给 iOS 快捷指令用：iOS（含主屏幕 PWA）的网页不能自动读剪贴板，也进不了系统分享菜单，设置步骤见 `doc/IOS_SHORTCUT.md`。
+以前有过「识别剪贴板网址」开关（切回页面时自动读剪贴板弹添加窗口），只有 Chromium 能用、扩展新标签页里不生效，不实用，已移除，不要加回来。
 
 ### 常用工具页
 

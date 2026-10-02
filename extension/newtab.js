@@ -43,6 +43,6 @@ function embed(url) {
     frame.id = 'site';
     frame.src = url;
     // 导航站有「复制网址」「复制描述」，跨源 iframe 要显式放行剪贴板
-    frame.allow = 'clipboard-read; clipboard-write';
+    frame.allow = 'clipboard-write';
     document.body.append(frame);
 }

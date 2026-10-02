@@ -32,7 +32,6 @@ async function buildProject() {
                 'public/icon-selector.js',
                 'public/card-tooltip.js',
                 'public/view-tabs.js',
-                'public/clipboard-watch.js',
                 'public/tools.js',
                 'public/note-render.js',
                 'public/notes.js',

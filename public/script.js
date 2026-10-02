@@ -625,7 +625,7 @@ function openAddWebsiteModal() {
     openModal('websiteModal');
 }
 
-// 只认单个 http(s) 网址，不认裸域名（剪贴板识别、?add= 链接共用）
+// 只认单个 http(s) 网址，不认裸域名
 function parseHttpUrl(text) {
     const value = (text || '').trim();
     if (!value || value.length > 2048 || /\s/.test(value)) return null;
