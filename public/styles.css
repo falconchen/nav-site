@@ -4298,6 +4298,18 @@ button.doc-back {
   cursor: pointer;
 }
 
+/* 刚保存完：按钮短暂变成绿色的「已保存」 */
+.notes-page .btn.is-saved,
+.notes-page .btn.is-saved:hover {
+  color: #fff;
+  background: var(--success);
+}
+
+.notes-page .btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
 /* 3 秒内点第二次才执行的按钮，第一次点完的样子 */
 .notes-page .confirming {
   color: var(--danger);

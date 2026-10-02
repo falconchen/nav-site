@@ -223,7 +223,9 @@
   收到 401 只提示回首页重新登录，**不删令牌**——是否真过期由首页的校验流程判断
 - 视图按 hash 切：`#/`、`#/f/<文件夹 id | none>` 列表，`#/new`、`#/n/<id>/edit` 编辑，`#/n/<id>` 查看。视图整块用 innerHTML 重画，
   事件在 `#notesApp` 上委托（`data-action`）。异步结果回来时用 `routeSerial` 判断用户是否已经切走
-- **手动保存**（按钮和 Ctrl/Cmd+S），不自动保存。没保存的内容去抖写到 localStorage `noteDraft:<id | new>`，下次打开自动恢复并提示，
+- **手动保存**（按钮和 Ctrl/Cmd+S），不自动保存。**保存后留在编辑页**接着写，不跳走：新建的记事拿到 id 后用 `replaceState` 把网址换成
+  `#/n/<id>/edit`（不触发 hashchange，编辑器不重画）。保存中按钮转圈、页眉走进度条（`showHeaderProgress()`，请求没有真实进度，是模拟的），
+  存完按钮短暂变成「已保存」。左上角是「返回」（回查看页，新建没保存过的回列表），有未保存改动时要点两次。没保存的内容去抖写到 localStorage `noteDraft:<id | new>`，下次打开自动恢复并提示，
   保存成功或确认放弃后清掉；有未保存改动时 `beforeunload` 提醒
 - 删除、公开、取消发布、放弃修改、删文件夹都是 3 秒内点两次确认（`confirmTwice()`，和个人令牌的「吊销」一样），不用确认框
 - 正文渲染一律走 `note-render.js` 的 `renderNoteContent()`：Markdown 是 `marked` → `DOMPurify`（禁 `style` / `class` / `id`、表单类标签，

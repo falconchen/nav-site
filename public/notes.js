@@ -4,6 +4,7 @@
 (function () {
     const CONFIRM_MS = 3000;
     const DRAFT_SAVE_DELAY = 500;
+    const SAVED_FEEDBACK_MS = 2000;
     const DRAFT_PREFIX = 'noteDraft:';
     const NEW_NOTE = 'new';
     const NO_FOLDER = 'none';
@@ -454,7 +455,7 @@
         app.innerHTML = `
             <form class="note-editor">
                 <div class="notes-bar">
-                    <button type="button" class="doc-back" data-action="cancel-edit"><i class="fas fa-arrow-left"></i>取消</button>
+                    <button type="button" class="doc-back" data-action="cancel-edit"><i class="fas fa-arrow-left"></i>返回</button>
                     <button type="submit" class="btn btn-primary"><i class="fas fa-check"></i> 保存</button>
                 </div>
                 <div class="note-banner" id="noteBanner" hidden></div>
@@ -577,36 +578,81 @@
         renderEditor();
     }
 
-    // force：云端被别处改过时，用户选了覆盖
+    // 保存按钮的三种样子：平时、保存中（转圈）、刚保存完（对勾，过一会儿变回去）
+    function setSaveButton(button, status) {
+        const labels = {
+            idle: '<i class="fas fa-check"></i> 保存',
+            saving: '<i class="fas fa-spinner fa-spin"></i> 保存中…',
+            saved: '<i class="fas fa-check"></i> 已保存'
+        };
+        clearTimeout(button._savedTimer);
+        button.innerHTML = labels[status];
+        button.disabled = status === 'saving';
+        button.classList.toggle('is-saved', status === 'saved');
+        if (status === 'saved') {
+            button._savedTimer = setTimeout(() => setSaveButton(button, 'idle'), SAVED_FEEDBACK_MS);
+        }
+    }
+
+    // 保存后留在编辑页接着写。force：云端被别处改过时，用户选了覆盖
     async function saveEditor(force = false) {
         if (editor.saving) return;
-        const { content, syntax, folderId } = readEditorForm();
-        if (!content.trim()) {
+        const session = editor;
+        const saved = readEditorForm();
+        if (!saved.content.trim()) {
             showNotification('内容不能为空', 'error');
             return;
         }
         const submit = app.querySelector('.note-editor [type="submit"]');
-        editor.saving = true;
-        submit.disabled = true;
-        const { id } = editor;
+        session.saving = true;
+        setSaveButton(submit, 'saving');
+
+        // 请求没有真实进度，页眉的进度条先走到一半，再慢慢往前蹭，回来后走满
+        const progress = showHeaderProgress();
+        let percent = 40;
+        progress.update(percent);
+        const creep = setInterval(() => {
+            percent += (90 - percent) * 0.2;
+            progress.update(percent);
+        }, 200);
+
         try {
             let note;
-            if (id === NEW_NOTE) {
-                note = (await api('', { method: 'POST', body: { content, syntax, folderId } })).note;
+            if (session.id === NEW_NOTE) {
+                note = (await api('', { method: 'POST', body: saved })).note;
             } else {
-                const body = { content, syntax, folderId };
-                if (!force) body.baseUpdatedAt = editor.baseUpdatedAt;
-                note = (await api(`/${id}`, { method: 'PUT', body })).note;
+                const body = { ...saved };
+                if (!force) body.baseUpdatedAt = session.baseUpdatedAt;
+                note = (await api(`/${session.id}`, { method: 'PUT', body })).note;
             }
-            clearTimeout(editor.draftTimer);
-            clearDraft(id);
-            editor = null;
+            clearInterval(creep);
+            progress.complete(true);
+            session.saving = false;
+            clearDraft(session.id);
             replaceNote(note);
-            showNotification('已保存', 'success');
-            location.hash = `#/n/${note.id}`;
+
+            // 等结果的这会儿用户已经去了别的视图：数据存好了，界面不用管
+            if (editor !== session) return;
+
+            // 新建的记事有了 id：网址换成它的编辑地址。用 replaceState 不触发 hashchange，编辑器不重画
+            if (session.id === NEW_NOTE) {
+                session.id = note.id;
+                history.replaceState(null, '', `#/n/${note.id}/edit`);
+            }
+            session.original = saved;
+            session.baseUpdatedAt = note.updatedAt;
+            session.restored = false;
+            document.getElementById('noteBanner').hidden = true;
+            setTitle('编辑记事');
+            setSaveButton(submit, 'saved');
+            // 保存期间又打了字：这些还没存，照常留草稿
+            scheduleDraftSave();
         } catch (error) {
-            editor.saving = false;
-            submit.disabled = false;
+            clearInterval(creep);
+            progress.complete(false);
+            session.saving = false;
+            if (editor !== session) return;
+            setSaveButton(submit, 'idle');
             if (error.code === 'NOTE_CONFLICT') {
                 showBanner('这条记事在别处被改过。覆盖会丢掉那边的修改。', { label: '用我的覆盖', action: 'force-save' });
                 return;
