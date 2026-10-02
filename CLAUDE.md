@@ -61,6 +61,7 @@
 - `public/view-tabs.js` - 顶部视图 tab（最近添加 / 访问最多 / 特别关注 / 全部网站）切换与移动端左右滑动手势
 - `public/visit-stats.js` - 访问统计（只存本机），给「访问最多」排序
 - `public/clipboard-watch.js` - 剪贴板网址识别，发现新网址自动弹「添加网站」（默认关）
+- `public/tools.html` + `public/tools.js` - 独立的「常用工具」页（密码生成器、Base64、UUID）
 
 ### 视图 tab
 
@@ -156,6 +157,23 @@
   打开 `/?add=<网址>`，`handleAddUrlParam()`（`script.js`）读完立刻 `replaceState` 去掉参数，
   已收录只提示，否则 `openAddWebsiteWithUrl()` 弹窗并自动填写。设置步骤见 `doc/IOS_SHORTCUT.md`。
   判断网址、查重、弹窗的 `parseHttpUrl()` / `isUrlCollected()` / `openAddWebsiteWithUrl()` 在 `script.js`，两个入口共用
+
+### 常用工具页
+
+`/tools.html` 是独立页面（和 about.html 一样的阅读页骨架，`<body class="doc-page tools-page">`），不是首页的 tab，
+只加载 `utils.js` 和 `tools.js`，不加载 `script.js`。入口：桌面端页眉的工具箱图标（`.header-tools-link`），
+小屏收进账户菜单 / 登录菜单（`.tools-menu-item`）。
+
+- 全部在浏览器本地计算，不发请求。随机数只用 `crypto.getRandomValues`（`randomInt()` 拒绝采样去掉取模偏差），不要用 `Math.random`
+- 纯函数挂在 `globalThis.NavTools` 上，`test/tools.spec.js` 靠 `import '../public/tools.js'` 的副作用拿到；界面代码包在 `typeof document` 判断后面
+- 密码生成器照 Bitwarden 的规则（`normalizePasswordOptions()`）：一类都没勾时用小写；勾了的类型至少出现 1 个；
+  最少个数之和超过长度时抬高长度；「避免易混淆的字符」去掉 `I O l 0 1`。选项存 localStorage `toolsPasswordOptions`，**密码本身不存**。
+  输入长度时（`input`）只重新生成，失焦（`change`）才把修正后的值写回输入框
+- Base64 按 UTF-8 编码，两个框实时互转；解码同时认标准和 URL 安全写法，容忍空白和缺掉的 `=`，解不出来时保留原文、只显示行内错误
+- UUID 是 v4，切换大写 / 去掉连字符只换写法、不重新生成
+- 新增工具：`tools.html` 加一个 `<section class="tool-section">`（01、02 编号由 CSS 计数器 `tool` 生成），样式在 `styles.css` 的「工具页」一节。
+  新增的 JS 文件要加进 `build-script.js` 的 `entryPoints`（HTML 是扫目录的，JS 不是）
+- 复制统一用 `utils.js` 的 `copyText()`（返回 Promise，不带提示），首页的卡片悬浮提示也用它
 
 ### AI 网站识别
 

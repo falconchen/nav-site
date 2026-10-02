@@ -32,7 +32,8 @@ async function buildProject() {
                 'public/icon-selector.js',
                 'public/card-tooltip.js',
                 'public/view-tabs.js',
-                'public/clipboard-watch.js'
+                'public/clipboard-watch.js',
+                'public/tools.js'
             ],
             minify: true,
             outdir: 'dist'

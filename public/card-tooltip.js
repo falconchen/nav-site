@@ -171,25 +171,6 @@
         return `[${text}](${href})`;
     }
 
-    function copyText(text) {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            return navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
-        }
-        return fallbackCopy(text);
-    }
-
-    function fallbackCopy(text) {
-        const textArea = document.createElement('textarea');
-        textArea.value = text;
-        textArea.style.position = 'fixed';
-        textArea.style.left = '-999999px';
-        document.body.appendChild(textArea);
-        textArea.select();
-        const ok = document.execCommand('copy');
-        textArea.remove();
-        return ok ? Promise.resolve() : Promise.reject(new Error('execCommand copy failed'));
-    }
-
     function markCopied(button) {
         const label = button.querySelector('span');
         const icon = button.querySelector('i');

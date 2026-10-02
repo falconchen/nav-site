@@ -459,10 +459,17 @@ a {
   display: none;
 }
 
-/* 小屏专用：合并后的登录入口、账户菜单里的深浅色 */
+/* 小屏专用：合并后的登录入口、账户菜单里的深浅色和常用工具 */
 .login-entry,
-.user-menu .theme-menu-item {
+.user-menu .theme-menu-item,
+.user-menu .tools-menu-item {
   display: none;
+}
+
+/* 常用工具入口是链接，不是按钮 */
+.header-tools-link,
+a.user-menu-item {
+  text-decoration: none;
 }
 
 /* 右侧操作 */
@@ -3223,6 +3230,7 @@ html[data-sidebar="compact"] .category-section {
 
   /* 页眉只留搜索和账户：深浅色收进账户菜单，两个登录按钮合成一个 */
   .header-theme-toggle,
+  .header-tools-link,
   #loginBtn,
   #loginBtnGoogle {
     display: none !important;
@@ -3234,7 +3242,8 @@ html[data-sidebar="compact"] .category-section {
     margin-left: 6px;
   }
 
-  .user-menu .theme-menu-item {
+  .user-menu .theme-menu-item,
+  .user-menu .tools-menu-item {
     display: flex;
   }
 
@@ -3908,6 +3917,275 @@ html[data-sidebar="compact"] .category-section {
 
   .feature-grid {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---------- 工具页：密码生成器 / Base64 / UUID ---------- */
+
+/* 没有 tab 栏，通知贴着页眉出现 */
+.tools-page {
+  --tabs-h: 0px;
+}
+
+.tools-container {
+  counter-reset: tool;
+}
+
+.tool-section {
+  counter-increment: tool;
+  margin-bottom: 56px;
+  scroll-margin-top: calc(var(--header-h, 60px) + 20px);
+}
+
+.tool-section .section-title::before {
+  content: counter(tool, decimal-leading-zero);
+  flex: none;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  transform: translateY(-2px);
+}
+
+/* 结果框：左边等宽文字，右边图标按钮 */
+.tool-result {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 60px;
+  margin-bottom: 20px;
+  padding: 10px 10px 10px 18px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+}
+
+.tool-output {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 18px;
+  line-height: 1.5;
+  letter-spacing: 0.03em;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+.tool-output .pw-digit {
+  color: var(--accent);
+}
+
+.tool-output .pw-special {
+  color: var(--success);
+}
+
+.tools-page .theme-toggle.copied,
+.tool-text-btn.copied,
+.tools-page .btn.copied i {
+  color: var(--success);
+}
+
+.tool-row {
+  display: grid;
+  gap: 0 16px;
+}
+
+.tool-row-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.tool-row-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.tool-number {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.tool-number:disabled {
+  color: var(--ink-4);
+  background: var(--paper-sunk);
+  cursor: not-allowed;
+}
+
+.tool-hint {
+  margin: -6px 0 20px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--ink-3);
+}
+
+.tool-chip-mono {
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.tool-field-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.tool-field-head .form-label {
+  margin-bottom: 0;
+}
+
+.tool-text-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 8px;
+  font-size: 12.5px;
+  color: var(--ink-2);
+  background: transparent;
+  border: none;
+  border-radius: var(--r-xs);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.tool-text-btn i {
+  font-size: 11px;
+}
+
+.tool-text-btn:hover {
+  color: var(--ink);
+  background: var(--paper-sunk);
+}
+
+.tool-textarea {
+  min-height: 168px;
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+  overflow-wrap: anywhere;
+}
+
+.tool-textarea.has-error {
+  border-color: rgba(var(--danger-rgb), 0.6);
+}
+
+.tool-error {
+  margin-top: 6px;
+  font-size: 12.5px;
+  color: var(--danger);
+}
+
+/* 开关在左、按钮在右的一行 */
+.tool-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  margin-bottom: 20px;
+}
+
+.tool-actions .option-chips {
+  margin: 0;
+}
+
+.tool-actions > .btn,
+.tool-buttons {
+  margin-left: auto;
+}
+
+.tool-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.tool-inline-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tool-inline-field .form-label {
+  margin-bottom: 0;
+}
+
+.tool-inline-field .tool-number {
+  width: 84px;
+}
+
+.uuid-list {
+  max-height: 336px;
+  margin: 0 0 20px;
+  padding: 4px 10px 4px 18px;
+  overflow-y: auto;
+  list-style: none;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+}
+
+.uuid-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+}
+
+.uuid-item + .uuid-item {
+  border-top: 1px solid var(--line);
+}
+
+.uuid-item code {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 15px;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+@media (max-width: 768px) {
+  .tool-section {
+    margin-bottom: 44px;
+  }
+
+  .tool-row-2 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .tool-row-3 {
+    gap: 0 10px;
+  }
+
+  .tool-output {
+    font-size: 16px;
+  }
+
+  .tool-textarea {
+    min-height: 128px;
+    font-size: 16px;
+  }
+
+  /* 36 个字符要在手机上一行放下 */
+  .uuid-list {
+    padding-left: 14px;
+    padding-right: 6px;
+  }
+
+  .uuid-item {
+    gap: 2px;
+  }
+
+  .uuid-item code {
+    font-size: 12px;
+  }
+
+  .tool-buttons {
+    width: 100%;
+  }
+
+  .tool-buttons .btn {
+    flex: 1;
   }
 }
 

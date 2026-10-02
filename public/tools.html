@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>常用工具 · 皮皮2047</title>
+    <meta name="description" content="密码生成器、Base64 编码解码、UUID 生成器，全部在浏览器本地计算，不上传任何内容。">
+    <meta name="color-scheme" content="light dark">
+    <meta name="theme-color" content="#f4f2ed" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#121110" media="(prefers-color-scheme: dark)">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="皮皮2047">
+    <meta property="og:title" content="常用工具 · 皮皮2047">
+    <meta property="og:description" content="密码生成器、Base64 编码解码、UUID 生成器，全部在浏览器本地计算，不上传任何内容。">
+    <meta property="og:image" content="https://pipi2047.eu.org/img/og-cover.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="icon" href="img/seal.svg" type="image/svg+xml">
+    <link rel="icon" href="img/favicon-32.png" sizes="32x32" type="image/png">
+    <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+    <link rel="stylesheet" href="https://cdnjs.snrat.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha384-iw3OoTErCYJJB9mCa8LNS2hbsQ7M3C0EpIsO/H5+EGAkPGc6rk+V8i04oW/K5xq0" crossorigin="anonymous">
+    <link rel="stylesheet" href="styles.css">
+    <script>
+    (function() {
+      try {
+        var theme = localStorage.getItem('theme');
+        if (theme !== 'dark' && theme !== 'light') {
+          theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        document.documentElement.setAttribute('data-theme', theme);
+        var accent = localStorage.getItem('accent');
+        if (accent) {
+          document.documentElement.setAttribute('data-accent', accent);
+        }
+      } catch(e) {}
+    })();
+    </script>
+</head>
+<body class="doc-page tools-page">
+    <header class="header doc-header">
+        <div class="header-container">
+            <a href="/" class="logo" aria-label="返回皮皮2047首页">
+                <span class="accent-swatch" aria-hidden="true"><span class="seal-glyph">皮</span></span>
+                <span class="brand-name">皮皮<span class="brand-num">2047</span></span>
+            </a>
+            <a href="/" class="doc-back"><i class="fas fa-arrow-left"></i>返回首页</a>
+        </div>
+    </header>
+
+    <main class="about-container tools-container">
+
+        <div class="about-header">
+            <p class="doc-eyebrow">Tools</p>
+            <h1>常用工具</h1>
+            <p class="tagline">几样随手用的小工具，都在浏览器里算，不上传任何内容。</p>
+        </div>
+
+        <!-- 密码生成器 -->
+        <section class="tool-section" id="password">
+            <h2 class="section-title">密码生成器</h2>
+
+            <div class="tool-result">
+                <div class="tool-output" id="passwordOutput" aria-live="polite" aria-label="生成的密码"></div>
+                <button type="button" class="theme-toggle" id="passwordRegenerate" title="重新生成" aria-label="重新生成密码">
+                    <i class="fas fa-rotate"></i>
+                </button>
+                <button type="button" class="theme-toggle" id="passwordCopy" title="复制" aria-label="复制密码">
+                    <i class="fas fa-copy"></i>
+                </button>
+            </div>
+
+            <div class="tool-row tool-row-3">
+                <div class="form-group">
+                    <label class="form-label" for="passwordLength">长度</label>
+                    <input type="number" class="form-input tool-number" id="passwordLength" min="5" max="128" value="14" inputmode="numeric">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="passwordMinNumber">数字最少个数</label>
+                    <input type="number" class="form-input tool-number" id="passwordMinNumber" min="0" max="9" value="1" inputmode="numeric">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="passwordMinSpecial">特殊字符最少个数</label>
+                    <input type="number" class="form-input tool-number" id="passwordMinSpecial" min="0" max="9" value="0" inputmode="numeric">
+                </div>
+            </div>
+            <p class="tool-hint">长度在 5 到 128 之间，用 14 个或更多字符才算强密码。</p>
+
+            <div class="form-label" id="passwordIncludeLabel">包含</div>
+            <div class="option-chips" role="group" aria-labelledby="passwordIncludeLabel">
+                <label class="option-chip tool-chip-mono" for="passwordUppercase">
+                    <input type="checkbox" id="passwordUppercase" checked> A-Z
+                </label>
+                <label class="option-chip tool-chip-mono" for="passwordLowercase">
+                    <input type="checkbox" id="passwordLowercase" checked> a-z
+                </label>
+                <label class="option-chip tool-chip-mono" for="passwordNumber">
+                    <input type="checkbox" id="passwordNumber" checked> 0-9
+                </label>
+                <label class="option-chip tool-chip-mono" for="passwordSpecial">
+                    <input type="checkbox" id="passwordSpecial"> !@#$%^&amp;*
+                </label>
+                <label class="option-chip" for="passwordAvoidAmbiguous" title="不使用 I、O、l、0、1">
+                    <input type="checkbox" id="passwordAvoidAmbiguous"> 避免易混淆的字符
+                </label>
+            </div>
+        </section>
+
+        <!-- Base64 -->
+        <section class="tool-section" id="base64">
+            <h2 class="section-title">Base64 编码 / 解码</h2>
+
+            <div class="tool-row tool-row-2">
+                <div class="form-group">
+                    <div class="tool-field-head">
+                        <label class="form-label" for="base64Plain">原文</label>
+                        <button type="button" class="tool-text-btn" id="base64CopyPlain">
+                            <i class="fas fa-copy"></i> 复制
+                        </button>
+                    </div>
+                    <textarea class="form-textarea tool-textarea" id="base64Plain" spellcheck="false" autocomplete="off" placeholder="输入文字，自动编码成 Base64"></textarea>
+                </div>
+                <div class="form-group">
+                    <div class="tool-field-head">
+                        <label class="form-label" for="base64Encoded">Base64</label>
+                        <button type="button" class="tool-text-btn" id="base64CopyEncoded">
+                            <i class="fas fa-copy"></i> 复制
+                        </button>
+                    </div>
+                    <textarea class="form-textarea tool-textarea" id="base64Encoded" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="粘贴 Base64，自动解码成原文" aria-describedby="base64Error"></textarea>
+                    <p class="tool-error" id="base64Error" role="alert" hidden></p>
+                </div>
+            </div>
+
+            <div class="tool-actions">
+                <div class="option-chips">
+                    <label class="option-chip" for="base64UrlSafe" title="用 - 和 _ 代替 + 和 /，去掉末尾的 =">
+                        <input type="checkbox" id="base64UrlSafe"> URL 安全
+                    </label>
+                </div>
+                <button type="button" class="btn btn-secondary" id="base64Clear">清空</button>
+            </div>
+            <p class="tool-hint">文字按 UTF-8 编码。Base64 只是换一种写法，不是加密，谁都能解开。</p>
+        </section>
+
+        <!-- UUID -->
+        <section class="tool-section" id="uuid">
+            <h2 class="section-title">UUID 生成器</h2>
+
+            <ul class="uuid-list" id="uuidList" aria-live="polite"></ul>
+
+            <div class="tool-actions">
+                <div class="tool-inline-field">
+                    <label class="form-label" for="uuidCount">数量</label>
+                    <input type="number" class="form-input tool-number" id="uuidCount" min="1" max="100" value="1" inputmode="numeric">
+                </div>
+                <div class="option-chips">
+                    <label class="option-chip" for="uuidUppercase">
+                        <input type="checkbox" id="uuidUppercase"> 大写
+                    </label>
+                    <label class="option-chip" for="uuidNoHyphens">
+                        <input type="checkbox" id="uuidNoHyphens"> 去掉连字符
+                    </label>
+                </div>
+                <div class="tool-buttons">
+                    <button type="button" class="btn btn-secondary" id="uuidCopyAll">
+                        <i class="fas fa-copy"></i> 复制全部
+                    </button>
+                    <button type="button" class="btn btn-primary" id="uuidRegenerate">
+                        <i class="fas fa-rotate"></i> 重新生成
+                    </button>
+                </div>
+            </div>
+            <p class="tool-hint">版本 4（随机）UUID，一次最多 100 个。</p>
+        </section>
+
+        <p class="doc-colophon">© 2026 皮皮2047 · 私人网址簿</p>
+    </main>
+
+    <script src="utils.js"></script>
+    <script src="tools.js"></script>
+</body>
+</html>

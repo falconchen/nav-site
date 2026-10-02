@@ -71,6 +71,27 @@ function showNotification(message, type = 'info') {
     }, 3000);
 }
 
+// 复制到剪贴板，返回 Promise；不通知，成功失败的提示由调用方决定
+function copyText(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        return navigator.clipboard.writeText(text).catch(() => fallbackCopy(text));
+    }
+    return fallbackCopy(text);
+}
+
+// 非安全上下文或剪贴板权限被拒时的老办法
+function fallbackCopy(text) {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    document.body.appendChild(textArea);
+    textArea.select();
+    const ok = document.execCommand('copy');
+    textArea.remove();
+    return ok ? Promise.resolve() : Promise.reject(new Error('execCommand copy failed'));
+}
+
 // 显示保存进度面板（手动上传到云端用）：样式见 styles.css 的 .save-panel
 function showSaveProgress() {
     const existingProgress = document.getElementById('save-progress-bar');

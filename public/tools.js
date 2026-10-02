@@ -1,0 +1,399 @@
+// 常用工具页（tools.html）：密码生成器、Base64 编解码、UUID 生成器
+// 全部在浏览器本地计算，不发请求。纯函数挂在 NavTools 上，test/tools.spec.js 直接导入测试
+(function () {
+    const PASSWORD_MIN_LENGTH = 5;
+    const PASSWORD_MAX_LENGTH = 128;
+    const PASSWORD_MAX_MIN_COUNT = 9;
+    const UUID_MAX_COUNT = 100;
+    const PASSWORD_OPTIONS_KEY = 'toolsPasswordOptions';
+    const COPIED_FEEDBACK_MS = 1500;
+
+    // 易混淆的 I O l 0 1 单独放，勾了「避免易混淆的字符」就不拼进去
+    const CHARSETS = {
+        uppercase: { base: 'ABCDEFGHJKLMNPQRSTUVWXYZ', ambiguous: 'IO' },
+        lowercase: { base: 'abcdefghijkmnopqrstuvwxyz', ambiguous: 'l' },
+        number: { base: '23456789', ambiguous: '01' },
+        special: { base: '!@#$%^&*', ambiguous: '' }
+    };
+    const CHAR_TYPES = Object.keys(CHARSETS);
+
+    const DEFAULT_PASSWORD_OPTIONS = {
+        length: 14,
+        uppercase: true,
+        lowercase: true,
+        number: true,
+        special: false,
+        minNumber: 1,
+        minSpecial: 0,
+        avoidAmbiguous: false
+    };
+
+    // ---- 随机数 ----
+
+    // [0, max) 的均匀随机整数。直接取模会让小的余数多出现一点，超出整倍数范围的值丢掉重取
+    function randomInt(max) {
+        const limit = Math.floor(0x100000000 / max) * max;
+        const buffer = new Uint32Array(1);
+        do {
+            crypto.getRandomValues(buffer);
+        } while (buffer[0] >= limit);
+        return buffer[0] % max;
+    }
+
+    function shuffle(list) {
+        for (let i = list.length - 1; i > 0; i--) {
+            const j = randomInt(i + 1);
+            [list[i], list[j]] = [list[j], list[i]];
+        }
+        return list;
+    }
+
+    function clampInt(value, min, max, fallback) {
+        const number = parseInt(value, 10);
+        if (Number.isNaN(number)) return fallback;
+        return Math.min(max, Math.max(min, number));
+    }
+
+    // ---- 密码 ----
+
+    // 规则照 Bitwarden：一类都没选时用小写；选了的类型至少出现 1 个；
+    // 最少个数加起来比长度还多时把长度抬上去
+    function normalizePasswordOptions(raw = {}) {
+        const merged = { ...DEFAULT_PASSWORD_OPTIONS, ...raw };
+        const options = {
+            uppercase: Boolean(merged.uppercase),
+            lowercase: Boolean(merged.lowercase),
+            number: Boolean(merged.number),
+            special: Boolean(merged.special),
+            avoidAmbiguous: Boolean(merged.avoidAmbiguous)
+        };
+        if (!CHAR_TYPES.some(type => options[type])) {
+            options.lowercase = true;
+        }
+
+        options.minNumber = options.number
+            ? Math.max(1, clampInt(merged.minNumber, 0, PASSWORD_MAX_MIN_COUNT, 1))
+            : 0;
+        options.minSpecial = options.special
+            ? Math.max(1, clampInt(merged.minSpecial, 0, PASSWORD_MAX_MIN_COUNT, 1))
+            : 0;
+
+        const required = minCounts(options);
+        const requiredTotal = CHAR_TYPES.reduce((sum, type) => sum + required[type], 0);
+        options.length = Math.max(
+            requiredTotal,
+            clampInt(merged.length, PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH, DEFAULT_PASSWORD_OPTIONS.length)
+        );
+        return options;
+    }
+
+    function minCounts(options) {
+        return {
+            uppercase: options.uppercase ? 1 : 0,
+            lowercase: options.lowercase ? 1 : 0,
+            number: options.minNumber,
+            special: options.minSpecial
+        };
+    }
+
+    function charsetOf(type, avoidAmbiguous) {
+        const { base, ambiguous } = CHARSETS[type];
+        return avoidAmbiguous ? base : base + ambiguous;
+    }
+
+    function generatePassword(rawOptions) {
+        const options = normalizePasswordOptions(rawOptions);
+        const enabledTypes = CHAR_TYPES.filter(type => options[type]);
+        const anyCharset = enabledTypes.map(type => charsetOf(type, options.avoidAmbiguous)).join('');
+
+        // 先给每一类留够最少个数的位置，剩下的位置不限类型，再打乱
+        const required = minCounts(options);
+        const slots = [];
+        enabledTypes.forEach(type => {
+            for (let i = 0; i < required[type]; i++) slots.push(type);
+        });
+        while (slots.length < options.length) slots.push('any');
+        shuffle(slots);
+
+        return slots.map(slot => {
+            const charset = slot === 'any' ? anyCharset : charsetOf(slot, options.avoidAmbiguous);
+            return charset[randomInt(charset.length)];
+        }).join('');
+    }
+
+    // ---- Base64 ----
+
+    function encodeBase64(text, { urlSafe = false } = {}) {
+        const bytes = new TextEncoder().encode(String(text));
+        let binary = '';
+        // 分块转换，避免大文本一次展开参数时栈溢出
+        const chunkSize = 0x8000;
+        for (let i = 0; i < bytes.length; i += chunkSize) {
+            binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
+        }
+        const encoded = btoa(binary);
+        return urlSafe
+            ? encoded.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+            : encoded;
+    }
+
+    // 标准和 URL 安全两种写法都认，空白和缺掉的 = 也不计较
+    function decodeBase64(text) {
+        let input = String(text).replace(/\s+/g, '').replace(/-/g, '+').replace(/_/g, '/').replace(/=+$/, '');
+        if (/[^A-Za-z0-9+/]/.test(input)) {
+            throw new Error('含有不属于 Base64 的字符');
+        }
+        if (input.length % 4 === 1) {
+            throw new Error('长度不对，内容可能不完整');
+        }
+        input += '='.repeat((4 - input.length % 4) % 4);
+
+        const binary = atob(input);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+            bytes[i] = binary.charCodeAt(i);
+        }
+        try {
+            return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+        } catch (error) {
+            throw new Error('解码结果不是 UTF-8 文本');
+        }
+    }
+
+    // ---- UUID ----
+
+    function randomUuid() {
+        if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+        // 非安全上下文（http 下的局域网地址）没有 randomUUID，按 v4 规则自己拼
+        const bytes = crypto.getRandomValues(new Uint8Array(16));
+        bytes[6] = (bytes[6] & 0x0f) | 0x40;
+        bytes[8] = (bytes[8] & 0x3f) | 0x80;
+        const hex = Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
+        return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+    }
+
+    function formatUuid(uuid, { uppercase = false, hyphens = true } = {}) {
+        let result = hyphens ? uuid : uuid.replace(/-/g, '');
+        if (uppercase) result = result.toUpperCase();
+        return result;
+    }
+
+    function generateUuid(options) {
+        return formatUuid(randomUuid(), options);
+    }
+
+    globalThis.NavTools = {
+        DEFAULT_PASSWORD_OPTIONS,
+        randomInt,
+        normalizePasswordOptions,
+        generatePassword,
+        encodeBase64,
+        decodeBase64,
+        formatUuid,
+        generateUuid
+    };
+
+    if (typeof document === 'undefined') return;
+
+    // ---- 界面 ----
+
+    const byId = id => document.getElementById(id);
+
+    // 复制成功后图标短暂换成对勾
+    function copyWithFeedback(button, text) {
+        if (!text) return;
+        copyText(text)
+            .then(() => {
+                const icon = button.querySelector('i');
+                if (!button.dataset.icon) button.dataset.icon = icon.className;
+                icon.className = 'fas fa-check';
+                button.classList.add('copied');
+                clearTimeout(button._copiedTimer);
+                button._copiedTimer = setTimeout(() => {
+                    icon.className = button.dataset.icon;
+                    button.classList.remove('copied');
+                }, COPIED_FEEDBACK_MS);
+            })
+            .catch(() => showNotification('复制失败，请手动复制', 'error'));
+    }
+
+    function setupPassword() {
+        const output = byId('passwordOutput');
+        const lengthInput = byId('passwordLength');
+        const minNumberInput = byId('passwordMinNumber');
+        const minSpecialInput = byId('passwordMinSpecial');
+        const checkboxes = {
+            uppercase: byId('passwordUppercase'),
+            lowercase: byId('passwordLowercase'),
+            number: byId('passwordNumber'),
+            special: byId('passwordSpecial'),
+            avoidAmbiguous: byId('passwordAvoidAmbiguous')
+        };
+        let password = '';
+
+        function readForm() {
+            const options = {
+                length: lengthInput.value,
+                minNumber: minNumberInput.value,
+                minSpecial: minSpecialInput.value
+            };
+            Object.keys(checkboxes).forEach(key => {
+                options[key] = checkboxes[key].checked;
+            });
+            return options;
+        }
+
+        function writeForm(options) {
+            lengthInput.value = options.length;
+            minNumberInput.value = options.minNumber;
+            minSpecialInput.value = options.minSpecial;
+            Object.keys(checkboxes).forEach(key => {
+                checkboxes[key].checked = options[key];
+            });
+        }
+
+        function render() {
+            output.innerHTML = Array.from(password, char => {
+                if (/\d/.test(char)) return `<span class="pw-digit">${char}</span>`;
+                if (CHARSETS.special.base.includes(char)) return `<span class="pw-special">${escapeHtml(char)}</span>`;
+                return char;
+            }).join('');
+        }
+
+        // commit：把修正后的值写回表单并记住。正在输入长度时不写回，免得打到一半被改掉
+        function refresh({ commit = true } = {}) {
+            const options = normalizePasswordOptions(readForm());
+            if (commit) {
+                writeForm(options);
+                try {
+                    localStorage.setItem(PASSWORD_OPTIONS_KEY, JSON.stringify(options));
+                } catch (error) {}
+            }
+            minNumberInput.disabled = !options.number;
+            minSpecialInput.disabled = !options.special;
+            password = generatePassword(options);
+            render();
+        }
+
+        let saved = {};
+        try {
+            saved = JSON.parse(localStorage.getItem(PASSWORD_OPTIONS_KEY)) || {};
+        } catch (error) {}
+        writeForm(normalizePasswordOptions(saved));
+
+        [lengthInput, minNumberInput, minSpecialInput].forEach(input => {
+            input.addEventListener('input', () => refresh({ commit: false }));
+            input.addEventListener('change', () => refresh());
+        });
+        Object.values(checkboxes).forEach(checkbox => {
+            checkbox.addEventListener('change', () => refresh());
+        });
+        byId('passwordRegenerate').addEventListener('click', () => refresh());
+        byId('passwordCopy').addEventListener('click', e => copyWithFeedback(e.currentTarget, password));
+
+        refresh();
+    }
+
+    function setupBase64() {
+        const plain = byId('base64Plain');
+        const encoded = byId('base64Encoded');
+        const urlSafe = byId('base64UrlSafe');
+        const errorText = byId('base64Error');
+
+        function setError(message) {
+            errorText.textContent = message;
+            errorText.hidden = !message;
+            encoded.classList.toggle('has-error', Boolean(message));
+        }
+
+        function encode() {
+            encoded.value = plain.value ? encodeBase64(plain.value, { urlSafe: urlSafe.checked }) : '';
+            setError('');
+        }
+
+        // 解不出来时保留原文不动，只提示
+        function decode() {
+            if (!encoded.value.trim()) {
+                plain.value = '';
+                setError('');
+                return;
+            }
+            try {
+                plain.value = decodeBase64(encoded.value);
+                setError('');
+            } catch (error) {
+                setError(`无法解码：${error.message}`);
+            }
+        }
+
+        plain.addEventListener('input', encode);
+        encoded.addEventListener('input', decode);
+        urlSafe.addEventListener('change', () => {
+            if (plain.value) encode();
+        });
+        byId('base64Clear').addEventListener('click', () => {
+            plain.value = '';
+            encoded.value = '';
+            setError('');
+            plain.focus();
+        });
+        byId('base64CopyPlain').addEventListener('click', e => copyWithFeedback(e.currentTarget, plain.value));
+        byId('base64CopyEncoded').addEventListener('click', e => copyWithFeedback(e.currentTarget, encoded.value));
+    }
+
+    function setupUuid() {
+        const list = byId('uuidList');
+        const countInput = byId('uuidCount');
+        const uppercase = byId('uuidUppercase');
+        const noHyphens = byId('uuidNoHyphens');
+        let uuids = [];
+
+        const formatted = () => uuids.map(uuid => formatUuid(uuid, {
+            uppercase: uppercase.checked,
+            hyphens: !noHyphens.checked
+        }));
+
+        function render() {
+            list.innerHTML = formatted().map((uuid, index) => `
+                <li class="uuid-item">
+                    <code>${uuid}</code>
+                    <button type="button" class="theme-toggle" data-index="${index}" title="复制" aria-label="复制这个 UUID">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                </li>`).join('');
+        }
+
+        function regenerate({ commit = true } = {}) {
+            const count = clampInt(countInput.value, 1, UUID_MAX_COUNT, 1);
+            if (commit) countInput.value = count;
+            uuids = Array.from({ length: count }, () => generateUuid());
+            render();
+        }
+
+        countInput.addEventListener('input', () => regenerate({ commit: false }));
+        countInput.addEventListener('change', () => regenerate());
+        // 大小写、连字符只是换个写法，不重新生成
+        uppercase.addEventListener('change', render);
+        noHyphens.addEventListener('change', render);
+        byId('uuidRegenerate').addEventListener('click', () => regenerate());
+        byId('uuidCopyAll').addEventListener('click', e => copyWithFeedback(e.currentTarget, formatted().join('\n')));
+        list.addEventListener('click', e => {
+            const button = e.target.closest('button[data-index]');
+            if (button) copyWithFeedback(button, formatted()[Number(button.dataset.index)]);
+        });
+
+        regenerate();
+    }
+
+    function init() {
+        setupPassword();
+        setupBase64();
+        setupUuid();
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+})();
