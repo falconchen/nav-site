@@ -61,7 +61,7 @@
 - `public/view-tabs.js` - 顶部视图 tab（最近添加 / 访问最多 / 特别关注 / 全部网站）切换与移动端左右滑动手势
 - `public/visit-stats.js` - 访问统计（只存本机），给「访问最多」排序
 - `public/clipboard-watch.js` - 剪贴板网址识别，发现新网址自动弹「添加网站」（默认关）
-- `public/tools.html` + `public/tools.js` - 独立的「常用工具」页（Base64、密码生成器、UUID、URL 编码）
+- `public/tools.html` + `public/tools.js` - 独立的「常用工具」页（Base64、密码生成器、UUID、URL 编码、二维码）
 
 ### 视图 tab
 
@@ -174,8 +174,13 @@
 - URL 编码（百分号编码）默认用 `encodeURIComponent`（连 `: / ? # & =` 一起编码，适合参数值），打开「保留网址符号」改用 `encodeURI`；
   解码统一 `decodeURIComponent`，`+` 不当空格处理。它和 Base64 一样是「原文 / 编码结果」两个框实时互转，共用 `setupConverter()`，
   元素 id 按前缀约定（`<prefix>Plain` / `Encoded` / `Error` / `Clear` / `CopyPlain` / `CopyEncoded`），再加同类工具照这个写
+- 二维码用 `public/vendor/qrcode-generator.min.js`（qrcode-generator 2.0.4，MIT，取 npm 包里的 `dist/qrcode.js` 用 esbuild 压缩，文件头留了版权声明），
+  只在 `tools.html` 加载。`buildQrMatrix()` 里必须先设 `stringToBytes` 为 UTF-8（库默认一个字符算一个字节，中文会编错）；
+  版本填 0 自动选，内容放不下时库抛的是字符串，这里转成中文 Error。画在 canvas 上：四周留 4 格静区、每格整数个像素、边长不小于 720px，
+  **始终白底黑码，不跟深色主题走**（反色的码很多扫码器认不出）。「复制图片」把 Promise 直接交给 `ClipboardItem`（Safari 要求在点击的同一拍里调用 `write`），
+  不支持 `ClipboardItem` 的浏览器隐藏按钮。测试里 `import qrcode from '../public/vendor/…'` 后作为第三个参数传进去
 - 每个工具一个 tab（`.tool-tabs`，按钮沿用首页的 `.view-tab` 样式，小屏显示简称），一次只显示一个面板。
-  当前工具写在 `<html data-tool>` 上，由 `tools.html` 头部内联脚本在首屏前设好（防闪烁）：网址里的 `#base64` / `#password` / `#uuid` / `#url` 优先，
+  当前工具写在 `<html data-tool>` 上，由 `tools.html` 头部内联脚本在首屏前设好（防闪烁）：网址里的 `#base64` / `#password` / `#uuid` / `#url` / `#qrcode` 优先，
   其次是上次用的（localStorage `toolsTab`），都没有就是第一个（Base64，顺序看内联脚本的 `tools` 列表和 tab 按钮的 DOM 顺序，两处要一致）。切换时 `replaceState` 改 hash，不往历史里加记录。
   面板 id 是 `tool-<名字>`，故意和 hash 不同名，免得带 hash 打开时浏览器自动滚过去
 - 新增工具要改四处：`tools.html` 的 tab 按钮和 `<section class="tool-section" id="tool-xxx">`、头部内联脚本的 `tools` 列表、

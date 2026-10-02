@@ -4,14 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>常用工具 · 皮皮2047</title>
-    <meta name="description" content="Base64 编码解码、密码生成器、UUID 生成器、URL 编码解码，全部在浏览器本地计算，不上传任何内容。">
+    <meta name="description" content="Base64 编码解码、密码生成器、UUID 生成器、URL 编码解码、二维码生成，全部在浏览器本地计算，不上传任何内容。">
     <meta name="color-scheme" content="light dark">
     <meta name="theme-color" content="#f4f2ed" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#121110" media="(prefers-color-scheme: dark)">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="皮皮2047">
     <meta property="og:title" content="常用工具 · 皮皮2047">
-    <meta property="og:description" content="Base64 编码解码、密码生成器、UUID 生成器、URL 编码解码，全部在浏览器本地计算，不上传任何内容。">
+    <meta property="og:description" content="Base64 编码解码、密码生成器、UUID 生成器、URL 编码解码、二维码生成，全部在浏览器本地计算，不上传任何内容。">
     <meta property="og:image" content="https://pipi2047.eu.org/img/og-cover.png">
     <meta name="twitter:card" content="summary_large_image">
     <link rel="icon" href="img/seal.svg" type="image/svg+xml">
@@ -33,7 +33,7 @@
         }
       } catch(e) {}
       // 首屏前定好显示哪个工具，防闪烁：网址里的 #uuid 优先，其次是上次用的
-      var tools = ['base64', 'password', 'uuid', 'url'];
+      var tools = ['base64', 'password', 'uuid', 'url', 'qrcode'];
       var tool = location.hash.slice(1);
       try {
         if (tools.indexOf(tool) < 0) tool = localStorage.getItem('toolsTab');
@@ -75,6 +75,9 @@
             </button>
             <button type="button" class="view-tab" role="tab" id="tool-tab-url" data-tool="url" aria-controls="tool-url">
                 <i class="fas fa-link"></i><span class="tab-label">URL 编码 / 解码</span><span class="tab-label-short">URL</span>
+            </button>
+            <button type="button" class="view-tab" role="tab" id="tool-tab-qrcode" data-tool="qrcode" aria-controls="tool-qrcode">
+                <i class="fas fa-qrcode"></i><span class="tab-label">二维码生成</span><span class="tab-label-short">二维码</span>
             </button>
         </nav>
 
@@ -229,10 +232,61 @@
             <p class="tool-hint">也叫百分号编码，按 UTF-8 处理。默认连 : / ? # &amp; = 一起编码，适合处理参数值；要编码整条网址时打开「保留网址符号」。</p>
         </section>
 
+        <!-- 二维码 -->
+        <section class="tool-section" id="tool-qrcode" role="tabpanel" aria-labelledby="tool-tab-qrcode">
+
+            <div class="tool-row tool-row-2">
+                <div class="form-group">
+                    <div class="tool-field-head">
+                        <label class="form-label" for="qrcodeText">内容</label>
+                    </div>
+                    <textarea class="form-textarea tool-textarea qr-text" id="qrcodeText" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="输入文字或网址，自动生成二维码" aria-describedby="qrcodeError"></textarea>
+                    <p class="tool-error" id="qrcodeError" role="alert" hidden></p>
+                </div>
+                <div class="form-group">
+                    <div class="tool-field-head">
+                        <span class="form-label">二维码</span>
+                    </div>
+                    <div class="qr-preview">
+                        <canvas id="qrcodeCanvas" role="img" aria-label="生成的二维码" hidden></canvas>
+                        <p class="qr-placeholder" id="qrcodePlaceholder">输入内容后在这里生成</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tool-actions">
+                <div class="option-chips" role="radiogroup" aria-labelledby="qrcodeLevelLabel">
+                    <span class="form-label tool-chips-label" id="qrcodeLevelLabel">容错级别</span>
+                    <label class="option-chip tool-chip-mono" title="可恢复约 7% 的损坏">
+                        <input type="radio" name="qrcodeLevel" value="L"> L
+                    </label>
+                    <label class="option-chip tool-chip-mono" title="可恢复约 15% 的损坏">
+                        <input type="radio" name="qrcodeLevel" value="M" checked> M
+                    </label>
+                    <label class="option-chip tool-chip-mono" title="可恢复约 25% 的损坏">
+                        <input type="radio" name="qrcodeLevel" value="Q"> Q
+                    </label>
+                    <label class="option-chip tool-chip-mono" title="可恢复约 30% 的损坏">
+                        <input type="radio" name="qrcodeLevel" value="H"> H
+                    </label>
+                </div>
+                <div class="tool-buttons">
+                    <button type="button" class="btn btn-secondary" id="qrcodeCopy" disabled>
+                        <i class="fas fa-copy"></i> 复制图片
+                    </button>
+                    <button type="button" class="btn btn-primary" id="qrcodeDownload" disabled>
+                        <i class="fas fa-download"></i> 下载 PNG
+                    </button>
+                </div>
+            </div>
+            <p class="tool-hint">容错级别越高越耐污损（L 约 7%，H 约 30%），但同样的内容码会更密。内容越短越好扫。</p>
+        </section>
+
         <p class="doc-colophon">© <span class="copyright-year">2026</span> 皮皮2047 · 私人网址簿<script>document.currentScript.parentNode.querySelector('.copyright-year').textContent = new Date().getFullYear();</script></p>
     </main>
 
     <script src="utils.js"></script>
+    <script src="vendor/qrcode-generator.min.js"></script>
     <script src="tools.js"></script>
 </body>
 </html>

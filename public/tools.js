@@ -1,4 +1,4 @@
-// 常用工具页（tools.html）：Base64 编解码、密码生成器、UUID 生成器、URL 编解码
+// 常用工具页（tools.html）：Base64 编解码、密码生成器、UUID 生成器、URL 编解码、二维码生成
 // 全部在浏览器本地计算，不发请求。纯函数挂在 NavTools 上，test/tools.spec.js 直接导入测试
 (function () {
     const PASSWORD_MIN_LENGTH = 5;
@@ -8,6 +8,11 @@
     const PASSWORD_OPTIONS_KEY = 'toolsPasswordOptions';
     const TOOL_TAB_KEY = 'toolsTab';
     const COPIED_FEEDBACK_MS = 1500;
+    const QR_LEVELS = ['L', 'M', 'Q', 'H'];
+    // 二维码四周的留白（格数），规范要求至少 4 格，少了有的扫码器认不出
+    const QR_QUIET_ZONE = 4;
+    // 画布边长的下限（像素）：下载的图片要够清晰
+    const QR_MIN_IMAGE_SIZE = 720;
 
     // 易混淆的 I O l 0 1 单独放，勾了「避免易混淆的字符」就不拼进去
     const CHARSETS = {
@@ -203,6 +208,26 @@
         return formatUuid(randomUuid(), options);
     }
 
+    // ---- 二维码 ----
+
+    // lib 是 vendor/qrcode-generator.min.js 挂的全局 qrcode，测试里自己传进来
+    function buildQrMatrix(text, level = 'M', lib = globalThis.qrcode) {
+        // 库默认把一个字符当一个字节，中文会编错
+        lib.stringToBytes = lib.stringToBytesFuncs['UTF-8'];
+        // 版本填 0：按内容长度自动选最小的版本
+        const qr = lib(0, QR_LEVELS.includes(level) ? level : 'M');
+        qr.addData(String(text), 'Byte');
+        try {
+            qr.make();
+        } catch (error) {
+            throw new Error('内容太长，二维码放不下');
+        }
+        return {
+            size: qr.getModuleCount(),
+            isDark: (row, col) => qr.isDark(row, col)
+        };
+    }
+
     globalThis.NavTools = {
         DEFAULT_PASSWORD_OPTIONS,
         randomInt,
@@ -213,7 +238,8 @@
         encodeUrl,
         decodeUrl,
         formatUuid,
-        generateUuid
+        generateUuid,
+        buildQrMatrix
     };
 
     if (typeof document === 'undefined') return;
@@ -223,20 +249,22 @@
     const byId = id => document.getElementById(id);
 
     // 复制成功后图标短暂换成对勾
+    function markCopied(button) {
+        const icon = button.querySelector('i');
+        if (!button.dataset.icon) button.dataset.icon = icon.className;
+        icon.className = 'fas fa-check';
+        button.classList.add('copied');
+        clearTimeout(button._copiedTimer);
+        button._copiedTimer = setTimeout(() => {
+            icon.className = button.dataset.icon;
+            button.classList.remove('copied');
+        }, COPIED_FEEDBACK_MS);
+    }
+
     function copyWithFeedback(button, text) {
         if (!text) return;
         copyText(text)
-            .then(() => {
-                const icon = button.querySelector('i');
-                if (!button.dataset.icon) button.dataset.icon = icon.className;
-                icon.className = 'fas fa-check';
-                button.classList.add('copied');
-                clearTimeout(button._copiedTimer);
-                button._copiedTimer = setTimeout(() => {
-                    icon.className = button.dataset.icon;
-                    button.classList.remove('copied');
-                }, COPIED_FEEDBACK_MS);
-            })
+            .then(() => markCopied(button))
             .catch(() => showNotification('复制失败，请手动复制', 'error'));
     }
 
@@ -433,6 +461,89 @@
         regenerate();
     }
 
+    function setupQrcode() {
+        const input = byId('qrcodeText');
+        const canvas = byId('qrcodeCanvas');
+        const placeholder = byId('qrcodePlaceholder');
+        const errorText = byId('qrcodeError');
+        const downloadButton = byId('qrcodeDownload');
+        const copyButton = byId('qrcodeCopy');
+        const levels = Array.from(document.querySelectorAll('input[name="qrcodeLevel"]'));
+
+        // 没有可用的码时收起画布、禁用按钮；message 非空表示出错
+        function setState(ready, message = '') {
+            canvas.hidden = !ready;
+            placeholder.hidden = ready;
+            downloadButton.disabled = !ready;
+            copyButton.disabled = !ready;
+            errorText.textContent = message;
+            errorText.hidden = !message;
+            input.classList.toggle('has-error', Boolean(message));
+        }
+
+        function draw() {
+            if (!input.value) {
+                setState(false);
+                return;
+            }
+            let matrix;
+            try {
+                matrix = buildQrMatrix(input.value, levels.find(level => level.checked).value);
+            } catch (error) {
+                setState(false, error.message);
+                return;
+            }
+
+            // 每格占整数个像素，放大后边缘才不会糊。始终白底黑码，不跟深色主题走，否则扫不出来
+            const cells = matrix.size + QR_QUIET_ZONE * 2;
+            const scale = Math.ceil(QR_MIN_IMAGE_SIZE / cells);
+            canvas.width = cells * scale;
+            canvas.height = cells * scale;
+            const context = canvas.getContext('2d');
+            context.fillStyle = '#fff';
+            context.fillRect(0, 0, canvas.width, canvas.height);
+            context.fillStyle = '#000';
+            for (let row = 0; row < matrix.size; row++) {
+                for (let col = 0; col < matrix.size; col++) {
+                    if (matrix.isDark(row, col)) {
+                        context.fillRect((col + QR_QUIET_ZONE) * scale, (row + QR_QUIET_ZONE) * scale, scale, scale);
+                    }
+                }
+            }
+            setState(true);
+        }
+
+        const toPngBlob = () => new Promise((resolve, reject) => {
+            canvas.toBlob(blob => (blob ? resolve(blob) : reject(new Error('toBlob failed'))), 'image/png');
+        });
+
+        input.addEventListener('input', draw);
+        levels.forEach(level => level.addEventListener('change', draw));
+
+        downloadButton.addEventListener('click', () => {
+            toPngBlob().then(blob => {
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = 'qrcode.png';
+                link.click();
+                setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+            }).catch(() => showNotification('生成图片失败', 'error'));
+        });
+
+        if (navigator.clipboard && navigator.clipboard.write && typeof ClipboardItem === 'function') {
+            copyButton.addEventListener('click', () => {
+                // Safari 要求在点击的同一拍里调用 write，所以把 Promise 直接交给 ClipboardItem，不先 await
+                navigator.clipboard.write([new ClipboardItem({ 'image/png': toPngBlob() })])
+                    .then(() => markCopied(copyButton))
+                    .catch(() => showNotification('复制失败，可以改用下载', 'error'));
+            });
+        } else {
+            copyButton.hidden = true;
+        }
+
+        draw();
+    }
+
     // 当前工具写在 <html data-tool> 上（tools.html 头部内联脚本先设好），显示哪个面板由 CSS 决定
     function setupToolTabs() {
         const tabs = Array.from(document.querySelectorAll('.tool-tabs .view-tab'));
@@ -481,6 +592,7 @@
         setupBase64();
         setupUrlCodec();
         setupUuid();
+        setupQrcode();
     }
 
     if (document.readyState === 'loading') {

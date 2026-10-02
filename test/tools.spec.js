@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import '../public/tools.js';
+import qrcode from '../public/vendor/qrcode-generator.min.js';
 
 const {
 	normalizePasswordOptions,
@@ -9,6 +10,7 @@ const {
 	encodeUrl,
 	decodeUrl,
 	generateUuid,
+	buildQrMatrix,
 	randomInt
 } = globalThis.NavTools;
 
@@ -159,5 +161,32 @@ describe('UUID', () => {
 	it('大写、去掉连字符', () => {
 		expect(generateUuid({ uppercase: true })).toMatch(/^[0-9A-F-]{36}$/);
 		expect(generateUuid({ hyphens: false })).toMatch(/^[0-9a-f]{32}$/);
+	});
+});
+
+describe('二维码', () => {
+	it('短文本是版本 1（21×21），三个角有定位图案', () => {
+		const matrix = buildQrMatrix('hello', 'M', qrcode);
+		expect(matrix.size).toBe(21);
+		[[0, 0], [0, 20], [20, 0]].forEach(([row, col]) => {
+			expect(matrix.isDark(row, col)).toBe(true);
+		});
+	});
+
+	it('中文按 UTF-8 算字节数', () => {
+		// 版本 1 的 L 级能放 17 字节：5 个汉字 15 字节放得下，6 个 18 字节要升到版本 2
+		expect(buildQrMatrix('皮皮皮皮皮', 'L', qrcode).size).toBe(21);
+		expect(buildQrMatrix('皮皮皮皮皮皮', 'L', qrcode).size).toBe(25);
+	});
+
+	it('容错级别越高，码不会更小', () => {
+		const text = 'https://pipi2047.eu.org/tools.html#qrcode';
+		const sizes = ['L', 'M', 'Q', 'H'].map(level => buildQrMatrix(text, level, qrcode).size);
+		expect(sizes).toEqual([...sizes].sort((a, b) => a - b));
+		expect(sizes[3]).toBeGreaterThan(sizes[0]);
+	});
+
+	it('内容太长时抛错', () => {
+		expect(() => buildQrMatrix('x'.repeat(4000), 'L', qrcode)).toThrow('内容太长');
 	});
 });

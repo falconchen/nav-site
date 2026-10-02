@@ -3955,7 +3955,8 @@ html[data-sidebar="compact"] .category-section {
 html[data-tool="password"] #tool-password,
 html[data-tool="base64"] #tool-base64,
 html[data-tool="uuid"] #tool-uuid,
-html[data-tool="url"] #tool-url {
+html[data-tool="url"] #tool-url,
+html[data-tool="qrcode"] #tool-qrcode {
   display: block;
 }
 
@@ -4123,6 +4124,48 @@ html[data-tool="url"] #tool-url {
   width: 84px;
 }
 
+/* 二维码：画布自带白底和留白，深色主题下也是白底黑码 */
+.qr-preview {
+  display: grid;
+  place-items: center;
+  min-height: 274px;
+  padding: 16px;
+  background: var(--field);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+}
+
+.qr-preview canvas {
+  display: block;
+  width: 240px;
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--r-xs);
+  image-rendering: pixelated;
+}
+
+.qr-preview canvas[hidden] {
+  display: none;
+}
+
+.qr-placeholder {
+  font-size: 13px;
+  color: var(--ink-4);
+}
+
+.qr-text {
+  min-height: 274px;
+}
+
+.tool-actions .tool-chips-label {
+  margin: 0 4px 0 0;
+}
+
+.tools-page .btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .uuid-list {
   max-height: 336px;
   margin: 0 0 20px;
@@ -4181,6 +4224,10 @@ html[data-tool="url"] #tool-url {
   .tool-textarea {
     min-height: 128px;
     font-size: 16px;
+  }
+
+  .qr-preview {
+    min-height: 0;
   }
 
   /* 36 个字符要在手机上一行放下 */
