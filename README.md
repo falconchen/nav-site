@@ -52,7 +52,7 @@
 | AI | Cloudflare Workers AI（`@cf/meta/llama-3.3-70b-instruct-fp8-fast`） |
 | 认证 | GitHub / Google OAuth + JWT，个人访问令牌 |
 | 构建 | esbuild + html-minifier-terser |
-| 测试 | Vitest + `@cloudflare/vitest-pool-workers` |
+| 测试 | Vitest 4 + `@cloudflare/vitest-plugin` |
 
 ## 目录结构
 
@@ -72,10 +72,13 @@ nav-site/
 
 ## 本地开发
 
+需要 Node.js 22.12.0 及以上，建议使用 Node.js 22 或 24 LTS。Wrangler 和测试插件都作为项目依赖安装，具体版本由 `package-lock.json` 固定。
+
 ```bash
-npm install
+npm ci
 npm run dev          # http://127.0.0.1:8787
 npm test             # 运行测试
+npm test -- --run    # 单次运行全部测试
 npm run build        # 构建到 dist/
 ```
 
@@ -103,6 +106,7 @@ npm run build        # 构建到 dist/
 
 - [功能待办](doc/TODO.md)
 - [多语言界面与翻译维护](doc/I18N.md)
+- [Wrangler 升级与验证](doc/cloudflare-worker-notes.md#wrangler-升级与验证2026-10-04)
 - [REST API v1](doc/REST_API.md)、[测试记录](doc/REST_API_TESTING.md)
 - [登录配置](doc/AUTH_SETUP.md)、[快速配置](doc/QUICK_SETUP.md)
 - [环境变量](doc/ENV_VARIABLES_GUIDE.md)、[环境隔离](doc/ENVIRONMENT_ISOLATION_GUIDE.md)、[安全配置](doc/SECURITY_CONFIG_GUIDE.md)

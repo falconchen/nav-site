@@ -25,7 +25,7 @@
 - **存储**: Upstash Redis（REST）存收藏数据、版本历史、用户档案、记事本和访问统计；Cloudflare KV 存登录会话、个人令牌、限流计数和图床去重
 - **AI**: Cloudflare AI 绑定用于网站分析
 - **构建**: esbuild 用于压缩，html-minifier-terser 用于 HTML
-- **测试**: Vitest + @cloudflare/vitest-pool-workers
+- **测试**: Vitest 4 + @cloudflare/vitest-plugin（`vitest.config.mjs` 使用 `cloudflareTest()` 插件）
 
 ### 核心组件
 
@@ -367,6 +367,8 @@ v2ex 这类站点会间歇性开 Cloudflare 质询，Worker 抓取拿到 403。�
 
 ## 开发命令
 
+需要 Node.js >= 22.12.0，建议 22 或 24 LTS；使用 `npm ci` 按锁文件安装。Wrangler 升级及验证方式见 `doc/cloudflare-worker-notes.md`。
+
 ```bash
 # 首先进入 nav-site 目录
 cd nav-site
@@ -487,6 +489,8 @@ npm run deploy      # 部署到 Cloudflare Workers 生产环境
 5. 获取用户信息，用用户数据签名 JWT
 6. 返回 HTML，通过 postMessage 发送到父窗口
 7. 前端存储 JWT，更新 UI
+
+JWT 签发与验证都固定使用 `HS256`。Hono `verify()` 的第三个算法参数必须显式传入，不能从 JWT header 推断。认证校验、登出和共享会话鉴权的回归测试见 `test/auth-jwt.spec.js`，升级记录见 `doc/JWT_CONFIG.md`。
 
 同一邮箱可绑定多个 provider（Google / GitHub）。已绑定的 provider 再次登录时，`refreshProviderProfile()`（`server/lib/oauth-profile.js`）
 用这次返回的名字和头像刷新该 provider 的记录；顶层 `name` / `avatar_url` 只在原本来自该 provider 时才跟着换，
