@@ -28,7 +28,7 @@
 	"kv_namespaces": [
     {
       "binding": "USER_SESSIONS",
-      "id": "208b00870543476cb91dbe4ed1c2673e", // 开发环境专用
+      "id": "208b00870543476cb91dbe4ed1c2673e", // 现有命名空间，当前开发与生产共用
       "preview_id": "208b00870543476cb91dbe4ed1c2673e"
     }
   ],
@@ -37,6 +37,28 @@
 		"environment": "development",
 		"JWT_EXPIRATION_DAYS": "30",
 		"MAX_USER_VERSIONS": "5"
+	},
+
+	// Wrangler 4.135+ 原生分支预览；静态资源由 --env production 选择 dist。
+	// Redis / OAuth 等 Secrets 单独设置，生产 Secrets 不会自动继承。
+	"previews": {
+		"ai": {
+			"binding": "AI"
+		},
+		"kv_namespaces": [
+			{
+				"binding": "USER_SESSIONS",
+				"id": "9fb5088ef7f74a6e860c671ee5cc7a80"
+			}
+		],
+		"vars": {
+			"environment": "preview",
+			"JWT_EXPIRATION_DAYS": "30",
+			"MAX_USER_VERSIONS": "5"
+		},
+		"observability": {
+			"enabled": true
+		}
 	},
 
 	"env": {
@@ -53,7 +75,7 @@
 			"kv_namespaces": [
 				{
 					"binding": "USER_SESSIONS",
-					"id": "208b00870543476cb91dbe4ed1c2673e" // 生产环境专用
+					"id": "208b00870543476cb91dbe4ed1c2673e" // 保留现有生产绑定
 				}
 			],
 

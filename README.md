@@ -88,7 +88,9 @@ npm run build        # 构建到 dist/
 
 推送到 `master` 后由 Cloudflare 自动构建部署。也可以手动执行 `npm run deploy`（构建后部署到 `env.production`）。
 
-开发和生产使用各自独立的 KV 命名空间，在 `wrangler.jsonc` 中配置。
+当前开发和生产配置使用同一 KV 命名空间；分支预览使用独立的会话 KV，在 `wrangler.jsonc` 中配置。
+
+分支预览使用 Wrangler 4 的原生 `previews` 配置，检出待预览分支后执行 `npm run deploy:preview`。该命令构建 `dist/`，为当前 Git 分支创建或更新预览地址。Secrets、OAuth 回调和数据共享说明见 [分支预览部署](doc/PREVIEW_DEPLOYMENT.md)。
 
 ### Secrets
 
@@ -107,6 +109,7 @@ npm run build        # 构建到 dist/
 - [功能待办](doc/TODO.md)
 - [多语言界面与翻译维护](doc/I18N.md)
 - [Wrangler 升级与验证](doc/cloudflare-worker-notes.md#wrangler-升级与验证2026-10-04)
+- [分支预览部署](doc/PREVIEW_DEPLOYMENT.md)
 - [REST API v1](doc/REST_API.md)、[测试记录](doc/REST_API_TESTING.md)
 - [登录配置](doc/AUTH_SETUP.md)、[快速配置](doc/QUICK_SETUP.md)
 - [环境变量](doc/ENV_VARIABLES_GUIDE.md)、[环境隔离](doc/ENVIRONMENT_ISOLATION_GUIDE.md)、[安全配置](doc/SECURITY_CONFIG_GUIDE.md)
