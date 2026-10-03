@@ -1,8 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "皮皮2047 收藏助手",
+  "name": "__MSG_appName__",
+  "default_locale": "zh_CN",
   "version": "2.8.0",
-  "description": "把当前网页收藏到皮皮2047导航站，AI 自动补全标题、分类和描述；新标签页和首页打开导航站。",
+  "description": "__MSG_appDescription__",
   "icons": {
     "16": "icons/icon-16.png",
     "32": "icons/icon-32.png",
@@ -10,7 +11,7 @@
     "128": "icons/icon-128.png"
   },
   "action": {
-    "default_title": "收藏到皮皮2047",
+    "default_title": "__MSG_actionTitle__",
     "default_popup": "popup.html",
     "default_icon": {
       "16": "icons/icon-16.png",
@@ -34,7 +35,7 @@
   "commands": {
     "_execute_action": {
       "suggested_key": { "default": "Alt+Shift+S" },
-      "description": "打开收藏弹窗"
+      "description": "__MSG_saveCommand__"
     }
   }
 }

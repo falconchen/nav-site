@@ -14,23 +14,23 @@
         try {
             response = await fetch(`/api/public/notes/${encodeURIComponent(publicId)}`);
         } catch (error) {
-            showMessage('网络连接失败，稍后再试。');
+            showMessage(I18n.t("网络连接失败，稍后再试。"));
             return;
         }
         if (response.status === 404) {
-            showMessage('这条记事不存在，或者作者已经取消发布。');
+            showMessage(I18n.t("这条记事不存在，或者作者已经取消发布。"));
             return;
         }
         if (!response.ok) {
-            showMessage(response.status === 429 ? '打开得太频繁了，稍后再试。' : '暂时打不开，稍后再试。');
+            showMessage(response.status === 429 ? I18n.t("打开得太频繁了，稍后再试。") : I18n.t("暂时打不开，稍后再试。"));
             return;
         }
 
         const { note } = await response.json();
         const { html, plain } = renderNoteContent(note.content, note.syntax);
-        document.title = `${note.title} · 皮皮2047`;
+        document.title = I18n.t("{0} · 皮皮2047", { 0: note.title });
         container.innerHTML = `
-            <p class="note-meta">${escapeHtml(formatNoteTime(note.updatedAt))}修改 · ${note.content.length.toLocaleString('zh-CN')} 字</p>
+            <p class="note-meta">${I18n.html("{0}修改 · {1} 字", { 0: formatNoteTime(note.updatedAt), 1: note.content.length.toLocaleString(I18n.locale) })}</p>
             <article class="note-content${plain ? ' note-plain' : ''}">${html}</article>`;
     }
 

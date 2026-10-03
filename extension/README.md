@@ -13,6 +13,8 @@
 
 改了代码后在 `chrome://extensions` 里点扩展卡片上的刷新按钮即可。
 
+设置页支持简体中文、繁体中文和英语，首次跟随浏览器语言，手动选择保存在扩展本机存储；切换语言不需要连接验证。网站与扩展分别保存语言偏好。改了 `public/locales.js` 或 `public/i18n.js` 后，先运行 `npm run build:extension` 更新包内副本，再重载扩展。详见 [多语言维护说明](../doc/I18N.md)。
+
 ## Firefox
 
 Firefox 版和 Chrome 版共用这个目录的代码，只有 manifest 不同，由构建脚本生成，不要另外改一份：

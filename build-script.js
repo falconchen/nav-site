@@ -19,6 +19,8 @@ async function buildProject() {
         await build({
             entryPoints: [
                 'public/styles.css',
+                'public/locales.js',
+                'public/i18n.js',
                 'public/data.js',
                 'public/utils.js',
                 'public/sync.js',

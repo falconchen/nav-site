@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import '../public/locales.js';
+import '../public/i18n.js';
 import '../public/tools.js';
 import qrcode from '../public/vendor/qrcode-generator.min.js';
 
@@ -187,6 +189,6 @@ describe('二维码', () => {
 	});
 
 	it('内容太长时抛错', () => {
-		expect(() => buildQrMatrix('x'.repeat(4000), 'L', qrcode)).toThrow('内容太长');
+		expect(() => buildQrMatrix('x'.repeat(4000), 'L', qrcode)).toThrow(I18n.t("内容太长，二维码放不下"));
 	});
 });

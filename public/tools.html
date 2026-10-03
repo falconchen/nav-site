@@ -2,16 +2,18 @@
 <html lang="zh-CN" data-theme="light">
 <head>
     <meta charset="UTF-8">
+    <script src="/locales.js"></script>
+    <script src="/i18n.js"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <title>常用工具 · 皮皮2047</title>
-    <meta name="description" content="Base64 编码解码、密码生成器、UUID 生成器、URL 编码解码、二维码生成，全部在浏览器本地计算，不上传任何内容。">
+    <title data-i18n="常用工具 · 皮皮2047">常用工具 · 皮皮2047</title>
+    <meta name="description" content="Base64 编码解码、密码生成器、UUID 生成器、URL 编码解码、二维码生成，全部在浏览器本地计算，不上传任何内容。" data-i18n-content="Base64 编码解码、密码生成器、UUID 生成器、URL 编码解码、二维码生成，全部在浏览器本地计算，不上传任何内容。">
     <meta name="color-scheme" content="light dark">
     <meta name="theme-color" content="#f4f2ed" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#121110" media="(prefers-color-scheme: dark)">
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="皮皮2047">
-    <meta property="og:title" content="常用工具 · 皮皮2047">
-    <meta property="og:description" content="Base64 编码解码、密码生成器、UUID 生成器、URL 编码解码、二维码生成，全部在浏览器本地计算，不上传任何内容。">
+    <meta property="og:title" content="常用工具 · 皮皮2047" data-i18n-content="常用工具 · 皮皮2047">
+    <meta property="og:description" content="Base64 编码解码、密码生成器、UUID 生成器、URL 编码解码、二维码生成，全部在浏览器本地计算，不上传任何内容。" data-i18n-content="Base64 编码解码、密码生成器、UUID 生成器、URL 编码解码、二维码生成，全部在浏览器本地计算，不上传任何内容。">
     <meta property="og:image" content="https://pipi2047.eu.org/img/og-cover.png">
     <meta name="twitter:card" content="summary_large_image">
     <link rel="icon" href="img/seal.svg" type="image/svg+xml">
@@ -46,11 +48,12 @@
 <body class="doc-page tools-page">
     <header class="header doc-header">
         <div class="header-container">
-            <a href="/" class="logo" aria-label="返回皮皮2047首页">
+            <a href="/" class="logo" aria-label="返回皮皮2047首页" data-i18n-aria-label="返回皮皮2047首页">
                 <span class="accent-swatch" aria-hidden="true"><span class="seal-glyph">皮</span></span>
                 <span class="brand-name">皮皮<span class="brand-num">2047</span></span>
             </a>
-            <a href="/" class="doc-back"><i class="fas fa-arrow-left"></i>返回首页</a>
+            <label class="language-control"><span data-i18n="语言">语言</span><select class="language-select" data-language-select aria-label="语言" data-i18n-aria-label="语言" title="切换语言（会刷新页面）" data-i18n-title="切换语言（会刷新页面）"><option value="zh-CN" lang="zh-CN">简体中文</option><option value="zh-TW" lang="zh-TW">繁體中文</option><option value="en" lang="en">English</option></select></label>
+            <a href="/" class="doc-back"><i class="fas fa-arrow-left"></i><span data-i18n="返回首页">返回首页</span></a>
         </div>
     </header>
 
@@ -58,26 +61,26 @@
 
         <div class="about-header">
             <p class="doc-eyebrow">Tools</p>
-            <h1>常用工具</h1>
-            <p class="tagline">几样随手用的小工具，都在浏览器里算，不上传任何内容。</p>
+            <h1><span data-i18n="常用工具">常用工具</span></h1>
+            <p class="tagline"><span data-i18n="几样随手用的小工具，都在浏览器里算，不上传任何内容。">几样随手用的小工具，都在浏览器里算，不上传任何内容。</span></p>
         </div>
 
         <!-- 每个工具一个 tab；增减工具时，头部内联脚本的列表和 styles.css 的 html[data-tool] 规则要一起改 -->
-        <nav class="tool-tabs" role="tablist" aria-label="工具">
+        <nav class="tool-tabs" role="tablist" aria-label="工具" data-i18n-aria-label="工具">
             <button type="button" class="view-tab" role="tab" id="tool-tab-base64" data-tool="base64" aria-controls="tool-base64">
-                <i class="fas fa-code"></i><span class="tab-label">Base64 编码 / 解码</span><span class="tab-label-short">Base64</span>
+                <i class="fas fa-code"></i><span class="tab-label"><span data-i18n="Base64 编码 / 解码">Base64 编码 / 解码</span></span><span class="tab-label-short">Base64</span>
             </button>
             <button type="button" class="view-tab" role="tab" id="tool-tab-password" data-tool="password" aria-controls="tool-password">
-                <i class="fas fa-key"></i><span class="tab-label">密码生成器</span><span class="tab-label-short">密码</span>
+                <i class="fas fa-key"></i><span class="tab-label"><span data-i18n="密码生成器">密码生成器</span></span><span class="tab-label-short"><span data-i18n="密码">密码</span></span>
             </button>
             <button type="button" class="view-tab" role="tab" id="tool-tab-uuid" data-tool="uuid" aria-controls="tool-uuid">
-                <i class="fas fa-fingerprint"></i><span class="tab-label">UUID 生成器</span><span class="tab-label-short">UUID</span>
+                <i class="fas fa-fingerprint"></i><span class="tab-label"><span data-i18n="UUID 生成器">UUID 生成器</span></span><span class="tab-label-short">UUID</span>
             </button>
             <button type="button" class="view-tab" role="tab" id="tool-tab-url" data-tool="url" aria-controls="tool-url">
-                <i class="fas fa-link"></i><span class="tab-label">URL 编码 / 解码</span><span class="tab-label-short">URL</span>
+                <i class="fas fa-link"></i><span class="tab-label"><span data-i18n="URL 编码 / 解码">URL 编码 / 解码</span></span><span class="tab-label-short">URL</span>
             </button>
             <button type="button" class="view-tab" role="tab" id="tool-tab-qrcode" data-tool="qrcode" aria-controls="tool-qrcode">
-                <i class="fas fa-qrcode"></i><span class="tab-label">二维码生成</span><span class="tab-label-short">二维码</span>
+                <i class="fas fa-qrcode"></i><span class="tab-label"><span data-i18n="二维码生成">二维码生成</span></span><span class="tab-label-short"><span data-i18n="二维码">二维码</span></span>
             </button>
         </nav>
 
@@ -85,32 +88,32 @@
         <section class="tool-section" id="tool-password" role="tabpanel" aria-labelledby="tool-tab-password">
 
             <div class="tool-result">
-                <div class="tool-output" id="passwordOutput" aria-live="polite" aria-label="生成的密码"></div>
-                <button type="button" class="theme-toggle" id="passwordRegenerate" title="重新生成" aria-label="重新生成密码">
+                <div class="tool-output" id="passwordOutput" aria-live="polite" aria-label="生成的密码" data-i18n-aria-label="生成的密码"></div>
+                <button type="button" class="theme-toggle" id="passwordRegenerate" title="重新生成" aria-label="重新生成密码" data-i18n-aria-label="重新生成密码" data-i18n-title="重新生成">
                     <i class="fas fa-rotate"></i>
                 </button>
-                <button type="button" class="theme-toggle" id="passwordCopy" title="复制" aria-label="复制密码">
+                <button type="button" class="theme-toggle" id="passwordCopy" title="复制" aria-label="复制密码" data-i18n-aria-label="复制密码" data-i18n-title="复制">
                     <i class="fas fa-copy"></i>
                 </button>
             </div>
 
             <div class="tool-row tool-row-3">
                 <div class="form-group">
-                    <label class="form-label" for="passwordLength">长度</label>
+                    <label class="form-label" for="passwordLength"><span data-i18n="长度">长度</span></label>
                     <input type="number" class="form-input tool-number" id="passwordLength" min="5" max="128" value="14" inputmode="numeric">
                 </div>
                 <div class="form-group">
-                    <label class="form-label" for="passwordMinNumber">数字最少个数</label>
+                    <label class="form-label" for="passwordMinNumber"><span data-i18n="数字最少个数">数字最少个数</span></label>
                     <input type="number" class="form-input tool-number" id="passwordMinNumber" min="0" max="9" value="1" inputmode="numeric">
                 </div>
                 <div class="form-group">
-                    <label class="form-label" for="passwordMinSpecial">特殊字符最少个数</label>
+                    <label class="form-label" for="passwordMinSpecial"><span data-i18n="特殊字符最少个数">特殊字符最少个数</span></label>
                     <input type="number" class="form-input tool-number" id="passwordMinSpecial" min="0" max="9" value="0" inputmode="numeric">
                 </div>
             </div>
-            <p class="tool-hint">长度在 5 到 128 之间，用 14 个或更多字符才算强密码。</p>
+            <p class="tool-hint"><span data-i18n="长度在 5 到 128 之间，用 14 个或更多字符才算强密码。">长度在 5 到 128 之间，用 14 个或更多字符才算强密码。</span></p>
 
-            <div class="form-label" id="passwordIncludeLabel">包含</div>
+            <div class="form-label" id="passwordIncludeLabel"><span data-i18n="包含">包含</span></div>
             <div class="option-chips" role="group" aria-labelledby="passwordIncludeLabel">
                 <label class="option-chip tool-chip-mono" for="passwordUppercase">
                     <input type="checkbox" id="passwordUppercase" checked> A-Z
@@ -124,8 +127,8 @@
                 <label class="option-chip tool-chip-mono" for="passwordSpecial">
                     <input type="checkbox" id="passwordSpecial"> !@#$%^&amp;*
                 </label>
-                <label class="option-chip" for="passwordAvoidAmbiguous" title="不使用 I、O、l、0、1">
-                    <input type="checkbox" id="passwordAvoidAmbiguous"> 避免易混淆的字符
+                <label class="option-chip" for="passwordAvoidAmbiguous" title="不使用 I、O、l、0、1" data-i18n-title="不使用 I、O、l、0、1">
+                    <input type="checkbox" id="passwordAvoidAmbiguous"> <span data-i18n="避免易混淆的字符">避免易混淆的字符</span>
                 </label>
             </div>
         </section>
@@ -136,34 +139,34 @@
             <div class="tool-row tool-row-2">
                 <div class="form-group">
                     <div class="tool-field-head">
-                        <label class="form-label" for="base64Plain">原文</label>
+                        <label class="form-label" for="base64Plain"><span data-i18n="原文">原文</span></label>
                         <button type="button" class="tool-text-btn" id="base64CopyPlain">
-                            <i class="fas fa-copy"></i> 复制
+                            <i class="fas fa-copy"></i> <span data-i18n="复制">复制</span>
                         </button>
                     </div>
-                    <textarea class="form-textarea tool-textarea" id="base64Plain" spellcheck="false" autocomplete="off" placeholder="输入文字，自动编码成 Base64"></textarea>
+                    <textarea class="form-textarea tool-textarea" id="base64Plain" spellcheck="false" autocomplete="off" placeholder="输入文字，自动编码成 Base64" data-i18n-placeholder="输入文字，自动编码成 Base64"></textarea>
                 </div>
                 <div class="form-group">
                     <div class="tool-field-head">
                         <label class="form-label" for="base64Encoded">Base64</label>
                         <button type="button" class="tool-text-btn" id="base64CopyEncoded">
-                            <i class="fas fa-copy"></i> 复制
+                            <i class="fas fa-copy"></i> <span data-i18n="复制">复制</span>
                         </button>
                     </div>
-                    <textarea class="form-textarea tool-textarea" id="base64Encoded" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="粘贴 Base64，自动解码成原文" aria-describedby="base64Error"></textarea>
+                    <textarea class="form-textarea tool-textarea" id="base64Encoded" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="粘贴 Base64，自动解码成原文" aria-describedby="base64Error" data-i18n-placeholder="粘贴 Base64，自动解码成原文"></textarea>
                     <p class="tool-error" id="base64Error" role="alert" hidden></p>
                 </div>
             </div>
 
             <div class="tool-actions">
                 <div class="option-chips">
-                    <label class="option-chip" for="base64UrlSafe" title="用 - 和 _ 代替 + 和 /，去掉末尾的 =">
-                        <input type="checkbox" id="base64UrlSafe"> URL 安全
+                    <label class="option-chip" for="base64UrlSafe" title="用 - 和 _ 代替 + 和 /，去掉末尾的 =" data-i18n-title="用 - 和 _ 代替 + 和 /，去掉末尾的 =">
+                        <input type="checkbox" id="base64UrlSafe"> <span data-i18n="URL 安全">URL 安全</span>
                     </label>
                 </div>
-                <button type="button" class="btn btn-secondary" id="base64Clear">清空</button>
+                <button type="button" class="btn btn-secondary" id="base64Clear"><span data-i18n="清空">清空</span></button>
             </div>
-            <p class="tool-hint">文字按 UTF-8 编码。Base64 只是换一种写法，不是加密，谁都能解开。</p>
+            <p class="tool-hint"><span data-i18n="文字按 UTF-8 编码。Base64 只是换一种写法，不是加密，谁都能解开。">文字按 UTF-8 编码。Base64 只是换一种写法，不是加密，谁都能解开。</span></p>
         </section>
 
         <!-- UUID -->
@@ -173,27 +176,27 @@
 
             <div class="tool-actions">
                 <div class="tool-inline-field">
-                    <label class="form-label" for="uuidCount">数量</label>
+                    <label class="form-label" for="uuidCount"><span data-i18n="数量">数量</span></label>
                     <input type="number" class="form-input tool-number" id="uuidCount" min="1" max="100" value="1" inputmode="numeric">
                 </div>
                 <div class="option-chips">
                     <label class="option-chip" for="uuidUppercase">
-                        <input type="checkbox" id="uuidUppercase"> 大写
+                        <input type="checkbox" id="uuidUppercase"> <span data-i18n="大写">大写</span>
                     </label>
                     <label class="option-chip" for="uuidNoHyphens">
-                        <input type="checkbox" id="uuidNoHyphens"> 去掉连字符
+                        <input type="checkbox" id="uuidNoHyphens"> <span data-i18n="去掉连字符">去掉连字符</span>
                     </label>
                 </div>
                 <div class="tool-buttons">
                     <button type="button" class="btn btn-secondary" id="uuidCopyAll">
-                        <i class="fas fa-copy"></i> 复制全部
+                        <i class="fas fa-copy"></i> <span data-i18n="复制全部">复制全部</span>
                     </button>
                     <button type="button" class="btn btn-primary" id="uuidRegenerate">
-                        <i class="fas fa-rotate"></i> 重新生成
+                        <i class="fas fa-rotate"></i> <span data-i18n="重新生成">重新生成</span>
                     </button>
                 </div>
             </div>
-            <p class="tool-hint">版本 4（随机）UUID，一次最多 100 个。</p>
+            <p class="tool-hint"><span data-i18n="版本 4（随机）UUID，一次最多 100 个。">版本 4（随机）UUID，一次最多 100 个。</span></p>
         </section>
 
         <!-- URL 编码 -->
@@ -202,34 +205,34 @@
             <div class="tool-row tool-row-2">
                 <div class="form-group">
                     <div class="tool-field-head">
-                        <label class="form-label" for="urlPlain">原文</label>
+                        <label class="form-label" for="urlPlain"><span data-i18n="原文">原文</span></label>
                         <button type="button" class="tool-text-btn" id="urlCopyPlain">
-                            <i class="fas fa-copy"></i> 复制
+                            <i class="fas fa-copy"></i> <span data-i18n="复制">复制</span>
                         </button>
                     </div>
-                    <textarea class="form-textarea tool-textarea" id="urlPlain" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="输入文字或网址，自动编码"></textarea>
+                    <textarea class="form-textarea tool-textarea" id="urlPlain" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="输入文字或网址，自动编码" data-i18n-placeholder="输入文字或网址，自动编码"></textarea>
                 </div>
                 <div class="form-group">
                     <div class="tool-field-head">
-                        <label class="form-label" for="urlEncoded">URL 编码</label>
+                        <label class="form-label" for="urlEncoded"><span data-i18n="URL 编码">URL 编码</span></label>
                         <button type="button" class="tool-text-btn" id="urlCopyEncoded">
-                            <i class="fas fa-copy"></i> 复制
+                            <i class="fas fa-copy"></i> <span data-i18n="复制">复制</span>
                         </button>
                     </div>
-                    <textarea class="form-textarea tool-textarea" id="urlEncoded" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="粘贴带 %E4%BD%A0 这类编码的内容，自动解码" aria-describedby="urlError"></textarea>
+                    <textarea class="form-textarea tool-textarea" id="urlEncoded" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="粘贴带 %E4%BD%A0 这类编码的内容，自动解码" aria-describedby="urlError" data-i18n-placeholder="粘贴带 %E4%BD%A0 这类编码的内容，自动解码"></textarea>
                     <p class="tool-error" id="urlError" role="alert" hidden></p>
                 </div>
             </div>
 
             <div class="tool-actions">
                 <div class="option-chips">
-                    <label class="option-chip" for="urlKeepStructure" title="不编码 : / ? # & = 等符号，适合编码整条网址">
-                        <input type="checkbox" id="urlKeepStructure"> 保留网址符号
+                    <label class="option-chip" for="urlKeepStructure" title="不编码 : / ? # & = 等符号，适合编码整条网址" data-i18n-title="不编码 : / ? # &amp; = 等符号，适合编码整条网址">
+                        <input type="checkbox" id="urlKeepStructure"> <span data-i18n="保留网址符号">保留网址符号</span>
                     </label>
                 </div>
-                <button type="button" class="btn btn-secondary" id="urlClear">清空</button>
+                <button type="button" class="btn btn-secondary" id="urlClear"><span data-i18n="清空">清空</span></button>
             </div>
-            <p class="tool-hint">也叫百分号编码，按 UTF-8 处理。默认连 : / ? # &amp; = 一起编码，适合处理参数值；要编码整条网址时打开「保留网址符号」。</p>
+            <p class="tool-hint"><span data-i18n="也叫百分号编码，按 UTF-8 处理。默认连 : / ? # &amp; = 一起编码，适合处理参数值；要编码整条网址时打开「保留网址符号」。">也叫百分号编码，按 UTF-8 处理。默认连 : / ? # &amp; = 一起编码，适合处理参数值；要编码整条网址时打开「保留网址符号」。</span></p>
         </section>
 
         <!-- 二维码 -->
@@ -238,51 +241,51 @@
             <div class="tool-row tool-row-2">
                 <div class="form-group">
                     <div class="tool-field-head">
-                        <label class="form-label" for="qrcodeText">内容</label>
+                        <label class="form-label" for="qrcodeText"><span data-i18n="内容">内容</span></label>
                     </div>
-                    <textarea class="form-textarea tool-textarea qr-text" id="qrcodeText" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="输入文字或网址，自动生成二维码" aria-describedby="qrcodeError"></textarea>
+                    <textarea class="form-textarea tool-textarea qr-text" id="qrcodeText" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="输入文字或网址，自动生成二维码" aria-describedby="qrcodeError" data-i18n-placeholder="输入文字或网址，自动生成二维码"></textarea>
                     <p class="tool-error" id="qrcodeError" role="alert" hidden></p>
                 </div>
                 <div class="form-group">
                     <div class="tool-field-head">
-                        <span class="form-label">二维码</span>
+                        <span class="form-label"><span data-i18n="二维码">二维码</span></span>
                     </div>
                     <div class="qr-preview">
-                        <canvas id="qrcodeCanvas" role="img" aria-label="生成的二维码" hidden></canvas>
-                        <p class="qr-placeholder" id="qrcodePlaceholder">输入内容后在这里生成</p>
+                        <canvas id="qrcodeCanvas" role="img" aria-label="生成的二维码" hidden data-i18n-aria-label="生成的二维码"></canvas>
+                        <p class="qr-placeholder" id="qrcodePlaceholder"><span data-i18n="输入内容后在这里生成">输入内容后在这里生成</span></p>
                     </div>
                 </div>
             </div>
 
             <div class="tool-actions">
                 <div class="option-chips" role="radiogroup" aria-labelledby="qrcodeLevelLabel">
-                    <span class="form-label tool-chips-label" id="qrcodeLevelLabel">容错级别</span>
-                    <label class="option-chip tool-chip-mono" title="可恢复约 7% 的损坏">
+                    <span class="form-label tool-chips-label" id="qrcodeLevelLabel"><span data-i18n="容错级别">容错级别</span></span>
+                    <label class="option-chip tool-chip-mono" title="可恢复约 7% 的损坏" data-i18n-title="可恢复约 7% 的损坏">
                         <input type="radio" name="qrcodeLevel" value="L"> L
                     </label>
-                    <label class="option-chip tool-chip-mono" title="可恢复约 15% 的损坏">
+                    <label class="option-chip tool-chip-mono" title="可恢复约 15% 的损坏" data-i18n-title="可恢复约 15% 的损坏">
                         <input type="radio" name="qrcodeLevel" value="M" checked> M
                     </label>
-                    <label class="option-chip tool-chip-mono" title="可恢复约 25% 的损坏">
+                    <label class="option-chip tool-chip-mono" title="可恢复约 25% 的损坏" data-i18n-title="可恢复约 25% 的损坏">
                         <input type="radio" name="qrcodeLevel" value="Q"> Q
                     </label>
-                    <label class="option-chip tool-chip-mono" title="可恢复约 30% 的损坏">
+                    <label class="option-chip tool-chip-mono" title="可恢复约 30% 的损坏" data-i18n-title="可恢复约 30% 的损坏">
                         <input type="radio" name="qrcodeLevel" value="H"> H
                     </label>
                 </div>
                 <div class="tool-buttons">
                     <button type="button" class="btn btn-secondary" id="qrcodeCopy" disabled>
-                        <i class="fas fa-copy"></i> 复制图片
+                        <i class="fas fa-copy"></i> <span data-i18n="复制图片">复制图片</span>
                     </button>
                     <button type="button" class="btn btn-primary" id="qrcodeDownload" disabled>
-                        <i class="fas fa-download"></i> 下载 PNG
+                        <i class="fas fa-download"></i> <span data-i18n="下载 PNG">下载 PNG</span>
                     </button>
                 </div>
             </div>
-            <p class="tool-hint">容错级别越高越耐污损（L 约 7%，H 约 30%），但同样的内容码会更密。内容越短越好扫。</p>
+            <p class="tool-hint"><span data-i18n="容错级别越高越耐污损（L 约 7%，H 约 30%），但同样的内容码会更密。内容越短越好扫。">容错级别越高越耐污损（L 约 7%，H 约 30%），但同样的内容码会更密。内容越短越好扫。</span></p>
         </section>
 
-        <p class="doc-colophon">© <span class="copyright-year">2026</span> 皮皮2047 · 私人网址簿<script>document.currentScript.parentNode.querySelector('.copyright-year').textContent = new Date().getFullYear();</script></p>
+        <p class="doc-colophon">© <span class="copyright-year">2026</span> <span data-i18n="皮皮2047 · 私人网址簿">皮皮2047 · 私人网址簿</span><script>document.currentScript.parentNode.querySelector('.copyright-year').textContent = new Date().getFullYear();</script></p>
     </main>
 
     <script src="utils.js"></script>

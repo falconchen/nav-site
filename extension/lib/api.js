@@ -1,3 +1,4 @@
+import { I18n } from './i18n.js';
 /**
  * 导航站 REST API 客户端，接口说明见仓库 doc/REST_API.md
  *
@@ -85,8 +86,8 @@ export function createClient({ serverUrl, token }) {
                 signal: AbortSignal.timeout(timeoutMs)
             });
         } catch (error) {
-            const reason = error.name === 'TimeoutError' ? '请求超时' : error.message;
-            throw new ApiError(0, { error: `连不上服务器：${reason}` });
+            const reason = error.name === 'TimeoutError' ? I18n.t("请求超时") : error.message;
+            throw new ApiError(0, { error: I18n.t("连不上服务器：{0}", { 0: reason }) });
         }
 
         let data = {};
@@ -115,10 +116,10 @@ export function createClient({ serverUrl, token }) {
  * 把 API 错误翻成给用户看的话
  */
 export function describeError(error) {
-    if (!(error instanceof ApiError)) return error?.message || '出错了';
+    if (!(error instanceof ApiError)) return error?.message || I18n.t("出错了");
     if (error.status === 0) return error.message;
-    if (error.status === 401) return '令牌无效或已被吊销，请在设置里重新填写';
-    if (error.code === 'NO_CLOUD_DATA') return '云端还没有数据，请先在导航站网页端登录并同步一次';
-    if (error.status === 429) return '请求太频繁，请稍后再试';
+    if (error.status === 401) return I18n.t("令牌无效或已被吊销，请在设置里重新填写");
+    if (error.code === 'NO_CLOUD_DATA') return I18n.t("云端还没有数据，请先在导航站网页端登录并同步一次");
+    if (error.status === 429) return I18n.t("请求太频繁，请稍后再试");
     return error.message;
 }

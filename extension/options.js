@@ -1,3 +1,4 @@
+import { I18n } from './lib/i18n.js';
 import { ext, isFirefox } from './lib/ext.js';
 import {
     createClient,
@@ -29,15 +30,15 @@ function readForm() {
 async function testConnection() {
     const settings = readForm();
     if (!settings.serverUrl || !settings.token) {
-        setStatus('请先填写地址和令牌', 'error');
+        setStatus(I18n.t("请先填写地址和令牌"), 'error');
         return false;
     }
 
-    setStatus('连接中…');
+    setStatus(I18n.t("连接中…"));
     try {
         const { user, auth } = await createClient(settings).me();
         const who = user.name || user.login || user.id;
-        setStatus(`连接成功：${who}（令牌「${auth.tokenName}」）`, 'success');
+        setStatus(I18n.t("连接成功：{0}（令牌「{1}」）", { 0: who, 1: auth.tokenName }), 'success');
         return true;
     } catch (error) {
         setStatus(describeError(error), 'error');
@@ -59,7 +60,7 @@ async function init() {
         const status = $('newTabStatus');
         status.hidden = false;
         status.className = 'notice success';
-        status.textContent = event.target.checked ? '已开启，新开的标签页会打开导航站' : '已关闭，新标签页恢复为 Chrome 自带的';
+        status.textContent = event.target.checked ? I18n.t("已开启，新开的标签页会打开导航站") : I18n.t("已关闭，新标签页恢复为 Chrome 自带的");
     });
     // 扩展页面里的 chrome:// 链接点了没反应，要用 tabs API 打开
     $('openAppearance').addEventListener('click', (event) => {
@@ -78,7 +79,7 @@ async function init() {
         await permission;
         await saveSettings(readForm());
         $('serverUrl').value = readForm().serverUrl;
-        setStatus(`${$('status').textContent}，已保存`, 'success');
+        setStatus(I18n.t("{0}，已保存", { 0: $('status').textContent }), 'success');
     });
 }
 

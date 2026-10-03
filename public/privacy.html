@@ -2,16 +2,18 @@
 <html lang="zh-CN" data-theme="light">
 <head>
     <meta charset="UTF-8">
+    <script src="/locales.js"></script>
+    <script src="/i18n.js"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <title>隐私政策 · 皮皮2047</title>
-    <meta name="description" content="皮皮2047 如何处理你的数据：存在哪里、用来做什么、你能做什么。">
+    <title data-i18n="隐私政策 · 皮皮2047">隐私政策 · 皮皮2047</title>
+    <meta name="description" content="皮皮2047 如何处理你的数据：存在哪里、用来做什么、你能做什么。" data-i18n-content="皮皮2047 如何处理你的数据：存在哪里、用来做什么、你能做什么。">
     <meta name="color-scheme" content="light dark">
     <meta name="theme-color" content="#f4f2ed" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#121110" media="(prefers-color-scheme: dark)">
     <meta property="og:type" content="article">
     <meta property="og:site_name" content="皮皮2047">
-    <meta property="og:title" content="隐私政策 · 皮皮2047">
-    <meta property="og:description" content="皮皮2047 如何处理你的数据：存在哪里、用来做什么、你能做什么。">
+    <meta property="og:title" content="隐私政策 · 皮皮2047" data-i18n-content="隐私政策 · 皮皮2047">
+    <meta property="og:description" content="皮皮2047 如何处理你的数据：存在哪里、用来做什么、你能做什么。" data-i18n-content="皮皮2047 如何处理你的数据：存在哪里、用来做什么、你能做什么。">
     <meta property="og:image" content="https://pipi2047.eu.org/img/og-cover.png">
     <meta name="twitter:card" content="summary_large_image">
     <link rel="icon" href="img/seal.svg" type="image/svg+xml">
@@ -38,11 +40,12 @@
 <body class="doc-page">
     <header class="header doc-header">
         <div class="header-container">
-            <a href="/" class="logo" aria-label="返回皮皮2047首页">
+            <a href="/" class="logo" aria-label="返回皮皮2047首页" data-i18n-aria-label="返回皮皮2047首页">
                 <span class="accent-swatch" aria-hidden="true"><span class="seal-glyph">皮</span></span>
                 <span class="brand-name">皮皮<span class="brand-num">2047</span></span>
             </a>
-            <a href="/" class="doc-back"><i class="fas fa-arrow-left"></i>返回首页</a>
+            <label class="language-control"><span data-i18n="语言">语言</span><select class="language-select" data-language-select aria-label="语言" data-i18n-aria-label="语言" title="切换语言（会刷新页面）" data-i18n-title="切换语言（会刷新页面）"><option value="zh-CN" lang="zh-CN">简体中文</option><option value="zh-TW" lang="zh-TW">繁體中文</option><option value="en" lang="en">English</option></select></label>
+            <a href="/" class="doc-back"><i class="fas fa-arrow-left"></i><span data-i18n="返回首页">返回首页</span></a>
         </div>
     </header>
 
@@ -50,82 +53,82 @@
 
         <div class="legal-header">
             <p class="doc-eyebrow">Privacy</p>
-            <h1>隐私政策</h1>
-            <p>我们重视您的隐私保护</p>
+            <h1><span data-i18n="隐私政策">隐私政策</span></h1>
+            <p><span data-i18n="我们重视您的隐私保护">我们重视您的隐私保护</span></p>
         </div>
 
         <div class="legal-content">
-            <p>皮皮2047（以下简称「我们」或「本应用」）重视您的隐私。本政策说明您在使用本应用网站、浏览器扩展「皮皮2047 收藏助手」和 REST API 时，我们会处理哪些信息、存在哪里、怎么使用。</p>
+            <p><span data-i18n="皮皮2047（以下简称「我们」或「本应用」）重视您的隐私。本政策说明您在使用本应用网站、浏览器扩展「皮皮2047 收藏助手」和 REST API 时，我们会处理哪些信息、存在哪里、怎么使用。">皮皮2047（以下简称「我们」或「本应用」）重视您的隐私。本政策说明您在使用本应用网站、浏览器扩展「皮皮2047 收藏助手」和 REST API 时，我们会处理哪些信息、存在哪里、怎么使用。</span></p>
 
-            <h2>一、不登录时</h2>
-            <p>不登录也能使用全部基础功能，您的收藏数据只保存在当前浏览器里（localStorage），不会上传到我们的服务器。清除浏览器数据会一并删除它们，建议定期导出备份。</p>
+            <h2><span data-i18n="一、不登录时">一、不登录时</span></h2>
+            <p><span data-i18n="不登录也能使用全部基础功能，您的收藏数据只保存在当前浏览器里（localStorage），不会上传到我们的服务器。清除浏览器数据会一并删除它们，建议定期导出备份。">不登录也能使用全部基础功能，您的收藏数据只保存在当前浏览器里（localStorage），不会上传到我们的服务器。清除浏览器数据会一并删除它们，建议定期导出备份。</span></p>
 
-            <h2>二、我们收集的信息</h2>
+            <h2><span data-i18n="二、我们收集的信息">二、我们收集的信息</span></h2>
             <ul>
-                <li><strong>账户信息：</strong>通过 GitHub 或 Google 登录时，我们会获取并保存您的邮箱、用户名、昵称、头像地址和第三方账号 ID，以及账户创建时间和最近登录时间。我们不会获取您的第三方账号密码。</li>
-                <li><strong>收藏数据：</strong>登录后，您的分类、网址、标题、描述、图标等数据会同步保存到云端，并保留最近 5 个历史版本（历史版本 30 天后自动过期）。</li>
-                <li><strong>登录会话：</strong>每次登录会记录一条会话，包含登录凭证和创建时间，用于校验登录状态。退出登录或会话到期后自动删除。</li>
-                <li><strong>个人令牌：</strong>如果您生成了 API 个人令牌，我们只保存令牌的 SHA-256 摘要、名称、创建时间和最近使用时间，不保存令牌明文。</li>
-                <li><strong>上传的图标：</strong>您上传或 AI 识别得到的网站图标会压缩后存到图床，并生成一个公开地址。知道该地址的任何人都能访问这张图片。</li>
-                <li><strong>IP 地址：</strong>为防止接口被滥用，上传图标和 AI 识别会按 IP 地址限制请求频率，相关计数 60 秒后自动删除。</li>
+                <li><strong><span data-i18n="账户信息：">账户信息：</span></strong><span data-i18n="通过 GitHub 或 Google 登录时，我们会获取并保存您的邮箱、用户名、昵称、头像地址和第三方账号 ID，以及账户创建时间和最近登录时间。我们不会获取您的第三方账号密码。">通过 GitHub 或 Google 登录时，我们会获取并保存您的邮箱、用户名、昵称、头像地址和第三方账号 ID，以及账户创建时间和最近登录时间。我们不会获取您的第三方账号密码。</span></li>
+                <li><strong><span data-i18n="收藏数据：">收藏数据：</span></strong><span data-i18n="登录后，您的分类、网址、标题、描述、图标等数据会同步保存到云端，并保留最近 5 个历史版本（历史版本 30 天后自动过期）。">登录后，您的分类、网址、标题、描述、图标等数据会同步保存到云端，并保留最近 5 个历史版本（历史版本 30 天后自动过期）。</span></li>
+                <li><strong><span data-i18n="登录会话：">登录会话：</span></strong><span data-i18n="每次登录会记录一条会话，包含登录凭证和创建时间，用于校验登录状态。退出登录或会话到期后自动删除。">每次登录会记录一条会话，包含登录凭证和创建时间，用于校验登录状态。退出登录或会话到期后自动删除。</span></li>
+                <li><strong><span data-i18n="个人令牌：">个人令牌：</span></strong><span data-i18n="如果您生成了 API 个人令牌，我们只保存令牌的 SHA-256 摘要、名称、创建时间和最近使用时间，不保存令牌明文。">如果您生成了 API 个人令牌，我们只保存令牌的 SHA-256 摘要、名称、创建时间和最近使用时间，不保存令牌明文。</span></li>
+                <li><strong><span data-i18n="上传的图标：">上传的图标：</span></strong><span data-i18n="您上传或 AI 识别得到的网站图标会压缩后存到图床，并生成一个公开地址。知道该地址的任何人都能访问这张图片。">您上传或 AI 识别得到的网站图标会压缩后存到图床，并生成一个公开地址。知道该地址的任何人都能访问这张图片。</span></li>
+                <li><strong><span data-i18n="IP 地址：">IP 地址：</span></strong><span data-i18n="为防止接口被滥用，上传图标和 AI 识别会按 IP 地址限制请求频率，相关计数 60 秒后自动删除。">为防止接口被滥用，上传图标和 AI 识别会按 IP 地址限制请求频率，相关计数 60 秒后自动删除。</span></li>
             </ul>
 
-            <h2>三、只保存在您设备上的信息</h2>
+            <h2><span data-i18n="三、只保存在您设备上的信息">三、只保存在您设备上的信息</span></h2>
             <ul>
-                <li><strong>访问统计：</strong>「访问最多」用到的点击次数和访问时间只保存在本机浏览器（IndexedDB），不会上传，也不会跨设备同步。</li>
-                <li><strong>界面偏好：</strong>主题、配色、上次停留的 tab 等设置保存在 localStorage。</li>
+                <li><strong><span data-i18n="访问统计：">访问统计：</span></strong><span data-i18n="「访问最多」用到的点击次数和访问时间只保存在本机浏览器（IndexedDB），不会上传，也不会跨设备同步。">「访问最多」用到的点击次数和访问时间只保存在本机浏览器（IndexedDB），不会上传，也不会跨设备同步。</span></li>
+                <li><strong><span data-i18n="界面偏好：">界面偏好：</span></strong><span data-i18n="主题、配色、语言等设置保存在 localStorage。">主题、配色、语言等设置保存在 localStorage。</span></li>
             </ul>
-            <p>本应用不使用 Cookie，不投放广告，也没有接入任何第三方统计分析工具。</p>
+            <p><span data-i18n="本应用不使用 Cookie，不投放广告，也没有接入任何第三方统计分析工具。">本应用不使用 Cookie，不投放广告，也没有接入任何第三方统计分析工具。</span></p>
 
-            <h2>四、私密收藏</h2>
-            <p>「私密收藏」只是在界面上把网站隐藏起来并遮住描述，<strong>并没有加密</strong>。这些网站和其它收藏一样，以明文形式保存在本地、云端、历史版本、导出文件中，也能通过 API 读取。请不要把私密收藏当作保存敏感信息的地方。</p>
+            <h2><span data-i18n="四、私密收藏">四、私密收藏</span></h2>
+            <p><span data-i18n="「私密收藏」只是在界面上把网站隐藏起来并遮住描述，">「私密收藏」只是在界面上把网站隐藏起来并遮住描述，</span><strong><span data-i18n="并没有加密">并没有加密</span></strong><span data-i18n="。这些网站和其它收藏一样，以明文形式保存在本地、云端、历史版本、导出文件中，也能通过 API 读取。请不要把私密收藏当作保存敏感信息的地方。">。这些网站和其它收藏一样，以明文形式保存在本地、云端、历史版本、导出文件中，也能通过 API 读取。请不要把私密收藏当作保存敏感信息的地方。</span></p>
 
-            <h2>五、AI 识别与网页抓取</h2>
-            <p>使用「AI 识别」或通过扩展、API 只提交网址来添加网站时：</p>
+            <h2><span data-i18n="五、AI 识别与网页抓取">五、AI 识别与网页抓取</span></h2>
+            <p><span data-i18n="使用「AI 识别」或通过扩展、API 只提交网址来添加网站时：">使用「AI 识别」或通过扩展、API 只提交网址来添加网站时：</span></p>
             <ul>
-                <li>我们的服务器会访问该网址，读取网页标题、描述、正文片段和图标。</li>
-                <li>网页内容、您的分类名称以及每个分类下部分已收录网站的标题和域名，会发给 Cloudflare Workers AI 用于推荐分类和生成描述。这些内容不会用于其它目的。</li>
-                <li>如果目标网站拦截了我们的访问，该网址可能会转交给 Jina Reader 代为读取。</li>
-                <li>使用浏览器扩展收藏时，扩展会把当前网页的标题、描述和部分正文一起提交，用于在网页无法抓取时补全信息。</li>
+                <li><span data-i18n="我们的服务器会访问该网址，读取网页标题、描述、正文片段和图标。">我们的服务器会访问该网址，读取网页标题、描述、正文片段和图标。</span></li>
+                <li><span data-i18n="网页内容、您的分类名称以及每个分类下部分已收录网站的标题和域名，会发给 Cloudflare Workers AI 用于推荐分类和生成描述。这些内容不会用于其它目的。">网页内容、您的分类名称以及每个分类下部分已收录网站的标题和域名，会发给 Cloudflare Workers AI 用于推荐分类和生成描述。这些内容不会用于其它目的。</span></li>
+                <li><span data-i18n="如果目标网站拦截了我们的访问，该网址可能会转交给 Jina Reader 代为读取。">如果目标网站拦截了我们的访问，该网址可能会转交给 Jina Reader 代为读取。</span></li>
+                <li><span data-i18n="使用浏览器扩展收藏时，扩展会把当前网页的标题、描述和部分正文一起提交，用于在网页无法抓取时补全信息。">使用浏览器扩展收藏时，扩展会把当前网页的标题、描述和部分正文一起提交，用于在网页无法抓取时补全信息。</span></li>
             </ul>
-            <p>请避免对需要登录才能访问、或网址中包含个人信息的页面使用 AI 识别。</p>
+            <p><span data-i18n="请避免对需要登录才能访问、或网址中包含个人信息的页面使用 AI 识别。">请避免对需要登录才能访问、或网址中包含个人信息的页面使用 AI 识别。</span></p>
 
-            <h2>六、浏览器扩展</h2>
+            <h2><span data-i18n="六、浏览器扩展">六、浏览器扩展</span></h2>
             <ul>
-                <li>扩展只在您打开扩展弹窗或使用右键菜单收藏时，读取当前标签页的网址、标题和页面内容，不会在后台读取您的浏览记录。</li>
-                <li>您的个人令牌和设置保存在扩展自己的存储空间中。</li>
-                <li>扩展会把新标签页和浏览器首页设为皮皮2047 导航站，可以在浏览器设置中改回。</li>
-            </ul>
-
-            <h2>七、第三方服务</h2>
-            <p>本应用依赖以下第三方服务，它们会按各自的隐私政策处理相应数据：</p>
-            <ul>
-                <li><strong>GitHub、Google：</strong>账号登录认证。</li>
-                <li><strong>Cloudflare：</strong>网站托管、Workers AI、登录会话存储。</li>
-                <li><strong>Upstash：</strong>收藏数据和历史版本的存储。</li>
-                <li><strong>Jina AI：</strong>网页被拦截时代为读取网页内容。</li>
-                <li><strong>字体和图标 CDN：</strong>页面会从 Google Fonts 和 Font Awesome CDN 加载字体与图标，这些服务可以看到您的 IP 地址。</li>
-            </ul>
-            <p>我们不会出售您的个人信息，也不会将其提供给上述服务以外的任何第三方，法律要求的情况除外。</p>
-
-            <h2>八、您的权利</h2>
-            <ul>
-                <li><strong>导出：</strong>随时通过页脚的「导出数据」下载完整的收藏数据。</li>
-                <li><strong>吊销令牌：</strong>可以在用户菜单的「个人令牌」中吊销任意令牌。</li>
-                <li><strong>删除：</strong>如需删除账户及云端数据，请发邮件联系我们，我们会在核实身份后处理。</li>
+                <li><span data-i18n="扩展只在您打开扩展弹窗或使用右键菜单收藏时，读取当前标签页的网址、标题和页面内容，不会在后台读取您的浏览记录。">扩展只在您打开扩展弹窗或使用右键菜单收藏时，读取当前标签页的网址、标题和页面内容，不会在后台读取您的浏览记录。</span></li>
+                <li><span data-i18n="您的个人令牌和设置保存在扩展自己的存储空间中。">您的个人令牌和设置保存在扩展自己的存储空间中。</span></li>
+                <li><span data-i18n="扩展会把新标签页和浏览器首页设为皮皮2047 导航站，可以在浏览器设置中改回。">扩展会把新标签页和浏览器首页设为皮皮2047 导航站，可以在浏览器设置中改回。</span></li>
             </ul>
 
-            <h2>九、未成年人</h2>
-            <p>我们不会有意收集未成年人的个人信息。如果您是未成年人，请在家长或监护人同意后使用本应用。</p>
+            <h2><span data-i18n="七、第三方服务">七、第三方服务</span></h2>
+            <p><span data-i18n="本应用依赖以下第三方服务，它们会按各自的隐私政策处理相应数据：">本应用依赖以下第三方服务，它们会按各自的隐私政策处理相应数据：</span></p>
+            <ul>
+                <li><strong>GitHub、Google：</strong><span data-i18n="账号登录认证。">账号登录认证。</span></li>
+                <li><strong>Cloudflare：</strong><span data-i18n="网站托管、Workers AI、登录会话存储。">网站托管、Workers AI、登录会话存储。</span></li>
+                <li><strong>Upstash：</strong><span data-i18n="收藏数据和历史版本的存储。">收藏数据和历史版本的存储。</span></li>
+                <li><strong>Jina AI：</strong><span data-i18n="网页被拦截时代为读取网页内容。">网页被拦截时代为读取网页内容。</span></li>
+                <li><strong><span data-i18n="字体和图标 CDN：">字体和图标 CDN：</span></strong><span data-i18n="页面会从 Google Fonts 和 Font Awesome CDN 加载字体与图标，这些服务可以看到您的 IP 地址。">页面会从 Google Fonts 和 Font Awesome CDN 加载字体与图标，这些服务可以看到您的 IP 地址。</span></li>
+            </ul>
+            <p><span data-i18n="我们不会出售您的个人信息，也不会将其提供给上述服务以外的任何第三方，法律要求的情况除外。">我们不会出售您的个人信息，也不会将其提供给上述服务以外的任何第三方，法律要求的情况除外。</span></p>
 
-            <h2>十、政策更新</h2>
-            <p>本政策可能随功能变化而更新，更新后会修改本页的「最后更新日期」。重大变更会在网站上提示。</p>
+            <h2><span data-i18n="八、您的权利">八、您的权利</span></h2>
+            <ul>
+                <li><strong><span data-i18n="导出：">导出：</span></strong><span data-i18n="随时通过页脚的「导出数据」下载完整的收藏数据。">随时通过页脚的「导出数据」下载完整的收藏数据。</span></li>
+                <li><strong><span data-i18n="吊销令牌：">吊销令牌：</span></strong><span data-i18n="可以在用户菜单的「个人令牌」中吊销任意令牌。">可以在用户菜单的「个人令牌」中吊销任意令牌。</span></li>
+                <li><strong><span data-i18n="删除：">删除：</span></strong><span data-i18n="如需删除账户及云端数据，请发邮件联系我们，我们会在核实身份后处理。">如需删除账户及云端数据，请发邮件联系我们，我们会在核实身份后处理。</span></li>
+            </ul>
 
-            <h2>十一、联系我们</h2>
-            <p>如对本政策有疑问，或希望行使上述权利，请联系：<a href="mailto:support@pipi2047.eu.org">support@pipi2047.eu.org</a></p>
+            <h2><span data-i18n="九、未成年人">九、未成年人</span></h2>
+            <p><span data-i18n="我们不会有意收集未成年人的个人信息。如果您是未成年人，请在家长或监护人同意后使用本应用。">我们不会有意收集未成年人的个人信息。如果您是未成年人，请在家长或监护人同意后使用本应用。</span></p>
+
+            <h2><span data-i18n="十、政策更新">十、政策更新</span></h2>
+            <p><span data-i18n="本政策可能随功能变化而更新，更新后会修改本页的「最后更新日期」。重大变更会在网站上提示。">本政策可能随功能变化而更新，更新后会修改本页的「最后更新日期」。重大变更会在网站上提示。</span></p>
+
+            <h2><span data-i18n="十一、联系我们">十一、联系我们</span></h2>
+            <p><span data-i18n="如对本政策有疑问，或希望行使上述权利，请联系：">如对本政策有疑问，或希望行使上述权利，请联系：</span><a href="mailto:support@pipi2047.eu.org">support@pipi2047.eu.org</a></p>
 
             <div class="update-date">
-                最后更新日期：2026年9月26日
+                <span data-i18n="最后更新日期：2026年9月26日">最后更新日期：2026年9月26日</span>
             </div>
         </div>
     </main>

@@ -65,9 +65,9 @@ async function resolveLoggedOutChanges() {
         return;
     }
 
-    const cloudTime = status.lastUpdated ? new Date(status.lastUpdated).toLocaleString('zh-CN') : '未知时间';
+    const cloudTime = status.lastUpdated ? new Date(status.lastUpdated).toLocaleString(I18n.locale) : I18n.t("未知时间");
     document.getElementById('loginDataChoiceText').textContent =
-        `本机有 ${countLocalWebsites()} 个网站；云端数据最后更新于 ${cloudTime}。`;
+        I18n.t("本机有 {0} 个网站；云端数据最后更新于 {1}。", { 0: countLocalWebsites(), 1: cloudTime });
 
     document.getElementById('loginDataUseLocalBtn').onclick = () => {
         closeModal('loginDataChoiceModal');
@@ -144,19 +144,19 @@ async function loadUserData(forceLoad = false) {
             if (errorInfo.needReauth) {
                 console.log('🔄 Token outdated, need to re-authenticate');
                 progress.complete(false);
-                showNotification('登录状态已过期，请重新登录', 'error');
+                showNotification(I18n.t("登录状态已过期，请重新登录"), 'error');
                 setTimeout(() => {
                     logout();
                 }, 2000);
             } else {
                 progress.complete(false);
-                showNotification('从云端下载数据失败', 'error');
+                showNotification(I18n.t("从云端下载数据失败"), 'error');
             }
         }
     } catch (error) {
         console.error('❌ Error loading user data:', error);
         progress.complete(false);
-        showNotification('从云端下载数据失败', 'error');
+        showNotification(I18n.t("从云端下载数据失败"), 'error');
     }
 }
 
@@ -261,14 +261,14 @@ async function saveUserData({ keepalive = false } = {}) {
             if (errorInfo.needReauth) {
                 console.log('🔄 Token outdated, need to re-authenticate');
                 progress.complete(false);
-                showNotification('登录状态已过期，请重新登录', 'error');
+                showNotification(I18n.t("登录状态已过期，请重新登录"), 'error');
                 // 清除旧token并提示重新登录
                 setTimeout(() => {
                     logout();
                 }, 2000);
             } else {
                 progress.complete(false);
-                showNotification('保存到云端失败，稍后会自动重试', 'error');
+                showNotification(I18n.t("保存到云端失败，稍后会自动重试"), 'error');
             }
         }
     } catch (error) {
@@ -278,7 +278,7 @@ async function saveUserData({ keepalive = false } = {}) {
             stack: error.stack
         });
         progress.complete(false);
-        showNotification('保存到云端失败，稍后会自动重试', 'error');
+        showNotification(I18n.t("保存到云端失败，稍后会自动重试"), 'error');
     } finally {
         // 清除正在保存的标志
         window.isSavingToCloud = false;
@@ -363,7 +363,7 @@ async function loadUserDataFromCloud() {
     document.getElementById('userMenu').classList.remove('show');
 
     if (!authToken) {
-        showNotification('请先登录', 'error');
+        showNotification(I18n.t("请先登录"), 'error');
         return;
     }
 
@@ -382,14 +382,14 @@ async function showVersionSelectionModal() {
         });
 
         if (!response.ok) {
-            throw new Error('获取版本列表失败');
+            throw new Error(I18n.t("获取版本列表失败"));
         }
 
         const data = await response.json();
         const versions = data.versions || [];
 
         if (versions.length === 0) {
-            showNotification('没有找到历史版本', 'info');
+            showNotification(I18n.t("没有找到历史版本"), 'info');
             return;
         }
 
@@ -432,7 +432,7 @@ async function showVersionSelectionModal() {
         let versionsHtml = '';
         versions.forEach((version, index) => {
             const date = new Date(version.lastUpdated);
-            const formattedDate = date.toLocaleString('zh-CN');
+            const formattedDate = date.toLocaleString(I18n.locale);
 
             // 格式化设备信息
             let deviceInfoHtml = '';
@@ -440,8 +440,8 @@ async function showVersionSelectionModal() {
                 const device = version.deviceInfo?.device || 'Unknown Device';
                 const browser = version.deviceInfo?.browser || 'Unknown Browser';
                 const os = version.deviceInfo?.os || 'Unknown OS';
-                const userIP = version.userIP || '未知IP';
-                const userCountry = version.userCountry || '未知国家';
+                const userIP = version.userIP || I18n.t("未知IP");
+                const userCountry = version.userCountry || I18n.t("未知国家");
 
                 deviceInfoHtml = `
                     <div style="font-size: 0.75rem; color: #9ca3af; margin-top: 0.25rem;">
@@ -478,7 +478,7 @@ async function showVersionSelectionModal() {
                     transition: background-color 0.2s;
                 " onclick="restoreFromVersion('${version.version}')" onmouseover="this.style.backgroundColor='#f3f4f6'" onmouseout="this.style.backgroundColor='transparent'">
                     <div style="font-weight: 500; margin-bottom: 0.25rem;">
-                        版本 ${version.version}
+                        ${I18n.html("版本 {0}", { 0: version.version })}
                     </div>
                     <div style="font-size: 0.875rem; color: #6b7280; margin-bottom: 0.25rem;">
                         ${formattedDate}
@@ -494,10 +494,10 @@ async function showVersionSelectionModal() {
         modalContent.innerHTML = `
             <div style="padding: 1.5rem; border-bottom: 1px solid #e5e7eb;">
                 <h3 style="margin: 0; font-size: 1.25rem; font-weight: 600; color: #111827;">
-                    选择要恢复的版本
+                    ${I18n.html("选择要恢复的版本")}
                 </h3>
                 <p style="margin: 0.5rem 0 0 0; font-size: 0.875rem; color: #6b7280;">
-                    选择一个历史版本来覆盖当前数据
+                    ${I18n.html("选择一个历史版本来覆盖当前数据")}
                 </p>
             </div>
             <div style="max-height: 300px; overflow-y: auto;">
@@ -513,7 +513,7 @@ async function showVersionSelectionModal() {
                     cursor: pointer;
                     font-size: 0.875rem;
                 ">
-                    取消
+                    ${I18n.html("取消")}
                 </button>
             </div>
         `;
@@ -529,7 +529,7 @@ async function showVersionSelectionModal() {
 
     } catch (error) {
         console.error('Error showing version selection:', error);
-        showNotification('获取版本列表失败', 'error');
+        showNotification(I18n.t("获取版本列表失败"), 'error');
     }
 }
 
@@ -538,7 +538,7 @@ async function restoreFromVersion(version) {
     const progress = showSaveProgress();
 
     try {
-        progress.update(10, '正在请求版本数据...');
+        progress.update(10, I18n.t("正在请求版本数据..."));
 
         const response = await fetch('/api/user-data/restore', {
             method: 'POST',
@@ -549,19 +549,19 @@ async function restoreFromVersion(version) {
             body: JSON.stringify({ version })
         });
 
-        progress.update(40, '正在接收数据...');
+        progress.update(40, I18n.t("正在接收数据..."));
 
         if (response.ok) {
             const responseData = await response.json();
 
             // 更新本地数据
             if (responseData.data) {
-                progress.update(60, '正在解压缩数据...');
+                progress.update(60, I18n.t("正在解压缩数据..."));
 
                 // 解压缩数据
                 const data = await decompressData(responseData.data);
 
-                progress.update(80, '正在恢复数据...');
+                progress.update(80, I18n.t("正在恢复数据..."));
 
                 await updateLocalData(data);
             }
@@ -571,16 +571,16 @@ async function restoreFromVersion(version) {
             window.saveTimeout = null;
             clearPendingCloudSave();
 
-            progress.update(100, '恢复完成！');
+            progress.update(100, I18n.t("恢复完成！"));
 
             dismissVersionSelectionModal();
-            progress.complete(true, '数据恢复成功！');
+            progress.complete(true, I18n.t("数据恢复成功！"));
         } else {
-            throw new Error('恢复失败');
+            throw new Error(I18n.t("恢复失败"));
         }
     } catch (error) {
         console.error('Error restoring version:', error);
-        progress.complete(false, '数据恢复失败');
+        progress.complete(false, I18n.t("数据恢复失败"));
     }
 }
 
@@ -716,7 +716,7 @@ async function checkForCloudUpdates() {
             if (errorInfo.needReauth) {
                 console.log('🔄 Token outdated during sync check');
                 stopSyncDetection();
-                showNotification('登录状态已过期，请重新登录', 'error');
+                showNotification(I18n.t("登录状态已过期，请重新登录"), 'error');
                 setTimeout(() => {
                     logout();
                 }, 2000);

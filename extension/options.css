@@ -38,6 +38,31 @@ body.options .bar-title {
     color: var(--ink-3);
 }
 
+.language-control {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 14px;
+}
+
+.language-select {
+    width: auto;
+    min-height: 36px;
+    padding: 6px 10px;
+    color: var(--ink);
+    background: var(--field);
+    border: 1px solid var(--line-strong);
+    border-radius: 6px;
+    font: inherit;
+}
+
+@media (max-width: 480px) {
+    body.options .bar-title {
+        flex: 1;
+    }
+}
+
 body.options .view {
     padding: 22px 24px;
 }

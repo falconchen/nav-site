@@ -1,0 +1,14 @@
+{
+  "appName": {
+    "message": "皮皮2047 收藏助手"
+  },
+  "appDescription": {
+    "message": "將目前網頁收藏到皮皮2047導航站，AI 自動補全標題、分類和描述；新分頁和首頁開啟導航站。"
+  },
+  "actionTitle": {
+    "message": "收藏到皮皮2047"
+  },
+  "saveCommand": {
+    "message": "開啟收藏彈出視窗"
+  }
+}

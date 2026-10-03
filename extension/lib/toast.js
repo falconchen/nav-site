@@ -7,7 +7,7 @@
 
 // 注入到网页里执行，只能用网页自己的 DOM，不能引用外部变量。
 // 跑在扩展的隔离环境里，挂在 window 上的引用网页脚本看不到，多次注入之间能共用
-export function renderToast(state, title, message) {
+export function renderToast(state, title, message, closeLabel) {
     const HIDE_DELAY = { success: 4000, error: 8000 };
 
     let toast = window.__pipi2047Toast;
@@ -71,7 +71,7 @@ export function renderToast(state, title, message) {
                     <div class="title"></div>
                     <div class="message"></div>
                 </div>
-                <button type="button" class="close" aria-label="关闭">×</button>
+                <button type="button" class="close">×</button>
             </div>`;
         toast = {
             host,
@@ -81,6 +81,7 @@ export function renderToast(state, title, message) {
             message: root.querySelector('.message'),
             timer: 0
         };
+        root.querySelector('.close').setAttribute('aria-label', closeLabel);
         root.querySelector('.close').addEventListener('click', () => host.remove());
         (document.body || document.documentElement).appendChild(host);
         window.__pipi2047Toast = toast;

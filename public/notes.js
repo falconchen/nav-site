@@ -10,19 +10,19 @@
     const NO_FOLDER = 'none';
 
     const ERROR_MESSAGES = {
-        NOTE_EMPTY: '内容不能为空',
-        NOTE_TOO_LONG: '内容太长，一条记事最多 10 万字',
-        NOTE_LIMIT: '记事数量已到上限，删掉一些再建',
-        NOTE_NOT_FOUND: '这条记事不存在，可能已经被删除',
-        FOLDER_NOT_FOUND: '这个文件夹不存在，可能已经被删除',
-        FOLDER_EXISTS: '已经有同名的文件夹',
-        FOLDER_LIMIT: '文件夹数量已到上限',
-        INVALID_FOLDER_NAME: '文件夹名不能为空',
-        PUBLIC_LIMIT: '公开发布的记事数量已到上限',
-        RATE_LIMITED: '操作太频繁，稍后再试',
-        STORAGE_UNAVAILABLE: '云端存储暂时不可用，稍后再试',
-        BODY_TOO_LARGE: '内容太长，一条记事最多 10 万字',
-        NETWORK: '网络连接失败，稍后再试'
+        NOTE_EMPTY: I18n.t("内容不能为空"),
+        NOTE_TOO_LONG: I18n.t("内容太长，一条记事最多 10 万字"),
+        NOTE_LIMIT: I18n.t("记事数量已到上限，删掉一些再建"),
+        NOTE_NOT_FOUND: I18n.t("这条记事不存在，可能已经被删除"),
+        FOLDER_NOT_FOUND: I18n.t("这个文件夹不存在，可能已经被删除"),
+        FOLDER_EXISTS: I18n.t("已经有同名的文件夹"),
+        FOLDER_LIMIT: I18n.t("文件夹数量已到上限"),
+        INVALID_FOLDER_NAME: I18n.t("文件夹名不能为空"),
+        PUBLIC_LIMIT: I18n.t("公开发布的记事数量已到上限"),
+        RATE_LIMITED: I18n.t("操作太频繁，稍后再试"),
+        STORAGE_UNAVAILABLE: I18n.t("云端存储暂时不可用，稍后再试"),
+        BODY_TOO_LARGE: I18n.t("内容太长，一条记事最多 10 万字"),
+        NETWORK: I18n.t("网络连接失败，稍后再试")
     };
 
     const { renderNoteContent, formatNoteTime } = NoteRender;
@@ -38,10 +38,11 @@
     let routeSerial = 0;
     // 当前编辑器的状态，不在编辑视图时为 null
     let editor = null;
+    let changingLanguage = false;
 
     class ApiError extends Error {
         constructor(status, code) {
-            super(ERROR_MESSAGES[code] || '操作失败，稍后再试');
+            super(ERROR_MESSAGES[code] || I18n.t("操作失败，稍后再试"));
             this.status = status;
             this.code = code;
         }
@@ -82,7 +83,7 @@
     // 401 不删令牌：是不是真的过期由首页的校验流程判断，这里只请用户回首页
     function handleError(error) {
         if (error.status === 401) {
-            renderGate('登录已过期，请回首页重新登录。');
+            renderGate(I18n.t("登录已过期，请回首页重新登录。"));
             return;
         }
         showNotification(error.message, 'error');
@@ -125,14 +126,14 @@
     }
 
     function folderOptions(selected) {
-        return [`<option value="">未归档</option>`]
+        return [`<option value="">${I18n.html("未归档")}</option>`]
             .concat(state.folders.map(folder =>
                 `<option value="${escapeHtml(folder.id)}"${folder.id === selected ? ' selected' : ''}>${escapeHtml(folder.name)}</option>`))
             .join('');
     }
 
     function setTitle(title) {
-        document.title = title ? `${title} · 记事本 · 皮皮2047` : '记事本 · 皮皮2047';
+        document.title = title ? I18n.t("{0} · 记事本 · 皮皮2047", { 0: title }) : I18n.t("记事本 · 皮皮2047");
     }
 
     // ---- 草稿 ----
@@ -163,19 +164,19 @@
         setTitle('');
         app.innerHTML = `
             <div class="notes-gate">
-                <h1 class="notes-title">记事本</h1>
+                <h1 class="notes-title">${I18n.html("记事本")}</h1>
                 <p>${escapeHtml(message)}</p>
-                <a class="btn btn-primary" href="/">回首页登录</a>
+                <a class="btn btn-primary" href="/">${I18n.html("回首页登录")}</a>
             </div>`;
     }
 
     function renderLoading() {
-        app.innerHTML = '<p class="notes-empty">加载中…</p>';
+        app.innerHTML = `<p class="notes-empty">${I18n.html("加载中…")}</p>`;
     }
 
     function renderMissing(message) {
         app.innerHTML = `
-            <div class="notes-bar"><a class="doc-back" href="#/"><i class="fas fa-arrow-left"></i>记事本</a></div>
+            <div class="notes-bar"><a class="doc-back" href="#/"><i class="fas fa-arrow-left"></i>${I18n.html("记事本")}</a></div>
             <p class="notes-empty">${escapeHtml(message)}</p>`;
     }
 
@@ -201,35 +202,35 @@
             </a>`;
 
         const folderBar = state.folders.length ? `
-            <nav class="notes-folders" aria-label="文件夹">
-                ${chip('all', '全部', state.notes.length)}
-                ${chip(NO_FOLDER, '未归档', unfiled)}
+            <nav class="notes-folders" aria-label="${I18n.html("文件夹")}">
+                ${chip('all', I18n.t("全部"), state.notes.length)}
+                ${chip(NO_FOLDER, I18n.t("未归档"), unfiled)}
                 ${state.folders.map(folder => chip(folder.id, folder.name, countIn(folder.id))).join('')}
             </nav>` : '';
 
         const folderTools = activeFolder && !folderForm ? `
             <div class="notes-folder-tools">
-                <span>文件夹「${escapeHtml(activeFolder.name)}」</span>
-                <button type="button" class="tool-text-btn" data-action="rename-folder"><i class="fas fa-pen"></i> 改名</button>
-                <button type="button" class="tool-text-btn" data-action="delete-folder"><i class="fas fa-trash"></i> 删除</button>
+                <span>${I18n.html("文件夹「{0}」", { 0: activeFolder.name })}</span>
+                <button type="button" class="tool-text-btn" data-action="rename-folder"><i class="fas fa-pen"></i> ${I18n.html("改名")}</button>
+                <button type="button" class="tool-text-btn" data-action="delete-folder"><i class="fas fa-trash"></i> ${I18n.html("删除")}</button>
             </div>` : '';
 
         const form = folderForm ? `
             <form class="notes-folder-form" data-mode="${folderForm.mode}">
                 <input type="text" class="form-input" name="name" maxlength="50" autocomplete="off"
-                    placeholder="文件夹名" aria-label="文件夹名"
+                    placeholder="${I18n.html("文件夹名")}" aria-label="${I18n.html("文件夹名")}"
                     value="${folderForm.mode === 'rename' ? escapeHtml(activeFolder.name) : ''}">
-                <button type="submit" class="btn btn-primary">${folderForm.mode === 'rename' ? '改名' : '新建'}</button>
-                <button type="button" class="btn btn-secondary" data-action="cancel-folder-form">取消</button>
+                <button type="submit" class="btn btn-primary">${folderForm.mode === 'rename' ? I18n.t("改名") : I18n.t("新建")}</button>
+                <button type="button" class="btn btn-secondary" data-action="cancel-folder-form">${I18n.html("取消")}</button>
             </form>` : '';
 
         const emptyText = state.notes.length
-            ? '这个文件夹里还没有记事。'
-            : '还没有记事。点「新建记事」写第一条。';
+            ? I18n.t("这个文件夹里还没有记事。")
+            : I18n.t("还没有记事。点「新建记事」写第一条。");
 
         const items = notes.map(note => {
             const meta = [
-                `${note.length.toLocaleString('zh-CN')} 字`,
+                I18n.t("{0} 字", { 0: note.length.toLocaleString(I18n.locale) }),
                 formatNoteTime(note.updatedAt),
                 note.syntax === 'markdown' ? 'Markdown' : '',
                 filter === 'all' && note.folderId ? escapeHtml(folderName(note.folderId)) : ''
@@ -238,17 +239,17 @@
                 <li>
                     <a class="notes-item" href="#/n/${escapeHtml(note.id)}">
                         <span class="notes-item-title">${escapeHtml(note.title)}</span>
-                        <span class="notes-item-meta">${meta}${note.publicId ? '<span class="notes-badge">已发布</span>' : ''}</span>
+                        <span class="notes-item-meta">${meta}${note.publicId ? `<span class="notes-badge">${I18n.html("已发布")}</span>` : ''}</span>
                     </a>
                 </li>`;
         }).join('');
 
         app.innerHTML = `
             <div class="notes-head">
-                <h1 class="notes-title">记事本</h1>
+                <h1 class="notes-title">${I18n.html("记事本")}</h1>
                 <div class="notes-head-actions">
-                    <button type="button" class="btn btn-secondary" data-action="new-folder"><i class="fas fa-folder-plus"></i> 新建文件夹</button>
-                    <a class="btn btn-primary" href="#/new"><i class="fas fa-plus"></i> 新建记事</a>
+                    <button type="button" class="btn btn-secondary" data-action="new-folder"><i class="fas fa-folder-plus"></i> ${I18n.html("新建文件夹")}</button>
+                    <a class="btn btn-primary" href="#/new"><i class="fas fa-plus"></i> ${I18n.html("新建记事")}</a>
                 </div>
             </div>
             ${folderBar}
@@ -309,14 +310,14 @@
     }
 
     async function deleteFolder(button, filter) {
-        if (!confirmTwice(button, '再点一次删除（记事会保留）')) return;
+        if (!confirmTwice(button, I18n.t("再点一次删除（记事会保留）"))) return;
         try {
             await api(`/folders/${filter}`, { method: 'DELETE' });
             state.folders = state.folders.filter(folder => folder.id !== filter);
             state.notes.forEach(note => {
                 if (note.folderId === filter) note.folderId = null;
             });
-            showNotification('文件夹已删除，里面的记事回到未归档', 'success');
+            showNotification(I18n.t("文件夹已删除，里面的记事回到未归档"), 'success');
             location.hash = '#/';
         } catch (error) {
             handleError(error);
@@ -330,38 +331,38 @@
         const { html, plain } = renderNoteContent(note.content, note.syntax);
         const publicUrl = note.publicId ? `${location.origin}/n/${note.publicId}` : '';
         const meta = [
-            `${formatNoteTime(note.updatedAt)}修改`,
-            `${note.length.toLocaleString('zh-CN')} 字`,
-            note.syntax === 'markdown' ? 'Markdown' : '纯文本'
+            I18n.t("{0}修改", { 0: formatNoteTime(note.updatedAt) }),
+            I18n.t("{0} 字", { 0: note.length.toLocaleString(I18n.locale) }),
+            note.syntax === 'markdown' ? 'Markdown' : I18n.t("纯文本")
         ].join(' · ');
 
         const publish = note.publicId ? `
             <div class="note-public">
-                <p class="note-public-hint"><i class="fas fa-globe"></i> 已公开发布，拿到链接的人不用登录就能看到这条记事。</p>
+                <p class="note-public-hint"><i class="fas fa-globe"></i> ${I18n.html("已公开发布，拿到链接的人不用登录就能看到这条记事。")}</p>
                 <div class="note-public-row">
-                    <input type="text" class="form-input" readonly value="${escapeHtml(publicUrl)}" aria-label="公开链接">
-                    <button type="button" class="btn btn-secondary" data-action="copy-link"><i class="fas fa-copy"></i> 复制链接</button>
-                    <button type="button" class="btn btn-secondary" data-action="unpublish">取消发布</button>
+                    <input type="text" class="form-input" readonly value="${escapeHtml(publicUrl)}" aria-label="${I18n.html("公开链接")}">
+                    <button type="button" class="btn btn-secondary" data-action="copy-link"><i class="fas fa-copy"></i> ${I18n.html("复制链接")}</button>
+                    <button type="button" class="btn btn-secondary" data-action="unpublish">${I18n.html("取消发布")}</button>
                 </div>
             </div>` : '';
 
         app.innerHTML = `
             <div class="notes-bar">
-                <a class="doc-back" href="${listHash(note.folderId)}"><i class="fas fa-arrow-left"></i>${note.folderId ? escapeHtml(folderName(note.folderId)) : '记事本'}</a>
-                <a class="btn btn-primary" href="#/n/${escapeHtml(note.id)}/edit"><i class="fas fa-pen"></i> 编辑</a>
+                <a class="doc-back" href="${listHash(note.folderId)}"><i class="fas fa-arrow-left"></i>${note.folderId ? escapeHtml(folderName(note.folderId)) : I18n.t("记事本")}</a>
+                <a class="btn btn-primary" href="#/n/${escapeHtml(note.id)}/edit"><i class="fas fa-pen"></i> ${I18n.html("编辑")}</a>
             </div>
             <p class="note-meta">${meta}</p>
             <article class="note-content${plain ? ' note-plain' : ''}">${html}</article>
             ${publish}
             <div class="note-tools">
                 <label class="note-tools-field">
-                    <span class="form-label">文件夹</span>
-                    <select class="form-select" data-action="move" aria-label="移动到文件夹">${folderOptions(note.folderId)}</select>
+                    <span class="form-label">${I18n.html("文件夹")}</span>
+                    <select class="form-select" data-action="move" aria-label="${I18n.html("移动到文件夹")}">${folderOptions(note.folderId)}</select>
                 </label>
                 <div class="note-tools-buttons">
-                    <button type="button" class="btn btn-secondary" data-action="copy"><i class="fas fa-copy"></i> 复制全文</button>
-                    ${note.publicId ? '' : '<button type="button" class="btn btn-secondary" data-action="publish"><i class="fas fa-globe"></i> 公开发布</button>'}
-                    <button type="button" class="btn btn-secondary note-danger" data-action="delete"><i class="fas fa-trash"></i> 删除</button>
+                    <button type="button" class="btn btn-secondary" data-action="copy"><i class="fas fa-copy"></i> ${I18n.html("复制全文")}</button>
+                    ${note.publicId ? '' : `<button type="button" class="btn btn-secondary" data-action="publish"><i class="fas fa-globe"></i> ${I18n.html("公开发布")}</button>`}
+                    <button type="button" class="btn btn-secondary note-danger" data-action="delete"><i class="fas fa-trash"></i> ${I18n.html("删除")}</button>
                 </div>
             </div>`;
     }
@@ -395,7 +396,7 @@
                 try {
                     const result = await api(`/${id}`, { method: 'PUT', body: { folderId: select.value || null } });
                     update(result.note);
-                    showNotification(select.value ? `已移到「${folderName(select.value)}」` : '已移到未归档', 'success');
+                    showNotification(select.value ? I18n.t("已移到「{0}」", { 0: folderName(select.value) }) : I18n.t("已移到未归档"), 'success');
                 } catch (error) {
                     select.value = note.folderId || '';
                     handleError(error);
@@ -403,39 +404,39 @@
             },
             copy(button) {
                 copyText(note.content)
-                    .then(() => showNotification('全文已复制', 'success'))
-                    .catch(() => showNotification('复制失败，请手动复制', 'error'));
+                    .then(() => showNotification(I18n.t("全文已复制"), 'success'))
+                    .catch(() => showNotification(I18n.t("复制失败，请手动复制"), 'error'));
             },
             async publish(button) {
-                if (!confirmTwice(button, '再点一次确认公开')) return;
+                if (!confirmTwice(button, I18n.t("再点一次确认公开"))) return;
                 try {
                     update((await api(`/${id}/publish`, { method: 'POST' })).note);
-                    showNotification('已发布，链接在正文下面', 'success');
+                    showNotification(I18n.t("已发布，链接在正文下面"), 'success');
                 } catch (error) {
                     handleError(error);
                 }
             },
             async unpublish(button) {
-                if (!confirmTwice(button, '再点一次取消发布')) return;
+                if (!confirmTwice(button, I18n.t("再点一次取消发布"))) return;
                 try {
                     update((await api(`/${id}/publish`, { method: 'DELETE' })).note);
-                    showNotification('已取消发布，原来的链接失效了', 'success');
+                    showNotification(I18n.t("已取消发布，原来的链接失效了"), 'success');
                 } catch (error) {
                     handleError(error);
                 }
             },
             'copy-link'() {
                 copyText(`${location.origin}/n/${note.publicId}`)
-                    .then(() => showNotification('链接已复制', 'success'))
-                    .catch(() => showNotification('复制失败，请手动复制', 'error'));
+                    .then(() => showNotification(I18n.t("链接已复制"), 'success'))
+                    .catch(() => showNotification(I18n.t("复制失败，请手动复制"), 'error'));
             },
             async delete(button) {
-                if (!confirmTwice(button, '再点一次删除')) return;
+                if (!confirmTwice(button, I18n.t("再点一次删除"))) return;
                 try {
                     await api(`/${id}`, { method: 'DELETE' });
                     state.notes = state.notes.filter(item => item.id !== id);
                     clearDraft(id);
-                    showNotification('记事已删除', 'success');
+                    showNotification(I18n.t("记事已删除"), 'success');
                     location.hash = listHash(note.folderId);
                 } catch (error) {
                     handleError(error);
@@ -451,26 +452,26 @@
     function renderEditor() {
         const { id, content, syntax, folderId, restored } = editor;
         const isNew = id === NEW_NOTE;
-        setTitle(isNew ? '新建记事' : '编辑记事');
+        setTitle(isNew ? I18n.t("新建记事") : I18n.t("编辑记事"));
         app.innerHTML = `
             <form class="note-editor">
                 <div class="notes-bar">
-                    <button type="button" class="doc-back" data-action="cancel-edit"><i class="fas fa-arrow-left"></i>返回</button>
-                    <button type="submit" class="btn btn-primary"><i class="fas fa-check"></i> 保存</button>
+                    <button type="button" class="doc-back" data-action="cancel-edit"><i class="fas fa-arrow-left"></i>${I18n.html("返回")}</button>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-check"></i> ${I18n.html("保存")}</button>
                 </div>
                 <div class="note-banner" id="noteBanner" hidden></div>
                 <textarea class="form-textarea note-editor-text" name="content" spellcheck="false"
-                    placeholder="第一行会当作标题" aria-label="记事内容"></textarea>
+                    placeholder="${I18n.html("第一行会当作标题")}" aria-label="${I18n.html("记事内容")}"></textarea>
                 <article class="note-content note-preview" hidden></article>
                 <div class="note-editor-options">
-                    <div class="option-chips" role="radiogroup" aria-label="格式">
-                        <label class="option-chip"><input type="radio" name="syntax" value="plain"${syntax === 'plain' ? ' checked' : ''}> 纯文本</label>
+                    <div class="option-chips" role="radiogroup" aria-label="${I18n.html("格式")}">
+                        <label class="option-chip"><input type="radio" name="syntax" value="plain"${syntax === 'plain' ? ' checked' : ''}> ${I18n.html("纯文本")}</label>
                         <label class="option-chip"><input type="radio" name="syntax" value="markdown"${syntax === 'markdown' ? ' checked' : ''}> Markdown</label>
-                        <label class="option-chip note-preview-toggle"><input type="checkbox" name="preview"> <i class="fas fa-eye"></i> 预览</label>
+                        <label class="option-chip note-preview-toggle"><input type="checkbox" name="preview"> <i class="fas fa-eye"></i> ${I18n.html("预览")}</label>
                     </div>
                     <label class="note-tools-field">
-                        <span class="form-label">文件夹</span>
-                        <select class="form-select" name="folderId" aria-label="文件夹">${folderOptions(folderId)}</select>
+                        <span class="form-label">${I18n.html("文件夹")}</span>
+                        <select class="form-select" name="folderId" aria-label="${I18n.html("文件夹")}">${folderOptions(folderId)}</select>
                     </label>
                     <span class="note-count" aria-live="polite"></span>
                 </div>
@@ -479,7 +480,7 @@
         const form = app.querySelector('.note-editor');
         form.elements.content.value = content;
         if (restored) {
-            showBanner('已恢复上次没保存的内容。', isNew ? null : { label: '丢弃，用云端的', action: 'discard-draft' });
+            showBanner(I18n.t("已恢复上次没保存的内容。"), isNew ? null : { label: I18n.t("丢弃，用云端的"), action: 'discard-draft' });
         }
         syncEditorUi();
         form.elements.content.focus();
@@ -506,7 +507,7 @@
         preview.hidden = !previewing;
         if (previewing) preview.innerHTML = renderNoteContent(form.elements.content.value, 'markdown').html;
 
-        form.querySelector('.note-count').textContent = `${form.elements.content.value.length.toLocaleString('zh-CN')} 字`;
+        form.querySelector('.note-count').textContent = I18n.t("{0} 字", { 0: form.elements.content.value.length.toLocaleString(I18n.locale) });
     }
 
     function readEditorForm() {
@@ -562,7 +563,7 @@
 
         const draft = readDraft(id);
         const restored = Boolean(draft && typeof draft.content === 'string' &&
-            (draft.content !== original.content || draft.syntax !== original.syntax));
+            (draft.content !== original.content || draft.syntax !== original.syntax || draft.folderId !== original.folderId));
         const start = restored ? draft : original;
         editor = {
             id,
@@ -571,7 +572,7 @@
             restored,
             content: start.content,
             syntax: start.syntax === 'markdown' ? 'markdown' : 'plain',
-            folderId: folderName(start.folderId) ? start.folderId : original.folderId,
+            folderId: start.folderId && folderName(start.folderId) ? start.folderId : null,
             draftTimer: null,
             saving: false
         };
@@ -581,9 +582,9 @@
     // 保存按钮的三种样子：平时、保存中（转圈）、刚保存完（对勾，过一会儿变回去）
     function setSaveButton(button, status) {
         const labels = {
-            idle: '<i class="fas fa-check"></i> 保存',
-            saving: '<i class="fas fa-spinner fa-spin"></i> 保存中…',
-            saved: '<i class="fas fa-check"></i> 已保存'
+            idle: `<i class="fas fa-check"></i> ${I18n.html("保存")}`,
+            saving: `<i class="fas fa-spinner fa-spin"></i> ${I18n.html("保存中…")}`,
+            saved: `<i class="fas fa-check"></i> ${I18n.html("已保存")}`
         };
         clearTimeout(button._savedTimer);
         button.innerHTML = labels[status];
@@ -600,7 +601,7 @@
         const session = editor;
         const saved = readEditorForm();
         if (!saved.content.trim()) {
-            showNotification('内容不能为空', 'error');
+            showNotification(I18n.t("内容不能为空"), 'error');
             return;
         }
         const submit = app.querySelector('.note-editor [type="submit"]');
@@ -643,7 +644,7 @@
             session.baseUpdatedAt = note.updatedAt;
             session.restored = false;
             document.getElementById('noteBanner').hidden = true;
-            setTitle('编辑记事');
+            setTitle(I18n.t("编辑记事"));
             setSaveButton(submit, 'saved');
             // 保存期间又打了字：这些还没存，照常留草稿
             scheduleDraftSave();
@@ -654,7 +655,7 @@
             if (editor !== session) return;
             setSaveButton(submit, 'idle');
             if (error.code === 'NOTE_CONFLICT') {
-                showBanner('这条记事在别处被改过。覆盖会丢掉那边的修改。', { label: '用我的覆盖', action: 'force-save' });
+                showBanner(I18n.t("这条记事在别处被改过。覆盖会丢掉那边的修改。"), { label: I18n.t("用我的覆盖"), action: 'force-save' });
                 return;
             }
             handleError(error);
@@ -662,7 +663,7 @@
     }
 
     function cancelEdit(button) {
-        if (isDirty() && !confirmTwice(button, '再点一次放弃修改')) return;
+        if (isDirty() && !confirmTwice(button, I18n.t("再点一次放弃修改"))) return;
         const { id, original } = editor;
         clearTimeout(editor.draftTimer);
         clearDraft(id);
@@ -691,7 +692,7 @@
         viewActions = {};
 
         if (!getToken()) {
-            renderGate('记事本保存在云端，需要先登录。');
+            renderGate(I18n.t("记事本保存在云端，需要先登录。"));
             return;
         }
 
@@ -773,10 +774,25 @@
     });
 
     // 草稿已经在本机，这里只是提醒一下还没传到云端
+    window.addEventListener('beforelanguagechange', e => {
+        if (!editor) return;
+        if (editor.saving) {
+            e.preventDefault();
+            showNotification(I18n.t('请等待保存完成后再切换语言'), 'info');
+            return;
+        }
+        saveDraftNow();
+        if (isDirty() && JSON.stringify(readDraft(editor.id)) !== JSON.stringify(readEditorForm())) {
+            e.preventDefault();
+            showNotification(I18n.t('无法保存草稿，请先保存记事再切换语言'), 'error');
+            return;
+        }
+        changingLanguage = true;
+    });
     window.addEventListener('beforeunload', e => {
         if (!editor) return;
         saveDraftNow();
-        if (isDirty()) e.preventDefault();
+        if (isDirty() && !changingLanguage) e.preventDefault();
     });
 
     window.addEventListener('hashchange', route);

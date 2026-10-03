@@ -147,10 +147,10 @@
     function decodeBase64(text) {
         let input = String(text).replace(/\s+/g, '').replace(/-/g, '+').replace(/_/g, '/').replace(/=+$/, '');
         if (/[^A-Za-z0-9+/]/.test(input)) {
-            throw new Error('含有不属于 Base64 的字符');
+            throw new Error(I18n.t("含有不属于 Base64 的字符"));
         }
         if (input.length % 4 === 1) {
-            throw new Error('长度不对，内容可能不完整');
+            throw new Error(I18n.t("长度不对，内容可能不完整"));
         }
         input += '='.repeat((4 - input.length % 4) % 4);
 
@@ -162,7 +162,7 @@
         try {
             return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
         } catch (error) {
-            throw new Error('解码结果不是 UTF-8 文本');
+            throw new Error(I18n.t("解码结果不是 UTF-8 文本"));
         }
     }
 
@@ -174,7 +174,7 @@
             return keepStructure ? encodeURI(String(text)) : encodeURIComponent(String(text));
         } catch (error) {
             // 落单的代理项（半个 emoji）没法按 UTF-8 编码
-            throw new Error('含有不完整的字符');
+            throw new Error(I18n.t("含有不完整的字符"));
         }
     }
 
@@ -182,7 +182,7 @@
         try {
             return decodeURIComponent(String(text));
         } catch (error) {
-            throw new Error('% 后面不是合法的编码，内容可能不完整');
+            throw new Error(I18n.t("% 后面不是合法的编码，内容可能不完整"));
         }
     }
 
@@ -220,7 +220,7 @@
         try {
             qr.make();
         } catch (error) {
-            throw new Error('内容太长，二维码放不下');
+            throw new Error(I18n.t("内容太长，二维码放不下"));
         }
         return {
             size: qr.getModuleCount(),
@@ -265,7 +265,7 @@
         if (!text) return;
         copyText(text)
             .then(() => markCopied(button))
-            .catch(() => showNotification('复制失败，请手动复制', 'error'));
+            .catch(() => showNotification(I18n.t("复制失败，请手动复制"), 'error'));
     }
 
     function setupPassword() {
@@ -365,7 +365,7 @@
                 encoded.value = plain.value ? encode(plain.value, optionBox.checked) : '';
                 setError('');
             } catch (error) {
-                setError(`无法编码：${error.message}`, plain);
+                setError(I18n.t("无法编码：{0}", { 0: error.message }), plain);
             }
         }
 
@@ -380,7 +380,7 @@
                 plain.value = decode(encoded.value);
                 setError('');
             } catch (error) {
-                setError(`无法解码：${error.message}`, encoded);
+                setError(I18n.t("无法解码：{0}", { 0: error.message }), encoded);
             }
         }
 
@@ -433,7 +433,7 @@
             list.innerHTML = formatted().map((uuid, index) => `
                 <li class="uuid-item">
                     <code>${uuid}</code>
-                    <button type="button" class="theme-toggle" data-index="${index}" title="复制" aria-label="复制这个 UUID">
+                    <button type="button" class="theme-toggle" data-index="${index}" title="${I18n.html("复制")}" aria-label="${I18n.html("复制这个 UUID")}">
                         <i class="fas fa-copy"></i>
                     </button>
                 </li>`).join('');
@@ -527,7 +527,7 @@
                 link.download = 'qrcode.png';
                 link.click();
                 setTimeout(() => URL.revokeObjectURL(link.href), 1000);
-            }).catch(() => showNotification('生成图片失败', 'error'));
+            }).catch(() => showNotification(I18n.t("生成图片失败"), 'error'));
         });
 
         if (navigator.clipboard && navigator.clipboard.write && typeof ClipboardItem === 'function') {
@@ -535,7 +535,7 @@
                 // Safari 要求在点击的同一拍里调用 write，所以把 Promise 直接交给 ClipboardItem，不先 await
                 navigator.clipboard.write([new ClipboardItem({ 'image/png': toPngBlob() })])
                     .then(() => markCopied(copyButton))
-                    .catch(() => showNotification('复制失败，可以改用下载', 'error'));
+                    .catch(() => showNotification(I18n.t("复制失败，可以改用下载"), 'error'));
             });
         } else {
             copyButton.hidden = true;

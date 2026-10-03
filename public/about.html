@@ -2,16 +2,18 @@
 <html lang="zh-CN" data-theme="light">
 <head>
     <meta charset="UTF-8">
+    <script src="/locales.js"></script>
+    <script src="/i18n.js"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <title>关于 · 皮皮2047</title>
-    <meta name="description" content="皮皮2047 是一本私人网址簿：分类、搜索、特别关注、私密收藏，登录后多设备同步。">
+    <title data-i18n="关于 · 皮皮2047">关于 · 皮皮2047</title>
+    <meta name="description" content="皮皮2047 是一本私人网址簿：分类、搜索、特别关注、私密收藏，登录后多设备同步。" data-i18n-content="皮皮2047 是一本私人网址簿：分类、搜索、特别关注、私密收藏，登录后多设备同步。">
     <meta name="color-scheme" content="light dark">
     <meta name="theme-color" content="#f4f2ed" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#121110" media="(prefers-color-scheme: dark)">
     <meta property="og:type" content="article">
     <meta property="og:site_name" content="皮皮2047">
-    <meta property="og:title" content="关于 · 皮皮2047">
-    <meta property="og:description" content="皮皮2047 是一本私人网址簿：分类、搜索、特别关注、私密收藏，登录后多设备同步。">
+    <meta property="og:title" content="关于 · 皮皮2047" data-i18n-content="关于 · 皮皮2047">
+    <meta property="og:description" content="皮皮2047 是一本私人网址簿：分类、搜索、特别关注、私密收藏，登录后多设备同步。" data-i18n-content="皮皮2047 是一本私人网址簿：分类、搜索、特别关注、私密收藏，登录后多设备同步。">
     <meta property="og:image" content="https://pipi2047.eu.org/img/og-cover.png">
     <meta name="twitter:card" content="summary_large_image">
     <link rel="icon" href="img/seal.svg" type="image/svg+xml">
@@ -38,11 +40,12 @@
 <body class="doc-page">
     <header class="header doc-header">
         <div class="header-container">
-            <a href="/" class="logo" aria-label="返回皮皮2047首页">
+            <a href="/" class="logo" aria-label="返回皮皮2047首页" data-i18n-aria-label="返回皮皮2047首页">
                 <span class="accent-swatch" aria-hidden="true"><span class="seal-glyph">皮</span></span>
                 <span class="brand-name">皮皮<span class="brand-num">2047</span></span>
             </a>
-            <a href="/" class="doc-back"><i class="fas fa-arrow-left"></i>返回首页</a>
+            <label class="language-control"><span data-i18n="语言">语言</span><select class="language-select" data-language-select aria-label="语言" data-i18n-aria-label="语言" title="切换语言（会刷新页面）" data-i18n-title="切换语言（会刷新页面）"><option value="zh-CN" lang="zh-CN">简体中文</option><option value="zh-TW" lang="zh-TW">繁體中文</option><option value="en" lang="en">English</option></select></label>
+            <a href="/" class="doc-back"><i class="fas fa-arrow-left"></i><span data-i18n="返回首页">返回首页</span></a>
         </div>
     </header>
 
@@ -51,84 +54,84 @@
         <div class="about-header">
             <p class="doc-eyebrow">About</p>
             <h1>皮皮<span class="brand-num">2047</span></h1>
-            <p class="tagline">把常去的网站，收进一本随手可翻的网址簿。</p>
+            <p class="tagline"><span data-i18n="把常去的网站，收进一本随手可翻的网址簿。">把常去的网站，收进一本随手可翻的网址簿。</span></p>
         </div>
 
         <div class="about-content">
-            <h2>关于皮皮2047</h2>
-            <p>皮皮2047 是一个个人网址导航站：把常用网站分门别类放在一页里，打开就能找到。数据默认保存在浏览器本地，不登录也能完整使用；登录后可以在多台设备间同步。</p>
+            <h2><span data-i18n="关于皮皮2047">关于皮皮2047</span></h2>
+            <p><span data-i18n="皮皮2047 是一个个人网址导航站：把常用网站分门别类放在一页里，打开就能找到。数据默认保存在浏览器本地，不登录也能完整使用；登录后可以在多台设备间同步。">皮皮2047 是一个个人网址导航站：把常用网站分门别类放在一页里，打开就能找到。数据默认保存在浏览器本地，不登录也能完整使用；登录后可以在多台设备间同步。</span></p>
 
-            <h2>核心功能</h2>
+            <h2><span data-i18n="核心功能">核心功能</span></h2>
             <div class="feature-grid">
                 <div class="feature-card">
                     <i class="fas fa-layer-group"></i>
-                    <h3>多视图浏览</h3>
-                    <p>最近添加、访问最多、特别关注、全部网站四个视图，手机上左右滑动切换</p>
+                    <h3><span data-i18n="多视图浏览">多视图浏览</span></h3>
+                    <p><span data-i18n="最近添加、访问最多、特别关注、全部网站四个视图，手机上左右滑动切换">最近添加、访问最多、特别关注、全部网站四个视图，手机上左右滑动切换</span></p>
                 </div>
                 <div class="feature-card">
                     <i class="fas fa-folder-tree"></i>
-                    <h3>自定义分类</h3>
-                    <p>分类名称、图标、顺序都能自己改，367 个图标可选</p>
+                    <h3><span data-i18n="自定义分类">自定义分类</span></h3>
+                    <p><span data-i18n="分类名称、图标、顺序都能自己改，367 个图标可选">分类名称、图标、顺序都能自己改，367 个图标可选</span></p>
                 </div>
                 <div class="feature-card">
                     <i class="fas fa-wand-magic"></i>
-                    <h3>自动填写</h3>
-                    <p>输入网址，自动补全标题、描述、图标，并参考你已有的收藏推荐分类</p>
+                    <h3><span data-i18n="自动填写">自动填写</span></h3>
+                    <p><span data-i18n="输入网址，自动补全标题、描述、图标，并参考你已有的收藏推荐分类">输入网址，自动补全标题、描述、图标，并参考你已有的收藏推荐分类</span></p>
                 </div>
                 <div class="feature-card">
                     <i class="fas fa-cloud-arrow-up"></i>
-                    <h3>云端同步</h3>
-                    <p>改动后自动保存到云端，保留最近 5 个历史版本，可随时回退</p>
+                    <h3><span data-i18n="云端同步">云端同步</span></h3>
+                    <p><span data-i18n="改动后自动保存到云端，保留最近 5 个历史版本，可随时回退">改动后自动保存到云端，保留最近 5 个历史版本，可随时回退</span></p>
                 </div>
                 <div class="feature-card">
                     <i class="fas fa-puzzle-piece"></i>
-                    <h3>浏览器扩展</h3>
-                    <p>「皮皮2047 收藏助手」支持 Chrome 和 Firefox，一键收藏当前网页</p>
+                    <h3><span data-i18n="浏览器扩展">浏览器扩展</span></h3>
+                    <p><span data-i18n="「皮皮2047 收藏助手」支持 Chrome 和 Firefox，一键收藏当前网页">「皮皮2047 收藏助手」支持 Chrome 和 Firefox，一键收藏当前网页</span></p>
                 </div>
                 <div class="feature-card">
                     <i class="fas fa-user-lock"></i>
-                    <h3>私密收藏</h3>
-                    <p>单独的私密 tab，默认锁定，描述打码，不出现在其它视图和搜索里</p>
+                    <h3><span data-i18n="私密收藏">私密收藏</span></h3>
+                    <p><span data-i18n="单独的私密 tab，默认锁定，描述打码，不出现在其它视图和搜索里">单独的私密 tab，默认锁定，描述打码，不出现在其它视图和搜索里</span></p>
                 </div>
             </div>
 
-            <h2>更多功能</h2>
+            <h2><span data-i18n="更多功能">更多功能</span></h2>
             <ul>
-                <li><strong>访问最多：</strong>按访问次数和最近访问时间综合排序，统计只保存在本机，不上传</li>
-                <li><strong>网址详情：</strong>鼠标悬停卡片可查看完整描述，一键复制网址或 Markdown 链接</li>
-                <li><strong>个性化外观：</strong>浅色 / 深色主题、多种配色、紧凑侧边栏</li>
-                <li><strong>导入导出：</strong>数据可随时导出为文件备份，也能从文件导入</li>
-                <li><strong>记事本：</strong>登录后可以写记事，保存在云端，支持 Markdown 和文件夹，也可以把某一条发布成公开链接</li>
-                <li><strong>常用工具：</strong>Base64、密码生成器、UUID、URL 编码、二维码，都在浏览器本地计算</li>
-                <li><strong>REST API：</strong>生成个人令牌后，可以用脚本或第三方工具读写自己的收藏</li>
+                <li><strong><span data-i18n="访问最多：">访问最多：</span></strong><span data-i18n="按访问次数和最近访问时间综合排序，统计只保存在本机，不上传">按访问次数和最近访问时间综合排序，统计只保存在本机，不上传</span></li>
+                <li><strong><span data-i18n="网址详情：">网址详情：</span></strong><span data-i18n="鼠标悬停卡片可查看完整描述，一键复制网址或 Markdown 链接">鼠标悬停卡片可查看完整描述，一键复制网址或 Markdown 链接</span></li>
+                <li><strong><span data-i18n="个性化外观：">个性化外观：</span></strong><span data-i18n="浅色 / 深色主题、多种配色、紧凑侧边栏">浅色 / 深色主题、多种配色、紧凑侧边栏</span></li>
+                <li><strong><span data-i18n="导入导出：">导入导出：</span></strong><span data-i18n="数据可随时导出为文件备份，也能从文件导入">数据可随时导出为文件备份，也能从文件导入</span></li>
+                <li><strong><span data-i18n="记事本：">记事本：</span></strong><span data-i18n="登录后可以写记事，保存在云端，支持 Markdown 和文件夹，也可以把某一条发布成公开链接">登录后可以写记事，保存在云端，支持 Markdown 和文件夹，也可以把某一条发布成公开链接</span></li>
+                <li><strong><span data-i18n="常用工具：">常用工具：</span></strong><span data-i18n="Base64、密码生成器、UUID、URL 编码、二维码，都在浏览器本地计算">Base64、密码生成器、UUID、URL 编码、二维码，都在浏览器本地计算</span></li>
+                <li><strong>REST API：</strong><span data-i18n="生成个人令牌后，可以用脚本或第三方工具读写自己的收藏">生成个人令牌后，可以用脚本或第三方工具读写自己的收藏</span></li>
             </ul>
 
-            <h2>登录方式</h2>
-            <p>支持 GitHub 和 Google 账号登录。两个账号邮箱相同时会自动合并为同一个用户，数据共用。</p>
+            <h2><span data-i18n="登录方式">登录方式</span></h2>
+            <p><span data-i18n="支持 GitHub 和 Google 账号登录。两个账号邮箱相同时会自动合并为同一个用户，数据共用。">支持 GitHub 和 Google 账号登录。两个账号邮箱相同时会自动合并为同一个用户，数据共用。</span></p>
 
-            <h2>技术实现</h2>
+            <h2><span data-i18n="技术实现">技术实现</span></h2>
             <ul>
-                <li><strong>前端：</strong>原生 JavaScript、HTML5、CSS3，没有使用框架</li>
-                <li><strong>后端：</strong>Cloudflare Workers + Hono</li>
-                <li><strong>存储：</strong>Upstash Redis 保存收藏数据和历史版本，Cloudflare KV 保存登录会话</li>
+                <li><strong><span data-i18n="前端：">前端：</span></strong><span data-i18n="原生 JavaScript、HTML5、CSS3，没有使用框架">原生 JavaScript、HTML5、CSS3，没有使用框架</span></li>
+                <li><strong><span data-i18n="后端：">后端：</span></strong>Cloudflare Workers + Hono</li>
+                <li><strong><span data-i18n="存储：">存储：</span></strong><span data-i18n="Upstash Redis 保存收藏数据和历史版本，Cloudflare KV 保存登录会话">Upstash Redis 保存收藏数据和历史版本，Cloudflare KV 保存登录会话</span></li>
                 <li><strong>AI：</strong>Cloudflare Workers AI（Llama 3.3 70B）</li>
-                <li><strong>源代码：</strong><a href="https://github.com/falconchen/nav-site" target="_blank" rel="noopener">github.com/falconchen/nav-site</a></li>
+                <li><strong><span data-i18n="源代码：">源代码：</span></strong><a href="https://github.com/falconchen/nav-site" target="_blank" rel="noopener">github.com/falconchen/nav-site</a></li>
             </ul>
 
-            <h2>隐私说明</h2>
+            <h2><span data-i18n="隐私说明">隐私说明</span></h2>
             <ul>
-                <li>不投放广告，也不接入任何第三方统计分析</li>
-                <li>私密收藏只是在界面上隐藏，云端和导出文件里并没有加密</li>
-                <li>记事本的内容保存在云端，没有加密；公开发布的记事，拿到链接的人不用登录就能看到，可以随时取消发布</li>
-                <li>完整说明请参阅 <a href="/privacy.html">隐私政策</a> 和 <a href="/terms.html">使用条款</a></li>
+                <li><span data-i18n="不投放广告，也不接入任何第三方统计分析">不投放广告，也不接入任何第三方统计分析</span></li>
+                <li><span data-i18n="私密收藏只是在界面上隐藏，云端和导出文件里并没有加密">私密收藏只是在界面上隐藏，云端和导出文件里并没有加密</span></li>
+                <li><span data-i18n="记事本的内容保存在云端，没有加密；公开发布的记事，拿到链接的人不用登录就能看到，可以随时取消发布">记事本的内容保存在云端，没有加密；公开发布的记事，拿到链接的人不用登录就能看到，可以随时取消发布</span></li>
+                <li><span data-i18n="完整说明请参阅">完整说明请参阅</span> <a href="/privacy.html"><span data-i18n="隐私政策">隐私政策</span></a> <span data-i18n="和">和</span> <a href="/terms.html"><span data-i18n="使用条款">使用条款</span></a></li>
             </ul>
 
-            <h2>联系我们</h2>
-            <p>有问题、建议或发现 Bug，欢迎通过以下方式联系：</p>
+            <h2><span data-i18n="联系我们">联系我们</span></h2>
+            <p><span data-i18n="有问题、建议或发现 Bug，欢迎通过以下方式联系：">有问题、建议或发现 Bug，欢迎通过以下方式联系：</span></p>
             <div class="contact-methods">
                 <a href="mailto:support@pipi2047.eu.org" class="contact-method">
                     <i class="fas fa-envelope"></i>
-                    发送邮件
+                    <span data-i18n="发送邮件">发送邮件</span>
                 </a>
                 <a href="https://github.com/falconchen/nav-site/issues" target="_blank" rel="noopener" class="contact-method">
                     <i class="fab fa-github"></i>
@@ -136,7 +139,7 @@
                 </a>
             </div>
 
-            <p class="doc-colophon">© <span class="copyright-year">2026</span> 皮皮2047 · 私人网址簿<script>document.currentScript.parentNode.querySelector('.copyright-year').textContent = new Date().getFullYear();</script></p>
+            <p class="doc-colophon">© <span class="copyright-year">2026</span> <span data-i18n="皮皮2047 · 私人网址簿">皮皮2047 · 私人网址簿</span><script>document.currentScript.parentNode.querySelector('.copyright-year').textContent = new Date().getFullYear();</script></p>
         </div>
     </main>
 </body>

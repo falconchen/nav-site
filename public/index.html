@@ -2,9 +2,11 @@
 <html lang="zh-CN" data-theme="light" data-sidebar="normal" data-tab="all">
 <head>
     <meta charset="UTF-8">
+    <script src="/locales.js"></script>
+    <script src="/i18n.js"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <title>皮皮2047 · 私人网址簿</title>
-    <meta name="description" content="把常去的网站收进一本随手可翻的网址簿：分类、搜索、特别关注、私密收藏，登录后多设备同步。">
+    <title data-i18n="皮皮2047 · 私人网址簿">皮皮2047 · 私人网址簿</title>
+    <meta name="description" content="把常去的网站收进一本随手可翻的网址簿：分类、搜索、特别关注、私密收藏，登录后多设备同步。" data-i18n-content="把常去的网站收进一本随手可翻的网址簿：分类、搜索、特别关注、私密收藏，登录后多设备同步。">
     <meta name="color-scheme" content="light dark">
     <meta name="theme-color" content="#f4f2ed" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#121110" media="(prefers-color-scheme: dark)">
@@ -16,19 +18,19 @@
     <!-- 分享卡片：微信、Telegram、X、Slack 等读 Open Graph / Twitter Card -->
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="皮皮2047">
-    <meta property="og:title" content="皮皮2047 · 私人网址簿">
-    <meta property="og:description" content="把常去的网站收进一本随手可翻的网址簿：分类、搜索、特别关注、私密收藏，登录后多设备同步。">
+    <meta property="og:title" content="皮皮2047 · 私人网址簿" data-i18n-content="皮皮2047 · 私人网址簿">
+    <meta property="og:description" content="把常去的网站收进一本随手可翻的网址簿：分类、搜索、特别关注、私密收藏，登录后多设备同步。" data-i18n-content="把常去的网站收进一本随手可翻的网址簿：分类、搜索、特别关注、私密收藏，登录后多设备同步。">
     <meta property="og:image" content="https://pipi2047.eu.org/img/og-cover.png">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
-    <meta property="og:image:alt" content="皮皮2047 · 私人网址簿">
+    <meta property="og:image:alt" content="皮皮2047 · 私人网址簿" data-i18n-content="皮皮2047 · 私人网址簿">
     <meta property="og:url" content="https://pipi2047.eu.org/">
     <meta property="og:locale" content="zh_CN">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="皮皮2047 · 私人网址簿">
-    <meta name="twitter:description" content="把常去的网站收进一本随手可翻的网址簿。">
+    <meta name="twitter:title" content="皮皮2047 · 私人网址簿" data-i18n-content="皮皮2047 · 私人网址簿">
+    <meta name="twitter:description" content="把常去的网站收进一本随手可翻的网址簿。" data-i18n-content="把常去的网站收进一本随手可翻的网址簿。">
     <meta name="twitter:image" content="https://pipi2047.eu.org/img/og-cover.png">
-    <meta itemprop="name" content="皮皮2047 · 私人网址簿">
+    <meta itemprop="name" content="皮皮2047 · 私人网址簿" data-i18n-content="皮皮2047 · 私人网址簿">
     <meta itemprop="image" content="https://pipi2047.eu.org/img/og-cover.png">
 
     <link rel="icon" href="img/seal.svg" type="image/svg+xml">
@@ -88,7 +90,7 @@
         <div class="header-container">
 		<div class="header-left">
             <div class="logo">
-                <button id="accentSwatch" class="accent-swatch" title="换一种印泥颜色" aria-label="切换配色">
+                <button id="accentSwatch" class="accent-swatch" title="换一种印泥颜色" aria-label="切换配色" data-i18n-aria-label="切换配色" data-i18n-title="换一种印泥颜色">
                     <span class="seal-glyph" aria-hidden="true">皮</span>
                 </button>
                 <span class="brand-name">皮皮<span class="brand-num">2047</span></span>
@@ -97,95 +99,95 @@
 		</div>
             <div class="search-container">
                 <i class="fas fa-search search-icon"></i>
-                <input type="search" class="search-box" placeholder="搜索网站、网址或描述" enterkeyhint="search" autocomplete="off" aria-label="搜索网站">
+                <input type="search" class="search-box" placeholder="搜索网站、网址或描述" enterkeyhint="search" autocomplete="off" aria-label="搜索网站" data-i18n-aria-label="搜索网站" data-i18n-placeholder="搜索网站、网址或描述">
                 <kbd class="search-kbd" aria-hidden="true">/</kbd>
             </div>
 
             <div class="header-right">
 
                 <!-- 小屏搜索栏默认收起，点放大镜展开 -->
-                <button type="button" class="theme-toggle search-toggle" id="searchToggle" title="搜索" aria-label="搜索" aria-expanded="false">
+                <button type="button" class="theme-toggle search-toggle" id="searchToggle" title="搜索" aria-label="搜索" aria-expanded="false" data-i18n-aria-label="搜索" data-i18n-title="搜索">
                     <i class="fas fa-search"></i>
                 </button>
-                <button class="theme-toggle header-mode-toggle" onclick="toggleCategoriesMode()" title="切换显示模式" aria-label="切换显示模式">
+                <button class="theme-toggle header-mode-toggle" onclick="toggleCategoriesMode()" title="切换显示模式" aria-label="切换显示模式" data-i18n-aria-label="切换显示模式" data-i18n-title="切换显示模式">
                     <i class="fa-solid fa-down-left-and-up-right-to-center categories-mode-icon"></i>
                 </button>
                 <!-- 小屏隐藏，常用工具和深浅色收进账户菜单 -->
-                <a class="theme-toggle header-tools-link" href="/tools.html" title="常用工具" aria-label="常用工具">
+                <a class="theme-toggle header-tools-link" href="/tools.html" title="常用工具" aria-label="常用工具" data-i18n-aria-label="常用工具" data-i18n-title="常用工具">
                     <i class="fas fa-wrench"></i>
                 </a>
-                <button class="theme-toggle header-theme-toggle" onclick="toggleTheme()" title="切换深浅色" aria-label="切换深浅色">
+                <button class="theme-toggle header-theme-toggle" onclick="toggleTheme()" title="切换深浅色" aria-label="切换深浅色" data-i18n-aria-label="切换深浅色" data-i18n-title="切换深浅色">
                     <i class="fas fa-moon" id="theme-icon"></i>
                 </button>
 				<div class="user-info" id="userInfo" style="display: none;" onclick="toggleUserMenu()">
-                    <img id="userAvatar" class="user-avatar" src="" alt="User Avatar">
+                    <img id="userAvatar" class="user-avatar" src="" alt="用户头像" data-i18n-alt="用户头像">
                     <span id="userName"></span>
-                    <button class="user-menu-btn" aria-label="账户菜单">
+                    <button class="user-menu-btn" aria-label="账户菜单" data-i18n-aria-label="账户菜单">
                         <i class="fas fa-chevron-down"></i>
                     </button>
                     <div class="user-menu" id="userMenu">
                         <div class="user-menu-item" onclick="openApiTokens()">
                             <i class="fas fa-key"></i>
-                            个人令牌
+                            <span data-i18n="个人令牌">个人令牌</span>
                         </div>
 
                         <div class="user-menu-item" onclick="loadUserDataFromCloud()">
                             <i class="fas fa-history"></i>
-                            历史版本
+                            <span data-i18n="历史版本">历史版本</span>
                         </div>
 
                         <a class="user-menu-item" href="/notes.html">
                             <i class="fas fa-note-sticky"></i>
-                            记事本
+                            <span data-i18n="记事本">记事本</span>
                         </a>
 
                         <a class="user-menu-item tools-menu-item" href="/tools.html">
                             <i class="fas fa-wrench"></i>
-                            常用工具
+                            <span data-i18n="常用工具">常用工具</span>
                         </a>
 
                         <div class="user-menu-item theme-menu-item" onclick="toggleTheme()">
                             <i class="fas fa-moon"></i>
-                            <span class="theme-menu-label">深色模式</span>
+                            <span class="theme-menu-label"><span data-i18n="深色模式">深色模式</span></span>
                         </div>
 
                         <div class="user-menu-item" onclick="logout()">
                             <i class="fas fa-sign-out-alt"></i>
-                            退出登录
+                            <span data-i18n="退出登录">退出登录</span>
                         </div>
                     </div>
                 </div>
                 <button class="login-btn" id="loginBtn" onclick="login('github')">
                     <i class="fab fa-github"></i>
-                    <span class="login-btn-text">登录</span>
+                    <span class="login-btn-text"><span data-i18n="登录">登录</span></span>
                 </button>
                 <button class="login-btn google-btn" id="loginBtnGoogle" onclick="login('google')" style="display: none;">
                     <i class="fab fa-google"></i>
-                    <span class="login-btn-text">登录</span>
+                    <span class="login-btn-text"><span data-i18n="登录">登录</span></span>
                 </button>
                 <!-- 小屏的登录入口：两种登录方式和深浅色合在一个菜单里，桌面端不显示 -->
                 <div class="login-entry" id="loginEntry">
                     <button type="button" class="login-btn" onclick="toggleLoginMenu()" aria-haspopup="menu">
-                        <span class="login-btn-text">登录</span>
+                        <span class="login-btn-text"><span data-i18n="登录">登录</span></span>
                     </button>
                     <div class="user-menu" id="loginMenu" onclick="this.classList.remove('show')">
                         <div class="user-menu-item" onclick="login('github')">
                             <i class="fab fa-github"></i>
-                            用 GitHub 登录
+                            <span data-i18n="用 GitHub 登录">用 GitHub 登录</span>
                         </div>
                         <div class="user-menu-item" onclick="login('google')">
                             <i class="fab fa-google"></i>
-                            用 Google 登录
+                            <span data-i18n="用 Google 登录">用 Google 登录</span>
                         </div>
 
                         <a class="user-menu-item tools-menu-item" href="/tools.html">
                             <i class="fas fa-wrench"></i>
-                            常用工具
+                            <span data-i18n="常用工具">常用工具</span>
                         </a>
 
                         <div class="user-menu-item theme-menu-item" onclick="toggleTheme()">
                             <i class="fas fa-moon"></i>
-                            <span class="theme-menu-label">深色模式</span>
+                            <span class="theme-menu-label"><span data-i18n="深色模式">深色模式</span></span>
                         </div>
                     </div>
                 </div>
@@ -194,22 +196,22 @@
     </header>
 
     <!-- 视图 tab：全部网站 / 最近添加 / 访问最多 / 特别关注 / 私密收藏。右键或长按可调整顺序 -->
-    <nav class="view-tabs" role="tablist" aria-label="视图">
+    <nav class="view-tabs" role="tablist" aria-label="视图" data-i18n-aria-label="视图">
         <div class="view-tabs-inner">
-            <button type="button" class="view-tab" role="tab" data-tab="all" aria-controls="tab-all" aria-label="全部网站">
-                <i class="fas fa-layer-group"></i><span class="tab-label">全部网站</span><span class="tab-label-short">全部</span>
+            <button type="button" class="view-tab" role="tab" data-tab="all" aria-controls="tab-all" aria-label="全部网站" data-i18n-aria-label="全部网站">
+                <i class="fas fa-layer-group"></i><span class="tab-label"><span data-i18n="全部网站">全部网站</span></span><span class="tab-label-short"><span data-i18n="全部">全部</span></span>
             </button>
-            <button type="button" class="view-tab" role="tab" data-tab="recent" aria-controls="tab-recent" aria-label="最近添加">
-                <i class="fas fa-clock"></i><span class="tab-label">最近添加</span><span class="tab-label-short">最近</span>
+            <button type="button" class="view-tab" role="tab" data-tab="recent" aria-controls="tab-recent" aria-label="最近添加" data-i18n-aria-label="最近添加">
+                <i class="fas fa-clock"></i><span class="tab-label"><span data-i18n="最近添加">最近添加</span></span><span class="tab-label-short"><span data-i18n="最近">最近</span></span>
             </button>
-            <button type="button" class="view-tab" role="tab" data-tab="frequent" aria-controls="tab-frequent" aria-label="访问最多">
-                <i class="fas fa-fire"></i><span class="tab-label">访问最多</span><span class="tab-label-short">常用</span>
+            <button type="button" class="view-tab" role="tab" data-tab="frequent" aria-controls="tab-frequent" aria-label="访问最多" data-i18n-aria-label="访问最多">
+                <i class="fas fa-fire"></i><span class="tab-label"><span data-i18n="访问最多">访问最多</span></span><span class="tab-label-short"><span data-i18n="常用">常用</span></span>
             </button>
-            <button type="button" class="view-tab" role="tab" data-tab="pinned" aria-controls="tab-pinned" aria-label="特别关注">
-                <i class="fas fa-star"></i><span class="tab-label">特别关注</span><span class="tab-label-short">关注</span>
+            <button type="button" class="view-tab" role="tab" data-tab="pinned" aria-controls="tab-pinned" aria-label="特别关注" data-i18n-aria-label="特别关注">
+                <i class="fas fa-star"></i><span class="tab-label"><span data-i18n="特别关注">特别关注</span></span><span class="tab-label-short"><span data-i18n="关注">关注</span></span>
             </button>
-            <button type="button" class="view-tab" role="tab" data-tab="private" aria-controls="tab-private" aria-label="私密收藏">
-                <i class="fas fa-lock"></i><span class="tab-label">私密收藏</span><span class="tab-label-short">私密</span>
+            <button type="button" class="view-tab" role="tab" data-tab="private" aria-controls="tab-private" aria-label="私密收藏" data-i18n-aria-label="私密收藏">
+                <i class="fas fa-lock"></i><span class="tab-label"><span data-i18n="私密收藏">私密收藏</span></span><span class="tab-label-short"><span data-i18n="私密">私密</span></span>
             </button>
         </div>
     </nav>
@@ -233,22 +235,22 @@
         <!-- 分类侧边栏 -->
         <aside class="categories-sidebar">
             <div class="categories-title-container">
-                <button id="categories-toggle-btn" title="切换显示模式" onclick="toggleCategoriesMode()">
+                <button id="categories-toggle-btn" title="切换显示模式" onclick="toggleCategoriesMode()" data-i18n-title="切换显示模式">
                     <i class="fa-solid fa-down-left-and-up-right-to-center categories-mode-icon" id="toggle-icon"></i>
                 </button>
-                <h3 class="categories-title">目录</h3>
-                <button id="category-edit-btn" title="编辑分类" onclick="enterCategoryEditMode()">
+                <h3 class="categories-title"><span data-i18n="目录">目录</span></h3>
+                <button id="category-edit-btn" title="编辑分类" onclick="enterCategoryEditMode()" data-i18n-title="编辑分类">
                     <i class="fas fa-edit"></i>
                 </button>
             </div>
             <button id="add-category-btn" class="add-category-btn" onclick="addNewCategory()" style="display: none;">
                 <i class="fas fa-plus"></i>
-                <span>添加分类</span>
+                <span><span data-i18n="添加分类">添加分类</span></span>
             </button>
             <div class="categories-list">
                 <!-- 分类将由JavaScript动态加载 -->
             </div>
-            <button type="button" id="category-done-btn" class="btn btn-primary category-done-btn" hidden>完成</button>
+            <button type="button" id="category-done-btn" class="btn btn-primary category-done-btn" hidden><span data-i18n="完成">完成</span></button>
 
         </aside>
 
@@ -257,19 +259,19 @@
             <div class="tab-panel" id="tab-recent" role="tabpanel">
                 <section class="category-section" id="recent">
                     <div class="cards-grid" id="recent-cards"></div>
-                    <p class="tab-empty">还没有添加过网站。</p>
+                    <p class="tab-empty"><span data-i18n="还没有添加过网站。">还没有添加过网站。</span></p>
                 </section>
             </div>
             <div class="tab-panel" id="tab-frequent" role="tabpanel">
                 <section class="category-section" id="frequent">
                     <div class="cards-grid" id="frequent-cards"></div>
-                    <p class="tab-empty">还没有访问记录。从这里打开网站后，常去的会出现在这里。</p>
+                    <p class="tab-empty"><span data-i18n="还没有访问记录。从这里打开网站后，常去的会出现在这里。">还没有访问记录。从这里打开网站后，常去的会出现在这里。</span></p>
                 </section>
             </div>
             <div class="tab-panel" id="tab-pinned" role="tabpanel">
                 <section class="category-section" id="pinned">
                     <div class="cards-grid" id="pinned-cards"></div>
-                    <p class="tab-empty">还没有特别关注的网站。点卡片菜单里的「特别关注」，常用的网站就会出现在这里。</p>
+                    <p class="tab-empty"><span data-i18n="还没有特别关注的网站。点卡片菜单里的「特别关注」，常用的网站就会出现在这里。">还没有特别关注的网站。点卡片菜单里的「特别关注」，常用的网站就会出现在这里。</span></p>
                 </section>
             </div>
             <div class="tab-panel" id="tab-all" role="tabpanel">
@@ -279,29 +281,29 @@
             <div class="tab-panel" id="tab-search" role="tabpanel">
                 <section class="category-section" id="search">
                     <div class="cards-grid" id="search-cards"></div>
-                    <p class="tab-empty">没有找到匹配的网站。</p>
+                    <p class="tab-empty"><span data-i18n="没有找到匹配的网站。">没有找到匹配的网站。</span></p>
                 </section>
             </div>
             <div class="tab-panel" id="tab-private" role="tabpanel">
                 <section class="category-section is-locked" id="private">
                     <div class="private-locked">
                         <i class="fas fa-lock"></i>
-                        <p>私密收藏已隐藏，不会出现在其它视图和搜索结果里。</p>
+                        <p><span data-i18n="私密收藏已隐藏，不会出现在其它视图和搜索结果里。">私密收藏已隐藏，不会出现在其它视图和搜索结果里。</span></p>
                         <button type="button" class="btn btn-primary" id="privateRevealBtn">
-                            <i class="fas fa-eye"></i> 显示私密收藏
+                            <i class="fas fa-eye"></i> <span data-i18n="显示私密收藏">显示私密收藏</span>
                         </button>
                     </div>
                     <div class="private-toolbar">
-                        <button type="button" class="btn btn-secondary" id="privateRevealAllBtn" title="显示全部网站" aria-pressed="false">
-                            <i class="fa-regular fa-eye"></i><span>显示全部</span>
+                        <button type="button" class="btn btn-secondary" id="privateRevealAllBtn" title="显示全部网站" aria-pressed="false" data-i18n-title="显示全部网站">
+                            <i class="fa-regular fa-eye"></i><span><span data-i18n="显示全部">显示全部</span></span>
                         </button>
-                        <button type="button" class="btn btn-secondary" id="privateHideBtn" title="锁定私密收藏（关闭标签页后也会自动锁定）">
+                        <button type="button" class="btn btn-secondary" id="privateHideBtn" title="锁定私密收藏（关闭标签页后也会自动锁定）" data-i18n-title="锁定私密收藏（关闭标签页后也会自动锁定）">
                             <!-- 平时是开锁（当前已解锁），悬停时换成锁，提示点下去会锁上 -->
-                            <i class="fas fa-lock-open private-hide-icon-idle"></i><i class="fas fa-lock private-hide-icon-hover"></i><span>锁定</span>
+                            <i class="fas fa-lock-open private-hide-icon-idle"></i><i class="fas fa-lock private-hide-icon-hover"></i><span><span data-i18n="锁定">锁定</span></span>
                         </button>
                     </div>
                     <div class="cards-grid" id="private-cards"></div>
-                    <p class="tab-empty">还没有私密收藏。编辑网站时勾选「私密收藏」，或在卡片右键菜单里选「设为私密」。</p>
+                    <p class="tab-empty"><span data-i18n="还没有私密收藏。编辑网站时勾选「私密收藏」，或在卡片右键菜单里选「设为私密」。">还没有私密收藏。编辑网站时勾选「私密收藏」，或在卡片右键菜单里选「设为私密」。</span></p>
                 </section>
             </div>
         </div>
@@ -311,24 +313,25 @@
     <footer class="footer">
         <div class="footer-container">
             <div class="footer-text">
-                © <span class="copyright-year">2026</span> <span class="footer-brand">皮皮2047</span> · 私人网址簿<script>document.currentScript.parentNode.querySelector('.copyright-year').textContent = new Date().getFullYear();</script>
+                © <span class="copyright-year">2026</span> <span class="footer-brand">皮皮2047</span> <span data-i18n="· 私人网址簿">· 私人网址簿</span><script>document.currentScript.parentNode.querySelector('.copyright-year').textContent = new Date().getFullYear();</script>
             </div>
             <div class="footer-links">
+                <label class="language-control"><span data-i18n="语言">语言</span><select class="language-select" data-language-select aria-label="语言" data-i18n-aria-label="语言" title="切换语言（会刷新页面）" data-i18n-title="切换语言（会刷新页面）"><option value="zh-CN" lang="zh-CN">简体中文</option><option value="zh-TW" lang="zh-TW">繁體中文</option><option value="en" lang="en">English</option></select></label>
                 <a href="/about.html" class="footer-link">
                     <i class="fas fa-info-circle"></i>
-                    关于我们
+                    <span data-i18n="关于我们">关于我们</span>
                 </a>
                 <a href="/privacy.html" class="footer-link">
                     <i class="fas fa-user-shield"></i>
-                    隐私政策
+                    <span data-i18n="隐私政策">隐私政策</span>
                 </a>
                 <a href="/terms.html" class="footer-link">
                     <i class="fas fa-file-contract"></i>
-                    使用条款
+                    <span data-i18n="使用条款">使用条款</span>
                 </a>
                 <a href="mailto:support@pipi2047.eu.org" class="footer-link">
                     <i class="fas fa-envelope"></i>
-                    联系我们
+                    <span data-i18n="联系我们">联系我们</span>
                 </a>
                 <!-- 导入导出按钮将由JavaScript动态添加到这里 -->
                 <span class="footer-link footer-version" id="footerVersion">
@@ -340,7 +343,7 @@
     </footer>
 
     <!-- 添加网站按钮 - 固定在右下角 -->
-    <button class="add-website-btn floating-btn" onclick="openAddWebsiteModal()" title="添加网站" aria-label="添加网站">
+    <button class="add-website-btn floating-btn" onclick="openAddWebsiteModal()" title="添加网站" aria-label="添加网站" data-i18n-aria-label="添加网站" data-i18n-title="添加网站">
         <i class="fas fa-plus"></i>
     </button>
 
@@ -348,62 +351,62 @@
     <div class="modal-overlay" id="websiteModal">
         <div class="modal website-modal">
             <div class="modal-header">
-                <h3 class="modal-title" id="modalTitle">添加网站</h3>
-                <button class="modal-close" onclick="closeModal('websiteModal')" aria-label="关闭">
+                <h3 class="modal-title" id="modalTitle"><span data-i18n="添加网站">添加网站</span></h3>
+                <button class="modal-close" onclick="closeModal('websiteModal')" aria-label="关闭" data-i18n-aria-label="关闭">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
 
             <form id="websiteForm" onsubmit="event.preventDefault(); submitWebsiteForm();">
                 <div class="form-group">
-                    <label class="form-label" for="websiteUrl">网址</label>
+                    <label class="form-label" for="websiteUrl"><span data-i18n="网址">网址</span></label>
                     <div class="url-row">
                         <input type="url" id="websiteUrl" class="form-input" placeholder="https://example.com" required>
                         <button type="button" id="aiDetectBtn" class="ai-detect-btn" disabled>
-                            <i class="fas fa-wand-magic-sparkles"></i> 自动填写
+                            <i class="fas fa-wand-magic-sparkles"></i> <span data-i18n="自动填写">自动填写</span>
                         </button>
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label" for="websiteName">标题</label>
-                    <input type="text" id="websiteName" class="form-input" placeholder="网站名称" required>
+                    <label class="form-label" for="websiteName"><span data-i18n="标题">标题</span></label>
+                    <input type="text" id="websiteName" class="form-input" placeholder="网站名称" required data-i18n-placeholder="网站名称">
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label" for="websiteCategory">分类</label>
+                    <label class="form-label" for="websiteCategory"><span data-i18n="分类">分类</span></label>
                     <select id="websiteCategory" class="form-select" required>
-                        <option value="">请选择分类</option>
+                        <option value="" data-i18n="请选择分类">请选择分类</option>
                         <!-- 分类选项将由JavaScript动态加载 -->
                     </select>
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label" for="websiteDescription">描述</label>
-                    <textarea id="websiteDescription" class="form-textarea" placeholder="一句话介绍这个网站"></textarea>
+                    <label class="form-label" for="websiteDescription"><span data-i18n="描述">描述</span></label>
+                    <textarea id="websiteDescription" class="form-textarea" placeholder="一句话介绍这个网站" data-i18n-placeholder="一句话介绍这个网站"></textarea>
                 </div>
 
                 <!-- 三个标记：勾选框藏起来，整块标签当开关用。私密收藏和另外两项互斥，见 syncPrivateCheckbox() -->
-                <div class="option-chips" role="group" aria-label="标记">
+                <div class="option-chips" role="group" aria-label="标记" data-i18n-aria-label="标记">
                     <label class="option-chip" for="websitePinned">
                         <input type="checkbox" id="websitePinned">
-                        <i class="fas fa-star"></i> 特别关注
+                        <i class="fas fa-star"></i> <span data-i18n="特别关注">特别关注</span>
                     </label>
-                    <label class="option-chip" for="websitePrivate" title="只在「私密收藏」里显示，卡片默认模糊">
+                    <label class="option-chip" for="websitePrivate" title="只在「私密收藏」里显示，卡片默认模糊" data-i18n-title="只在「私密收藏」里显示，卡片默认模糊">
                         <input type="checkbox" id="websitePrivate">
-                        <i class="fas fa-lock"></i> 私密收藏
+                        <i class="fas fa-lock"></i> <span data-i18n="私密收藏">私密收藏</span>
                     </label>
-                    <label class="option-chip" for="websiteHideDescription" title="网站照常显示、可以搜索，只有描述默认遮住，适合在描述里记账号信息">
+                    <label class="option-chip" for="websiteHideDescription" title="网站照常显示、可以搜索，只有描述默认遮住，适合在描述里记账号信息" data-i18n-title="网站照常显示、可以搜索，只有描述默认遮住，适合在描述里记账号信息">
                         <input type="checkbox" id="websiteHideDescription">
-                        <i class="fas fa-eye-slash"></i> 隐藏描述
+                        <i class="fas fa-eye-slash"></i> <span data-i18n="隐藏描述">隐藏描述</span>
                     </label>
                 </div>
 
                 <!-- 图标：点色块或拖入图片替换；没有图片时是标题首字 -->
                 <div class="icon-row" id="iconRow">
-                    <button type="button" class="icon-tile" id="iconUploadArea" title="点击或拖入图片更换图标" aria-label="上传网站图标"></button>
+                    <button type="button" class="icon-tile" id="iconUploadArea" title="点击或拖入图片更换图标" aria-label="上传网站图标" data-i18n-aria-label="上传网站图标" data-i18n-title="点击或拖入图片更换图标"></button>
                     <div class="icon-row-text">
-                        <div class="icon-row-title">网站图标</div>
+                        <div class="icon-row-title"><span data-i18n="网站图标">网站图标</span></div>
                         <div class="icon-row-hint" id="iconHint"></div>
                     </div>
                     <input type="file" id="iconFile" class="file-input" accept="image/*">
@@ -412,8 +415,8 @@
                 </div>
 
                 <div class="form-buttons">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal('websiteModal')">取消</button>
-                    <button type="submit" class="btn btn-primary" id="submitBtn">保存</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('websiteModal')"><span data-i18n="取消">取消</span></button>
+                    <button type="submit" class="btn btn-primary" id="submitBtn"><span data-i18n="保存">保存</span></button>
                 </div>
             </form>
         </div>
@@ -421,26 +424,26 @@
 
     <!-- 整理模式（拖拽调整卡片顺序）的提示条 -->
     <div class="reorder-bar" id="reorderBar" hidden>
-        <span class="reorder-bar-text"><i class="fas fa-up-down-left-right"></i> 拖动卡片调整顺序</span>
-        <button type="button" class="btn btn-secondary" id="reorderResetBtn" hidden>恢复自动排序</button>
-        <button type="button" class="btn btn-primary" id="reorderDoneBtn">完成</button>
+        <span class="reorder-bar-text"><i class="fas fa-up-down-left-right"></i> <span data-i18n="拖动卡片调整顺序">拖动卡片调整顺序</span></span>
+        <button type="button" class="btn btn-secondary" id="reorderResetBtn" hidden><span data-i18n="恢复自动排序">恢复自动排序</span></button>
+        <button type="button" class="btn btn-primary" id="reorderDoneBtn"><span data-i18n="完成">完成</span></button>
     </div>
 
     <!-- 调整分区顺序 -->
     <div class="modal-overlay" id="tabOrderModal">
         <div class="modal" style="max-width: 360px;">
             <div class="modal-header">
-                <h3 class="modal-title">调整分区顺序</h3>
-                <button class="modal-close" onclick="closeModal('tabOrderModal')" aria-label="关闭">
+                <h3 class="modal-title"><span data-i18n="调整分区顺序">调整分区顺序</span></h3>
+                <button class="modal-close" onclick="closeModal('tabOrderModal')" aria-label="关闭" data-i18n-aria-label="关闭">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
             <ul class="tab-order-list" id="tabOrderList"></ul>
             <div class="form-buttons">
                 <button type="button" class="btn btn-secondary" id="tabOrderReset">
-                    <i class="fas fa-rotate-left"></i> 恢复默认
+                    <i class="fas fa-rotate-left"></i> <span data-i18n="恢复默认">恢复默认</span>
                 </button>
-                <button type="button" class="btn btn-primary" onclick="closeModal('tabOrderModal')">完成</button>
+                <button type="button" class="btn btn-primary" onclick="closeModal('tabOrderModal')"><span data-i18n="完成">完成</span></button>
             </div>
         </div>
     </div>
@@ -449,16 +452,16 @@
     <div class="modal-overlay" id="descriptionModal">
         <div class="modal" style="max-width: 420px;">
             <div class="modal-header">
-                <h3 class="modal-title" id="descriptionModalTitle">描述</h3>
-                <button class="modal-close" onclick="closeModal('descriptionModal')" aria-label="关闭">
+                <h3 class="modal-title" id="descriptionModalTitle"><span data-i18n="描述">描述</span></h3>
+                <button class="modal-close" onclick="closeModal('descriptionModal')" aria-label="关闭" data-i18n-aria-label="关闭">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
             <div class="description-view" id="descriptionView"></div>
             <div class="form-buttons">
-                <button type="button" class="btn btn-secondary" onclick="closeModal('descriptionModal')">关闭</button>
+                <button type="button" class="btn btn-secondary" onclick="closeModal('descriptionModal')"><span data-i18n="关闭">关闭</span></button>
                 <button type="button" class="btn btn-primary" id="descriptionCopyBtn">
-                    <i class="fas fa-copy"></i> 复制
+                    <i class="fas fa-copy"></i> <span data-i18n="复制">复制</span>
                 </button>
             </div>
         </div>
@@ -468,7 +471,7 @@
     <div class="modal-overlay" id="deleteConfirmModal">
         <div class="modal" style="max-width: 400px;">
             <div class="modal-header">
-                <h3 class="modal-title">确认删除</h3>
+                <h3 class="modal-title"><span data-i18n="确认删除">确认删除</span></h3>
                 <button class="modal-close" onclick="closeModal('deleteConfirmModal')">
                     <i class="fas fa-times"></i>
                 </button>
@@ -477,18 +480,18 @@
             <div class="confirm-body">
                 <span class="confirm-icon"><i class="fas fa-trash-can"></i></span>
                 <div>
-                    <p class="confirm-title">确定要删除这个网站吗？</p>
-                    <p class="confirm-text" id="deleteWebsiteName">此操作无法撤销</p>
+                    <p class="confirm-title"><span data-i18n="确定要删除这个网站吗？">确定要删除这个网站吗？</span></p>
+                    <p class="confirm-text" id="deleteWebsiteName"><span data-i18n="此操作无法撤销">此操作无法撤销</span></p>
                 </div>
             </div>
 
             <div class="form-buttons">
                 <button type="button" class="btn btn-secondary" onclick="closeModal('deleteConfirmModal')">
                     <i class="fas fa-times"></i>
-                    取消
+                    <span data-i18n="取消">取消</span>
                 </button>
                 <button type="button" class="btn btn-danger" onclick="confirmDeleteWebsite()">
-                    删除
+                    <span data-i18n="删除">删除</span>
                 </button>
             </div>
         </div>
@@ -498,21 +501,21 @@
     <div class="modal-overlay" id="loginDataChoiceModal" data-required>
         <div class="modal" style="max-width: 420px;">
             <div class="modal-header">
-                <h3 class="modal-title">保留哪份数据？</h3>
+                <h3 class="modal-title"><span data-i18n="保留哪份数据？">保留哪份数据？</span></h3>
             </div>
 
             <div class="confirm-body">
                 <span class="confirm-icon"><i class="fas fa-cloud"></i></span>
                 <div>
-                    <p class="confirm-title">登录前本机的数据有改动，云端也有数据</p>
+                    <p class="confirm-title"><span data-i18n="登录前本机的数据有改动，云端也有数据">登录前本机的数据有改动，云端也有数据</span></p>
                     <p class="confirm-text" id="loginDataChoiceText"></p>
-                    <p class="confirm-text muted">两份数据整份覆盖，不合并。选本机时，云端当前的数据会留在历史版本里，可以恢复。</p>
+                    <p class="confirm-text muted"><span data-i18n="两份数据整份覆盖，不合并。选本机时，云端当前的数据会留在历史版本里，可以恢复。">两份数据整份覆盖，不合并。选本机时，云端当前的数据会留在历史版本里，可以恢复。</span></p>
                 </div>
             </div>
 
             <div class="form-buttons">
-                <button type="button" class="btn btn-secondary" id="loginDataUseCloudBtn">用云端数据</button>
-                <button type="button" class="btn btn-primary" id="loginDataUseLocalBtn">用本机数据</button>
+                <button type="button" class="btn btn-secondary" id="loginDataUseCloudBtn"><span data-i18n="用云端数据">用云端数据</span></button>
+                <button type="button" class="btn btn-primary" id="loginDataUseLocalBtn"><span data-i18n="用本机数据">用本机数据</span></button>
             </div>
         </div>
     </div>
@@ -521,7 +524,7 @@
     <div class="modal-overlay" id="deleteCategoryModal">
         <div class="modal" style="max-width: 400px;">
             <div class="modal-header">
-                <h3 class="modal-title">确认删除分类</h3>
+                <h3 class="modal-title"><span data-i18n="确认删除分类">确认删除分类</span></h3>
                 <button class="modal-close" onclick="closeCategoryModal('deleteCategoryModal')">
                     <i class="fas fa-times"></i>
                 </button>
@@ -530,19 +533,19 @@
             <div class="confirm-body">
                 <span class="confirm-icon"><i class="fas fa-trash-can"></i></span>
                 <div>
-                    <p class="confirm-title">确定要删除此分类吗？</p>
-                    <p class="confirm-text" id="deleteCategoryName">分类名称</p>
-                    <p class="confirm-text muted">里面的网站会移到「未分类」。</p>
+                    <p class="confirm-title"><span data-i18n="确定要删除此分类吗？">确定要删除此分类吗？</span></p>
+                    <p class="confirm-text" id="deleteCategoryName"><span data-i18n="分类名称">分类名称</span></p>
+                    <p class="confirm-text muted"><span data-i18n="里面的网站会移到「未分类」。">里面的网站会移到「未分类」。</span></p>
                 </div>
             </div>
 
             <div class="form-buttons">
                 <button type="button" class="btn btn-secondary" onclick="closeCategoryModal('deleteCategoryModal')">
                     <i class="fas fa-times"></i>
-                    取消
+                    <span data-i18n="取消">取消</span>
                 </button>
                 <button type="button" class="btn btn-danger" onclick="confirmDeleteCategory()">
-                    删除分类
+                    <span data-i18n="删除分类">删除分类</span>
                 </button>
             </div>
         </div>
@@ -552,32 +555,32 @@
     <div class="modal-overlay" id="apiTokensModal">
         <div class="modal api-tokens-modal">
             <div class="modal-header">
-                <h3 class="modal-title">个人令牌</h3>
-                <button class="modal-close" onclick="closeModal('apiTokensModal')" aria-label="关闭">
+                <h3 class="modal-title"><span data-i18n="个人令牌">个人令牌</span></h3>
+                <button class="modal-close" onclick="closeModal('apiTokensModal')" aria-label="关闭" data-i18n-aria-label="关闭">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
 
             <p class="api-tokens-hint">
-                令牌用于浏览器扩展、脚本等通过 <code>/api/v1</code> 读写你的网址数据，
-                请求时放在 <code>Authorization: Bearer &lt;令牌&gt;</code> 头里。令牌不会过期，不用时请吊销。
+                <span data-i18n="令牌用于浏览器扩展、脚本等通过">令牌用于浏览器扩展、脚本等通过</span> <code>/api/v1</code> <span data-i18n="读写你的网址数据， 请求时放在">读写你的网址数据，
+                请求时放在</span> <code>Authorization: Bearer &lt;令牌&gt;</code> <span data-i18n="头里。令牌不会过期，不用时请吊销。">头里。令牌不会过期，不用时请吊销。</span>
             </p>
 
             <form class="api-token-create" onsubmit="event.preventDefault(); createApiToken();">
-                <input type="text" id="apiTokenName" class="form-input" maxlength="50" placeholder="令牌名称，如「Chrome 扩展」">
+                <input type="text" id="apiTokenName" class="form-input" maxlength="50" placeholder="令牌名称，如「Chrome 扩展」" data-i18n-placeholder="令牌名称，如「Chrome 扩展」">
                 <button type="submit" class="btn btn-primary" id="apiTokenCreateBtn">
                     <i class="fas fa-plus"></i>
-                    生成
+                    <span data-i18n="生成">生成</span>
                 </button>
             </form>
 
             <div class="api-token-new" id="apiTokenNew" hidden>
-                <p><i class="fas fa-exclamation-circle"></i> 请立即复制保存，关闭后无法再次查看。</p>
+                <p><i class="fas fa-exclamation-circle"></i> <span data-i18n="请立即复制保存，关闭后无法再次查看。">请立即复制保存，关闭后无法再次查看。</span></p>
                 <div class="api-token-new-row">
                     <code id="apiTokenNewValue"></code>
                     <button type="button" class="btn btn-secondary" onclick="copyNewApiToken()">
                         <i class="fas fa-copy"></i>
-                        复制
+                        <span data-i18n="复制">复制</span>
                     </button>
                 </div>
             </div>

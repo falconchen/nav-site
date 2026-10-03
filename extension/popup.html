@@ -2,14 +2,14 @@
 <html lang="zh-CN">
 <head>
     <meta charset="utf-8">
-    <title>收藏到皮皮2047</title>
+    <title data-i18n="收藏到皮皮2047">收藏到皮皮2047</title>
     <link rel="stylesheet" href="popup.css">
 </head>
 <body>
     <header class="bar">
         <img class="bar-seal" src="icons/seal.svg" alt="" width="24" height="24">
-        <span class="bar-title">收藏到皮皮<span class="bar-num">2047</span></span>
-        <button type="button" class="icon-btn" id="openOptions" title="设置" aria-label="设置">
+        <span class="bar-title"><span data-i18n="收藏到皮皮">收藏到皮皮</span><span class="bar-num">2047</span></span>
+        <button type="button" class="icon-btn" id="openOptions" title="设置" aria-label="设置" data-i18n-aria-label="设置" data-i18n-title="设置">
             <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M19.4 13a7.6 7.6 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.5 7.5 0 0 0-1.7-1L15 3h-4l-.4 2.9a7.5 7.5 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.6 7.6 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7.5 7.5 0 0 0 1.7 1L11 21h4l.4-2.9a7.5 7.5 0 0 0 1.7-1l2.5 1 2-3.5ZM13 15.5A3.5 3.5 0 1 1 13 8.5a3.5 3.5 0 0 1 0 7Z"/></svg>
         </button>
     </header>
@@ -17,7 +17,7 @@
     <!-- 各状态的视图，同一时间只显示一个 -->
     <section class="view" id="viewLoading">
         <div class="spinner" aria-hidden="true"></div>
-        <p class="muted" id="loadingText">正在读取页面…</p>
+        <p class="muted" id="loadingText"><span data-i18n="正在读取页面…">正在读取页面…</span></p>
     </section>
 
     <section class="view" id="viewMessage" hidden>
@@ -28,7 +28,7 @@
     </section>
 
     <section class="view" id="viewDuplicate" hidden>
-        <p class="notice success">已收藏在「<strong id="dupCategory"></strong>」<span id="dupTouched" hidden>，已移到最近添加</span></p>
+        <p class="notice success"><span data-i18n="已收藏在「">已收藏在「</span><strong id="dupCategory"></strong><span data-i18n="」">」</span><span id="dupTouched" hidden><span data-i18n="，已移到最近添加">，已移到最近添加</span></span></p>
         <div class="site">
             <span class="site-icon" id="dupIcon"></span>
             <div class="site-text">
@@ -37,7 +37,7 @@
             </div>
         </div>
         <div class="actions">
-            <button type="button" class="btn danger" id="removeBtn">从导航站移除</button>
+            <button type="button" class="btn danger" id="removeBtn"><span data-i18n="从导航站移除">从导航站移除</span></button>
         </div>
     </section>
 
@@ -45,17 +45,17 @@
         <p class="notice warn" id="categoryNotice" hidden></p>
 
         <label class="field">
-            <span>名称</span>
+            <span><span data-i18n="名称">名称</span></span>
             <input type="text" id="title" maxlength="200" required>
         </label>
 
         <label class="field">
-            <span>分类</span>
+            <span><span data-i18n="分类">分类</span></span>
             <select id="category" required></select>
         </label>
 
         <label class="field">
-            <span>描述</span>
+            <span><span data-i18n="描述">描述</span></span>
             <textarea id="description" rows="3" maxlength="1000"></textarea>
         </label>
 
@@ -63,15 +63,15 @@
             <div class="checks">
                 <label class="check">
                     <input type="checkbox" id="pinned">
-                    <span>特别关注</span>
+                    <span><span data-i18n="特别关注">特别关注</span></span>
                 </label>
-                <label class="check" title="只在导航站的「私密收藏」里显示，描述默认打码">
+                <label class="check" title="只在导航站的「私密收藏」里显示，描述默认打码" data-i18n-title="只在导航站的「私密收藏」里显示，描述默认打码">
                     <input type="checkbox" id="private">
-                    <span>私密收藏</span>
+                    <span><span data-i18n="私密收藏">私密收藏</span></span>
                 </label>
-                <label class="check" title="网站照常显示、可以搜索，只有描述默认遮住，适合在描述里记账号信息">
+                <label class="check" title="网站照常显示、可以搜索，只有描述默认遮住，适合在描述里记账号信息" data-i18n-title="网站照常显示、可以搜索，只有描述默认遮住，适合在描述里记账号信息">
                     <input type="checkbox" id="hideDescription">
-                    <span>隐藏描述</span>
+                    <span><span data-i18n="隐藏描述">隐藏描述</span></span>
                 </label>
             </div>
             <span class="site-icon" id="iconPreview"></span>
@@ -80,7 +80,7 @@
         <p class="warnings muted" id="warnings" hidden></p>
 
         <div class="actions">
-            <button type="submit" class="btn primary" id="saveBtn">保存</button>
+            <button type="submit" class="btn primary" id="saveBtn"><span data-i18n="保存">保存</span></button>
         </div>
     </form>
 

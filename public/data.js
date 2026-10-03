@@ -681,7 +681,7 @@ function renderCategoryList() {
     html += `
       <div class="category-item${category.id === activeCategoryId ? ' active' : ''}" data-category="${category.id}" onclick="showCategory('${category.id}')">
         <i class="${category.icon}"></i>
-        <span>${category.name}</span>
+        <span>${escapeHtml(I18n.categoryName(category))}</span>
       </div>
     `;
   });
@@ -774,7 +774,7 @@ function exportData() {
     const now = new Date();
     const pad = (n) => String(n).padStart(2, '0');
     const stamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}`;
-    a.download = `皮皮2047_${stamp}.json`;
+    a.download = I18n.t("皮皮2047_{0}.json", { 0: stamp });
 
     // 触发下载
     document.body.appendChild(a);
@@ -789,7 +789,7 @@ function exportData() {
     return true;
   } catch (error) {
     console.error('导出数据出错:', error);
-    alert('导出数据失败: ' + error.message);
+    alert(I18n.t("导出数据失败: ") + error.message);
     return false;
   }
 }
@@ -804,7 +804,7 @@ function importData(jsonFile) {
         const importedData = JSON.parse(event.target.result);
 
         if (!Array.isArray(importedData.categories) || !importedData.websites || typeof importedData.websites !== 'object') {
-          throw new Error('导入的数据格式不正确，缺少必要的字段');
+          throw new Error(I18n.t("导入的数据格式不正确，缺少必要的字段"));
         }
 
         window.categories = importedData.categories;
@@ -826,7 +826,7 @@ function importData(jsonFile) {
     };
 
     reader.onerror = function () {
-      reject(new Error('读取文件时出错'));
+      reject(new Error(I18n.t("读取文件时出错")));
     };
 
     reader.readAsText(jsonFile);
@@ -851,11 +851,11 @@ function createImportExportUI() {
   const exportBtn = document.createElement('a');
   exportBtn.href = '#';
   exportBtn.className = 'footer-link export-data-btn';
-  exportBtn.innerHTML = '<i class="fas fa-download"></i> 导出数据';
+  exportBtn.innerHTML = `<i class="fas fa-download"></i> ${I18n.html("导出数据")}`;
 
   const importBtn = document.createElement('label');
   importBtn.className = 'footer-link import-data-btn';
-  importBtn.innerHTML = '<span class="import-data-label"><i class="fas fa-upload"></i> 导入数据</span><input type="file" id="import-file" accept=".json" style="display: none;">';
+  importBtn.innerHTML = `<span class="import-data-label"><i class="fas fa-upload"></i> ${I18n.html("导入数据")}</span><input type="file" id="import-file" accept=".json" style="display: none;">`;
   importBtn.style.cursor = 'pointer';
 
   // 添加到footer链接区域
@@ -879,15 +879,15 @@ function createImportExportUI() {
     if (!file) return;
 
     try {
-      importLabel.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 导入中...';
+      importLabel.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${I18n.html("导入中...")}`;
       await importData(file);
-      importLabel.innerHTML = '<i class="fas fa-check"></i> 导入成功';
+      importLabel.innerHTML = `<i class="fas fa-check"></i> ${I18n.html("导入成功")}`;
 
       setTimeout(() => {
         window.location.reload();
       }, 1000);
     } catch (error) {
-      alert('导入数据失败: ' + error.message);
+      alert(I18n.t("导入数据失败: ") + error.message);
       importLabel.innerHTML = originalLabel;
     }
   });

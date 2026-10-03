@@ -53,7 +53,7 @@ function showNotification(message, type = 'info') {
     const notification = document.createElement('div');
     notification.className = `notification notification-${type}`;
     notification.setAttribute('role', type === 'error' ? 'alert' : 'status');
-    notification.textContent = message;
+    notification.textContent = I18n.t(message);
     document.body.appendChild(notification);
 
     // 同一时间只留最新一条，免得几条叠在一起
@@ -106,10 +106,10 @@ function showSaveProgress() {
     progressContainer.innerHTML = `
         <div class="save-panel-head">
             <span class="spinner"></span>
-            <span>正在保存到云端</span>
+            <span>${I18n.html("正在保存到云端")}</span>
         </div>
         <div class="save-panel-track"><div id="progress-bar-fill"></div></div>
-        <div id="progress-status">准备中…</div>
+        <div id="progress-status">${I18n.html("准备中…")}</div>
     `;
     document.body.appendChild(progressContainer);
 
@@ -139,7 +139,7 @@ function showSaveProgress() {
                 fill.style.background = success ? 'var(--success)' : 'var(--danger)';
             }
             if (spinner) spinner.style.display = 'none';
-            if (statusText) statusText.textContent = message || (success ? '已保存' : '保存失败');
+            if (statusText) statusText.textContent = message || (success ? I18n.t("已保存") : I18n.t("保存失败"));
 
             setTimeout(dismiss, 1500);
         },

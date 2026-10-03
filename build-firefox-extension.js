@@ -45,6 +45,7 @@ function toFirefoxManifest(chrome) {
 }
 
 function main() {
+    require('./scripts/build-extension-i18n').buildExtensionI18n();
     fs.rmSync(OUT, { recursive: true, force: true });
     fs.cpSync(SRC, OUT, {
         recursive: true,

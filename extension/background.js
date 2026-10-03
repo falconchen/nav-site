@@ -1,3 +1,4 @@
+import { I18n } from './lib/i18n.js';
 /**
  * 右键菜单一键收藏：只传 url 和 hints，由服务端 AI 补全
  *
@@ -13,11 +14,17 @@ import { renderToast } from './lib/toast.js';
 const MENU_PAGE = 'save-page';
 const MENU_LINK = 'save-link';
 
+ext.storage.onChanged.addListener((changes, area) => {
+    if (area !== 'local' || !changes.language) return;
+    ext.contextMenus.update(MENU_PAGE, { title: I18n.t('一键收藏到皮皮2047') }).catch(() => {});
+    ext.contextMenus.update(MENU_LINK, { title: I18n.t('一键收藏此链接到皮皮2047') }).catch(() => {});
+});
+
 ext.runtime.onInstalled.addListener(async ({ reason }) => {
     // 更新扩展时也会触发，菜单还在，先清空再建，避免重复 id 报错
     await ext.contextMenus.removeAll();
-    ext.contextMenus.create({ id: MENU_PAGE, title: '一键收藏到皮皮2047', contexts: ['page'] });
-    ext.contextMenus.create({ id: MENU_LINK, title: '一键收藏此链接到皮皮2047', contexts: ['link'] });
+    ext.contextMenus.create({ id: MENU_PAGE, title: I18n.t("一键收藏到皮皮2047"), contexts: ['page'] });
+    ext.contextMenus.create({ id: MENU_LINK, title: I18n.t("一键收藏此链接到皮皮2047"), contexts: ['link'] });
 
     if (reason === 'install') {
         const { serverUrl, token } = await loadSettings();
@@ -69,7 +76,7 @@ function createReporter(tabId) {
                 await ext.scripting.executeScript({
                     target: { tabId },
                     func: renderToast,
-                    args: [state, title, message]
+                    args: [state, title, message, I18n.t('关闭')]
                 });
                 return;
             } catch (error) {
@@ -85,7 +92,7 @@ function createReporter(tabId) {
 async function quickSave(url, hints, report) {
     const settings = await loadSettings();
     if (!settings.serverUrl || !settings.token) {
-        await report('error', '还没有设置导航站', '请在打开的设置页里填写导航站地址和个人令牌');
+        await report('error', I18n.t("还没有设置导航站"), I18n.t("请在打开的设置页里填写导航站地址和个人令牌"));
         ext.runtime.openOptionsPage();
         return;
     }
@@ -96,21 +103,21 @@ async function quickSave(url, hints, report) {
             client.save({ url, hints }),
             client.categories()
         ]);
-        const name = categories.find((cat) => cat.id === website.category)?.name || website.category;
+        const name = I18n.categoryName(categories.find((cat) => cat.id === website.category)) || website.category;
         const unsure = ['domain', 'fallback'].includes(analysis.sources.category);
         await report(
             'success',
-            `已收藏到「${name}」`,
-            unsure ? `${website.title}\nAI 没能确定分类，可以在导航站调整` : website.title
+            I18n.t("已收藏到「{0}」", { 0: name }),
+            unsure ? I18n.t("{0}\nAI 没能确定分类，可以在导航站调整", { 0: website.title }) : website.title
         );
     } catch (error) {
         if (error.code === 'DUPLICATE') {
             // 刷新收藏时间，回到「最近添加」最前面；失败也照样提示已收藏
             const touched = await client.touch(url).then(() => true, () => false);
-            await report('success', touched ? '已经收藏过了，已移到最近添加' : '已经收藏过了', error.body.website?.title || url);
+            await report('success', touched ? I18n.t("已经收藏过了，已移到最近添加") : I18n.t("已经收藏过了"), error.body.website?.title || url);
             return;
         }
-        await report('error', '收藏失败', describeError(error));
+        await report('error', I18n.t("收藏失败"), describeError(error));
     }
 }
 
@@ -119,20 +126,20 @@ ext.contextMenus.onClicked.addListener(async (info, tab) => {
 
     if (info.menuItemId === MENU_PAGE) {
         if (!tab || !isSavableUrl(tab.url)) {
-            await report('error', '收藏失败', '只能收藏 http/https 网页');
+            await report('error', I18n.t("收藏失败"), I18n.t("只能收藏 http/https 网页"));
             return;
         }
-        await report('loading', '正在收藏…', '正在自动填写名称、分类和描述，大约需要几秒');
+        await report('loading', I18n.t("正在收藏…"), I18n.t("正在自动填写名称、分类和描述，大约需要几秒"));
         await quickSave(tab.url, await getPageHints(tab), report);
         return;
     }
 
     if (info.menuItemId === MENU_LINK) {
         if (!isSavableUrl(info.linkUrl)) {
-            await report('error', '收藏失败', '只能收藏 http/https 链接');
+            await report('error', I18n.t("收藏失败"), I18n.t("只能收藏 http/https 链接"));
             return;
         }
-        await report('loading', '正在收藏链接…', '正在自动填写名称、分类和描述，大约需要几秒');
+        await report('loading', I18n.t("正在收藏链接…"), I18n.t("正在自动填写名称、分类和描述，大约需要几秒"));
         // 链接指向的页面没打开，拿不到 hints，全靠服务端抓取
         await quickSave(info.linkUrl, {}, report);
     }

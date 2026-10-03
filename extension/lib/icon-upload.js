@@ -1,3 +1,4 @@
+import { I18n } from './i18n.js';
 /**
  * 弹窗里把图标转存到图床，和网页端「自动填写」同一套做法（public/image-upload.js）：
  * 远程图标经导航站的 /api/proxy-image 取回字节（扩展没有任意站点的主机权限，直接 fetch 会被跨域拦），
@@ -42,9 +43,9 @@ async function fetchIconBlob(serverUrl, src, signal) {
         ? src
         : `${serverUrl}/api/proxy-image?url=${encodeURIComponent(src)}`;
     const response = await fetch(url, { signal });
-    if (!response.ok) throw new Error(`获取图标失败（${response.status}）`);
+    if (!response.ok) throw new Error(I18n.t("获取图标失败（{0}）", { 0: response.status }));
     const blob = await response.blob();
-    if (!blob.size) throw new Error('图标为空');
+    if (!blob.size) throw new Error(I18n.t("图标为空"));
     return blob;
 }
 
@@ -56,7 +57,7 @@ function loadImage(blob) {
         img.onload = () => resolve({ img, release: () => URL.revokeObjectURL(objectUrl) });
         img.onerror = () => {
             URL.revokeObjectURL(objectUrl);
-            reject(new Error('图标解码失败'));
+            reject(new Error(I18n.t("图标解码失败")));
         };
         img.src = objectUrl;
     });
@@ -74,7 +75,7 @@ async function toWebp(blob) {
         canvas.height = Math.max(1, Math.round(naturalHeight * scale));
         canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
         const webp = await new Promise((resolve) => canvas.toBlob(resolve, 'image/webp', ICON_WEBP_QUALITY));
-        if (!webp) throw new Error('浏览器不支持 WebP 编码');
+        if (!webp) throw new Error(I18n.t("浏览器不支持 WebP 编码"));
         return webp;
     } finally {
         release();
@@ -87,7 +88,7 @@ async function upload(serverUrl, blob, signal) {
     const response = await fetch(`${serverUrl}/api/upload-image`, { method: 'POST', body: form, signal });
     const data = await response.json().catch(() => ({}));
     if (!response.ok || !data.success || !data.url) {
-        throw new Error(data.error || `图床上传失败（${response.status}）`);
+        throw new Error(data.error || I18n.t("图床上传失败（{0}）", { 0: response.status }));
     }
     return data.url;
 }

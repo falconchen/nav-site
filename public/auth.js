@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', function() {
 function scheduleAuthRetry() {
     showLoginButton();
     if (!authRetryPending && typeof showNotification === 'function') {
-        showNotification('暂时无法验证登录状态，网络恢复后会自动重试', 'info');
+        showNotification(I18n.t("暂时无法验证登录状态，网络恢复后会自动重试"), 'info');
     }
     authRetryPending = true;
     clearTimeout(authRetryTimer);
@@ -187,7 +187,7 @@ function login(provider = 'github') {
     );
 
     if (!popup) {
-        alert('请允许弹出窗口以完成登录');
+        alert(I18n.t("请允许弹出窗口以完成登录"));
         return;
     }
 
@@ -220,7 +220,7 @@ function handleAuthMessage(event) {
 
         // 显示成功消息
         if (typeof showNotification === 'function') {
-            showNotification('登录成功！', 'success');
+            showNotification(I18n.t("登录成功！"), 'success');
         }
 
         // 启动同步检测
@@ -242,7 +242,7 @@ function handleAuthMessage(event) {
     } else if (event.data.type === 'AUTH_ERROR') {
         console.error('Auth error:', event.data.error);
         if (typeof showNotification === 'function') {
-            showNotification('登录失败: ' + event.data.error, 'error');
+            showNotification(I18n.t("登录失败: ") + event.data.error, 'error');
         }
     }
 }
@@ -298,6 +298,6 @@ async function logout() {
     document.getElementById('userMenu').classList.remove('show');
 
     if (typeof showNotification === 'function') {
-        showNotification('已退出登录', 'info');
+        showNotification(I18n.t("已退出登录"), 'info');
     }
 }

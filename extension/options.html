@@ -2,69 +2,71 @@
 <html lang="zh-CN">
 <head>
     <meta charset="utf-8">
-    <title>皮皮2047 收藏助手 - 设置</title>
+    <title data-i18n="皮皮2047 收藏助手 - 设置">皮皮2047 收藏助手 - 设置</title>
     <link rel="stylesheet" href="popup.css">
     <link rel="stylesheet" href="options.css">
 </head>
 <body class="options">
     <header class="bar">
         <img class="bar-seal" src="icons/seal.svg" alt="" width="24" height="24">
-        <span class="bar-title">皮皮<span class="bar-num">2047</span> 收藏助手</span>
-        <span class="bar-sub">设置</span>
+        <span class="bar-title">皮皮<span class="bar-num">2047</span> <span data-i18n="收藏助手">收藏助手</span></span>
+        <span class="bar-sub"><span data-i18n="设置">设置</span></span>
     </header>
+
+    <section class="view language-settings"><label class="language-control"><span data-i18n="语言">语言</span><select class="language-select" data-language-select aria-label="语言" data-i18n-aria-label="语言"><option value="zh-CN" lang="zh-CN">简体中文</option><option value="zh-TW" lang="zh-TW">繁體中文</option><option value="en" lang="en">English</option></select></label></section>
 
     <form class="view" id="settingsForm">
         <label class="field">
-            <span>导航站地址</span>
+            <span><span data-i18n="导航站地址">导航站地址</span></span>
             <input type="text" id="serverUrl" placeholder="https://pipi2047.eu.org" required>
         </label>
 
         <label class="field">
-            <span>个人令牌</span>
+            <span><span data-i18n="个人令牌">个人令牌</span></span>
             <input type="password" id="token" placeholder="navpat_..." autocomplete="off" required>
         </label>
 
         <p class="muted hint">
-            在导航站网页端登录后，右上角用户菜单 →「个人令牌」生成。令牌只保存在这台电脑的浏览器里。
+            <span data-i18n="在导航站网页端登录后，右上角用户菜单 →「个人令牌」生成。令牌只保存在这台电脑的浏览器里。">在导航站网页端登录后，右上角用户菜单 →「个人令牌」生成。令牌只保存在这台电脑的浏览器里。</span>
         </p>
 
         <p class="notice" id="status" hidden></p>
 
         <div class="actions">
-            <button type="button" class="btn" id="testBtn">测试连接</button>
-            <button type="submit" class="btn primary" id="saveBtn">保存</button>
+            <button type="button" class="btn" id="testBtn"><span data-i18n="测试连接">测试连接</span></button>
+            <button type="submit" class="btn primary" id="saveBtn"><span data-i18n="保存">保存</span></button>
         </div>
     </form>
 
     <section class="view tips">
-        <h2>新标签页与首页</h2>
+        <h2><span data-i18n="新标签页与首页">新标签页与首页</span></h2>
         <!-- Chrome 和 Firefox 的说明不一样，options.js 按浏览器显示其中一份 -->
         <div class="only-chrome">
             <label class="check">
                 <input type="checkbox" id="newTab">
-                <span>新标签页打开导航站</span>
+                <span><span data-i18n="新标签页打开导航站">新标签页打开导航站</span></span>
             </label>
             <p class="muted hint">
-                显示上面填的导航站，地址栏保持为空，可以直接输入网址或搜索；关掉后恢复 Chrome 自带的新标签页。
-                首页固定为 <code class="homepage-url"></code>，这是 Chrome 的限制，只能写死在扩展里，改了导航站地址也不会跟着变。
-                要在工具栏显示主页按钮，请到 <a href="#" id="openAppearance">Chrome 外观设置</a> 打开「显示主页按钮」。
+                <span data-i18n="显示上面填的导航站，地址栏保持为空，可以直接输入网址或搜索；关掉后恢复 Chrome 自带的新标签页。 首页固定为">显示上面填的导航站，地址栏保持为空，可以直接输入网址或搜索；关掉后恢复 Chrome 自带的新标签页。
+                首页固定为</span> <code class="homepage-url"></code><span data-i18n="，这是 Chrome 的限制，只能写死在扩展里，改了导航站地址也不会跟着变。 要在工具栏显示主页按钮，请到">，这是 Chrome 的限制，只能写死在扩展里，改了导航站地址也不会跟着变。
+                要在工具栏显示主页按钮，请到</span> <a href="#" id="openAppearance"><span data-i18n="Chrome 外观设置">Chrome 外观设置</span></a> <span data-i18n="打开「显示主页按钮」。 新标签页底部那条显示扩展名和「自定义 Chrome」的页脚是 Chrome 自带的，扩展关不掉： 在页脚上右键选「在新标签页上隐藏页脚」即可。">打开「显示主页按钮」。
                 新标签页底部那条显示扩展名和「自定义 Chrome」的页脚是 Chrome 自带的，扩展关不掉：
-                在页脚上右键选「在新标签页上隐藏页脚」即可。
+                在页脚上右键选「在新标签页上隐藏页脚」即可。</span>
             </p>
         </div>
         <p class="muted hint only-firefox">
-            新标签页显示上面填的导航站，地址栏保持为空；首页固定为 <code class="homepage-url"></code>，改了导航站地址首页也不会跟着变。
-            想换回 Firefox 自带的，在地址栏输入 <code>about:preferences#home</code>，在「新窗口和标签页」里改。
-            主页按钮默认不在工具栏上，可以在工具栏上右键 →「定制工具栏」拖出来。
+            <span data-i18n="新标签页显示上面填的导航站，地址栏保持为空；首页固定为">新标签页显示上面填的导航站，地址栏保持为空；首页固定为</span> <code class="homepage-url"></code><span data-i18n="，改了导航站地址首页也不会跟着变。 想换回 Firefox 自带的，在地址栏输入">，改了导航站地址首页也不会跟着变。
+            想换回 Firefox 自带的，在地址栏输入</span> <code>about:preferences#home</code><span data-i18n="，在「新窗口和标签页」里改。 主页按钮默认不在工具栏上，可以在工具栏上右键 →「定制工具栏」拖出来。">，在「新窗口和标签页」里改。
+            主页按钮默认不在工具栏上，可以在工具栏上右键 →「定制工具栏」拖出来。</span>
         </p>
         <p class="notice" id="newTabStatus" hidden></p>
     </section>
 
     <section class="view tips">
-        <h2>用法</h2>
+        <h2><span data-i18n="用法">用法</span></h2>
         <ul>
-            <li>点工具栏图标或按 <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd>：AI 预填名称、分类、描述，确认后保存</li>
-            <li>网页或链接上点右键 →「一键收藏到皮皮2047」：直接保存，网页右上角显示进度和存进了哪个分类</li>
+            <li><span data-i18n="点工具栏图标或按">点工具栏图标或按</span> <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd><span data-i18n="：AI 预填名称、分类、描述，确认后保存">：AI 预填名称、分类、描述，确认后保存</span></li>
+            <li><span data-i18n="网页或链接上点右键 →「一键收藏到皮皮2047」：直接保存，网页右上角显示进度和存进了哪个分类">网页或链接上点右键 →「一键收藏到皮皮2047」：直接保存，网页右上角显示进度和存进了哪个分类</span></li>
         </ul>
     </section>
 

@@ -1,0 +1,14 @@
+{
+  "appName": {
+    "message": "Pipi2047 Bookmark Helper"
+  },
+  "appDescription": {
+    "message": "Save pages to Pipi2047 with AI-filled titles, categories and descriptions. Open the bookmark site in new tabs and as your homepage."
+  },
+  "actionTitle": {
+    "message": "Save to Pipi2047"
+  },
+  "saveCommand": {
+    "message": "Open bookmark popup"
+  }
+}

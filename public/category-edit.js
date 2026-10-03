@@ -16,7 +16,7 @@ function getCategoryEditItemTemplate(category) {
                 <input type="hidden" class="category-icon-input" value="${category.icon}">
                 <i class="${category.icon} category-icon"></i>
             </div>
-            <input type="text" class="category-name-input" value="${category.name}">
+            <input type="text" class="category-name-input" value="${escapeHtml(I18n.categoryName(category))}">
             <button class="category-delete-btn">
                 <i class="fas fa-times"></i>
             </button>
@@ -29,7 +29,7 @@ function getCategoryItemTemplate(category) {
     return `
         <div class="category-item" data-category="${category.id}" onclick="showCategory('${category.id}')">
             <i class="${category.icon}"></i>
-            <span>${category.name}</span>
+            <span>${escapeHtml(I18n.categoryName(category))}</span>
         </div>
     `;
 }
@@ -53,9 +53,9 @@ function enterCategoryEditMode() {
     // 更改编辑按钮
     const editBtn = document.getElementById('category-edit-btn');
     editBtn.innerHTML = '<i class="fas fa-check"></i>';
-    editBtn.title = '完成编辑（Esc）';
+    editBtn.title = I18n.t("完成编辑（Esc）");
     editBtn.onclick = saveCategoryChanges;
-    titleContainer.querySelector('.categories-title').textContent = '编辑目录';
+    titleContainer.querySelector('.categories-title').textContent = I18n.t("编辑目录");
     document.getElementById('category-done-btn').hidden = false;
 
     // 显示添加分类按钮
@@ -101,7 +101,7 @@ function saveCategoryChanges() {
         if (nameInput && iconInput) {
             updatedCategories.push({
                 id: id,
-                name: nameInput.value.trim() || `分类 ${index + 1}`,
+                name: nameInput.value.trim() || I18n.t("分类 {0}", { 0: index + 1 }),
                 icon: iconInput.value || 'fas fa-folder',
                 order: fixedCategories.length + index // 固定分类后面排序
             });
@@ -139,9 +139,9 @@ function saveCategoryChanges() {
     // 恢复编辑按钮
     const editBtn = document.getElementById('category-edit-btn');
     editBtn.innerHTML = '<i class="fas fa-edit"></i>';
-    editBtn.title = '编辑分类';
+    editBtn.title = I18n.t("编辑分类");
     editBtn.onclick = enterCategoryEditMode;
-    titleContainer.querySelector('.categories-title').textContent = '目录';
+    titleContainer.querySelector('.categories-title').textContent = I18n.t("目录");
     document.getElementById('category-done-btn').hidden = true;
 
     // 隐藏添加分类按钮
@@ -208,7 +208,7 @@ function renderCategoriesInEditMode() {
             const categoryId = categoryItem.dataset.category;
             const defaultCategories = ['pinned', 'recent', 'uncategorized'];
             if (defaultCategories.includes(categoryId)) {
-                alert('系统默认分类不能删除！');
+                alert(I18n.t("系统默认分类不能删除！"));
                 return;
             }
             
@@ -217,7 +217,7 @@ function renderCategoriesInEditMode() {
             
             // 显示分类名称
             const nameInput = categoryItem.querySelector('.category-name-input');
-            const categoryName = nameInput ? nameInput.value : '未命名分类';
+            const categoryName = nameInput ? nameInput.value : I18n.t("未命名分类");
             document.getElementById('deleteCategoryName').textContent = categoryName;
             
             // 打开确认对话框
@@ -280,7 +280,7 @@ function addNewCategory() {
     // 创建新分类对象
     const newCategory = {
         id: newId,
-        name: '新分类',
+        name: I18n.t("新分类"),
         icon: 'fas fa-folder',
         order: window.categories.length
     };
@@ -300,7 +300,7 @@ function addNewCategory() {
         
         // 显示分类名称
         const nameInput = categoryItem.querySelector('.category-name-input');
-        const categoryName = nameInput ? nameInput.value : '未命名分类';
+        const categoryName = nameInput ? nameInput.value : I18n.t("未命名分类");
         document.getElementById('deleteCategoryName').textContent = categoryName;
         
         // 打开确认对话框
@@ -340,7 +340,7 @@ function createCategoryContentSection(categoryId) {
         <section class="category-section" id="${categoryId}">
             <h2 class="section-title">
                 <i class="fas fa-folder"></i>
-                新分类
+                ${I18n.html("新分类")}
             </h2>
             <div class="cards-grid" id="${categoryId}-cards">
                 <!-- 卡片将由JavaScript动态加载 -->
@@ -645,7 +645,7 @@ function createCategoryIconModal() {
         <div class="modal-overlay" id="categoryIconModal">
             <div class="modal" style="max-width: 720px; max-height: 80vh; overflow-y: auto;">
                 <div class="modal-header">
-                    <h3 class="modal-title">选择分类图标</h3>
+                    <h3 class="modal-title">${I18n.html("选择分类图标")}</h3>
                     <button class="modal-close" onclick="closeCategoryModal('categoryIconModal')">
                         <i class="fas fa-times"></i>
                     </button>
@@ -656,17 +656,17 @@ function createCategoryIconModal() {
                         <span class="icon-selector-preview">
                             <i id="categoryIconPreview" class="fas fa-folder"></i>
                         </span>
-                        <input type="text" id="categoryIconInput" class="icon-selector-input" placeholder="选择图标..." readonly>
+                        <input type="text" id="categoryIconInput" class="icon-selector-input" placeholder="${I18n.html("选择图标...")}" readonly>
                         <button type="button" class="icon-selector-dropdown-btn" id="categoryIconSelectorBtn">
                             <i class="fas fa-chevron-down"></i>
                         </button>
                     </div>
                     <div class="icon-selector-dropdown" id="categoryIconSelectorDropdown" style="position: static; display: block; max-height: 350px; box-shadow: none; margin-top: 0.5rem; border: 1px solid var(--border-color);">
-                        <input type="text" class="icon-selector-search" id="categoryIconSearch" placeholder="搜索图标...">
+                        <input type="text" class="icon-selector-search" id="categoryIconSearch" placeholder="${I18n.html("搜索图标...")}">
                         <div class="icon-category-tabs" id="categoryIconCategoryTabs">
-                            <div class="icon-category-tab active" data-category="regular">常规</div>
-                            <div class="icon-category-tab" data-category="solid">实心</div>
-                            <div class="icon-category-tab" data-category="brands">品牌</div>
+                            <div class="icon-category-tab active" data-category="regular">${I18n.html("常规")}</div>
+                            <div class="icon-category-tab" data-category="solid">${I18n.html("实心")}</div>
+                            <div class="icon-category-tab" data-category="brands">${I18n.html("品牌")}</div>
                         </div>
                         <div class="icon-grid" id="categoryIconGrid">
                             <!-- 图标将由JavaScript动态加载 -->
@@ -677,11 +677,11 @@ function createCategoryIconModal() {
                 <div class="form-buttons" style="margin-top: 0.5rem;">
                     <button type="button" class="btn btn-secondary" onclick="closeCategoryModal('categoryIconModal')">
                         <i class="fas fa-times"></i>
-                        取消
+                        ${I18n.html("取消")}
                     </button>
                     <button type="button" class="btn btn-primary" onclick="applyCategoryIcon()">
                         <i class="fas fa-check"></i>
-                        确认选择
+                        ${I18n.html("确认选择")}
                     </button>
                 </div>
             </div>
@@ -827,7 +827,7 @@ function renderCategoryIconGrid(icons) {
     `).join('');
     
     if (icons.length === 0) {
-        html = '<div class="icon-grid-empty">没有找到匹配的图标</div>';
+        html = `<div class="icon-grid-empty">${I18n.html("没有找到匹配的图标")}</div>`;
     }
     
     iconGrid.innerHTML = html;

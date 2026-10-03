@@ -24,7 +24,7 @@ async function apiTokensRequest(path, options = {}) {
     }
 
     if (data.needReauth) {
-        showNotification('登录状态已过期，请重新登录', 'error');
+        showNotification(I18n.t("登录状态已过期，请重新登录"), 'error');
         setTimeout(() => logout(), 2000);
     }
 
@@ -35,7 +35,7 @@ async function openApiTokens() {
     document.getElementById('userMenu').classList.remove('show');
 
     if (!authToken) {
-        showNotification('请先登录', 'error');
+        showNotification(I18n.t("请先登录"), 'error');
         return;
     }
 
@@ -50,27 +50,27 @@ async function openApiTokens() {
 
 async function loadApiTokens() {
     const list = document.getElementById('apiTokenList');
-    list.innerHTML = '<p class="api-token-empty">加载中…</p>';
+    list.innerHTML = `<p class="api-token-empty">${I18n.html("加载中…")}</p>`;
 
     try {
         const { ok, data } = await apiTokensRequest('/api/tokens');
-        if (!ok) throw new Error(data.error || '加载失败');
+        if (!ok) throw new Error(data.error || I18n.t("加载失败"));
         renderApiTokens(data.tokens || []);
     } catch (error) {
         console.error('Error loading api tokens:', error);
-        list.innerHTML = '<p class="api-token-empty">令牌列表加载失败</p>';
+        list.innerHTML = `<p class="api-token-empty">${I18n.html("令牌列表加载失败")}</p>`;
     }
 }
 
 function formatTokenTime(value) {
-    return value ? new Date(value).toLocaleString('zh-CN') : '从未使用';
+    return value ? new Date(value).toLocaleString(I18n.locale) : I18n.t("从未使用");
 }
 
 function renderApiTokens(tokens) {
     const list = document.getElementById('apiTokenList');
 
     if (tokens.length === 0) {
-        list.innerHTML = '<p class="api-token-empty">还没有令牌</p>';
+        list.innerHTML = `<p class="api-token-empty">${I18n.html("还没有令牌")}</p>`;
         return;
     }
 
@@ -82,11 +82,10 @@ function renderApiTokens(tokens) {
                     <div class="api-token-name">${escapeHtml(token.name)}</div>
                     <div class="api-token-meta">
                         <code>${escapeHtml(token.prefix)}…</code>
-                        · 创建于 ${escapeHtml(formatTokenTime(token.createdAt))}
-                        · 最后使用 ${escapeHtml(formatTokenTime(token.lastUsedAt))}
+                        ${I18n.html("· 创建于 {0} · 最后使用 {1}", { 0: formatTokenTime(token.createdAt), 1: formatTokenTime(token.lastUsedAt) })}
                     </div>
                 </div>
-                <button type="button" class="api-token-revoke" data-token-id="${escapeHtml(token.id)}">吊销</button>
+                <button type="button" class="api-token-revoke" data-token-id="${escapeHtml(token.id)}">${I18n.html("吊销")}</button>
             </div>
         `)
         .join('');
@@ -100,11 +99,11 @@ function renderApiTokens(tokens) {
 async function handleRevokeClick(button) {
     if (!button.classList.contains('confirming')) {
         button.classList.add('confirming');
-        button.textContent = '确认吊销';
+        button.textContent = I18n.t("确认吊销");
         setTimeout(() => {
             if (button.isConnected && !button.disabled) {
                 button.classList.remove('confirming');
-                button.textContent = '吊销';
+                button.textContent = I18n.t("吊销");
             }
         }, REVOKE_CONFIRM_MS);
         return;
@@ -114,12 +113,12 @@ async function handleRevokeClick(button) {
     try {
         const id = encodeURIComponent(button.dataset.tokenId);
         const { ok, data } = await apiTokensRequest(`/api/tokens/${id}`, { method: 'DELETE' });
-        if (!ok) throw new Error(data.error || '吊销失败');
-        showNotification('令牌已吊销', 'success');
+        if (!ok) throw new Error(data.error || I18n.t("吊销失败"));
+        showNotification(I18n.t("令牌已吊销"), 'success');
         await loadApiTokens();
     } catch (error) {
         console.error('Error revoking api token:', error);
-        showNotification('吊销令牌失败', 'error');
+        showNotification(I18n.t("吊销令牌失败"), 'error');
         button.disabled = false;
     }
 }
@@ -136,7 +135,7 @@ async function createApiToken() {
         });
 
         if (!ok) {
-            showNotification(status === 409 ? '令牌数量已达上限，请先吊销不用的令牌' : '生成令牌失败', 'error');
+            showNotification(status === 409 ? I18n.t("令牌数量已达上限，请先吊销不用的令牌") : I18n.t("生成令牌失败"), 'error');
             return;
         }
 
@@ -146,7 +145,7 @@ async function createApiToken() {
         await loadApiTokens();
     } catch (error) {
         console.error('Error creating api token:', error);
-        showNotification('生成令牌失败', 'error');
+        showNotification(I18n.t("生成令牌失败"), 'error');
     } finally {
         createBtn.disabled = false;
     }
@@ -158,7 +157,7 @@ async function copyNewApiToken() {
 
     try {
         await navigator.clipboard.writeText(value);
-        showNotification('令牌已复制', 'success');
+        showNotification(I18n.t("令牌已复制"), 'success');
     } catch {
         // 剪贴板不可用时选中文本，让用户手动复制
         const range = document.createRange();
@@ -166,6 +165,6 @@ async function copyNewApiToken() {
         const selection = window.getSelection();
         selection.removeAllRanges();
         selection.addRange(range);
-        showNotification('请按 Ctrl/Cmd+C 复制', 'info');
+        showNotification(I18n.t("请按 Ctrl/Cmd+C 复制"), 'info');
     }
 }

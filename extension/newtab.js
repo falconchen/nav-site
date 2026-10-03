@@ -1,3 +1,4 @@
+import { I18n } from './lib/i18n.js';
 /**
  * 新标签页：显示导航站
  *

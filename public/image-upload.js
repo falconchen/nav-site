@@ -64,7 +64,7 @@ async function loadImageSource(file) {
         const img = await new Promise((resolve, reject) => {
             const image = new Image();
             image.onload = () => resolve(image);
-            image.onerror = () => reject(new Error('图片加载失败'));
+            image.onerror = () => reject(new Error(I18n.t("图片加载失败")));
             image.src = objectUrl;
         });
 
@@ -99,7 +99,7 @@ async function compressImageToWebp(file, options = {}) {
     const fallback = (reason) => {
         if (!directUploadOk) {
             // 典型是 SVG：服务端不收，又转不出 WebP，只能明确报错
-            throw new Error(`${reason}，且 ${file.type || '该格式'} 不支持直接上传`);
+            throw new Error(I18n.t("{0}，且 {1} 不支持直接上传", { 0: reason, 1: file.type || I18n.t("该格式") }));
         }
         return { blob: file, filename: file.name || 'icon' };
     };
@@ -109,7 +109,7 @@ async function compressImageToWebp(file, options = {}) {
         image = await loadImageSource(file);
     } catch (error) {
         console.warn('图片解码失败:', error);
-        return fallback('图片解码失败');
+        return fallback(I18n.t("图片解码失败"));
     }
 
     try {
@@ -129,7 +129,7 @@ async function compressImageToWebp(file, options = {}) {
         // toBlob 返回 null 说明浏览器不支持 WebP 编码
         if (!blob) {
             console.warn('当前浏览器不支持 WebP 编码');
-            return fallback('当前浏览器不支持 WebP 编码');
+            return fallback(I18n.t("当前浏览器不支持 WebP 编码"));
         }
 
         // 原图本来就很小时压缩可能适得其反。
@@ -144,7 +144,7 @@ async function compressImageToWebp(file, options = {}) {
     } catch (error) {
         if (!directUploadOk) throw error;
         console.warn('图片压缩失败，上传原文件:', error);
-        return fallback('图片压缩失败');
+        return fallback(I18n.t("图片压缩失败"));
     } finally {
         image.close();
     }
@@ -159,7 +159,7 @@ function readFileAsDataUrl(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = (e) => resolve(e.target.result);
-        reader.onerror = () => reject(new Error('读取文件失败'));
+        reader.onerror = () => reject(new Error(I18n.t("读取文件失败")));
         reader.readAsDataURL(file);
     });
 }
@@ -174,7 +174,7 @@ function readFileAsDataUrl(file) {
  */
 async function uploadIconFile(file) {
     if (file.size > MAX_ICON_BYTES) {
-        throw new Error('图片超过 5MB 上限');
+        throw new Error(I18n.t("图片超过 5MB 上限"));
     }
 
     const { blob, filename } = await compressImageToWebp(file);
@@ -190,13 +190,13 @@ async function uploadIconFile(file) {
 
         const data = await response.json();
         if (!response.ok || !data.success || !data.url) {
-            throw new Error(data.error || `服务返回 ${response.status}`);
+            throw new Error(I18n.t(data.error || I18n.t("服务返回 {0}", { 0: response.status })));
         }
 
         return { url: data.url, fallback: false };
     } catch (error) {
         console.error('图床上传失败，降级为本地图片:', error);
-        showNotification('图床上传失败，已临时存为本地图片', 'error');
+        showNotification(I18n.t("图床上传失败，已临时存为本地图片"), 'error');
         return { url: await readFileAsDataUrl(blob), fallback: true };
     }
 }
@@ -220,7 +220,7 @@ async function uploadIconFile(file) {
 async function uploadIconFromUrl(remoteUrl) {
     const response = await fetch(`/api/proxy-image?url=${encodeURIComponent(remoteUrl)}`);
     if (!response.ok) {
-        throw new Error(`获取图标失败（${response.status}）`);
+        throw new Error(I18n.t("获取图标失败（{0}）", { 0: response.status }));
     }
 
     const blob = await response.blob();

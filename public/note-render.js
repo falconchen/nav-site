@@ -75,15 +75,14 @@
         const time = new Date(value).getTime();
         if (Number.isNaN(time)) return '';
         const minutes = Math.floor((now - time) / 60000);
-        if (minutes < 1) return '刚刚';
-        if (minutes < 60) return `${minutes} 分钟前`;
+        if (minutes < 1) return I18n.t("刚刚");
+        if (minutes < 60) return I18n.relativeTime(-minutes, 'minute');
         const hours = Math.floor(minutes / 60);
-        if (hours < 24) return `${hours} 小时前`;
+        if (hours < 24) return I18n.relativeTime(-hours, 'hour');
         const days = Math.floor(hours / 24);
-        if (days < 30) return `${days} 天前`;
+        if (days < 30) return I18n.relativeTime(-days, 'day');
         const date = new Date(time);
-        const pad = number => String(number).padStart(2, '0');
-        return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+        return new Intl.DateTimeFormat(I18n.locale).format(date);
     }
 
     globalThis.NoteRender = { renderNoteContent, renderPlain, formatNoteTime };

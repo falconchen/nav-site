@@ -15,7 +15,7 @@ function syncThemeControls() {
     if (themeIcon) themeIcon.className = icon;
     document.querySelectorAll('.theme-menu-item').forEach(item => {
         item.querySelector('i').className = icon;
-        item.querySelector('.theme-menu-label').textContent = dark ? '浅色模式' : '深色模式';
+        item.querySelector('.theme-menu-label').textContent = dark ? I18n.t("浅色模式") : I18n.t("深色模式");
     });
 }
 
@@ -113,7 +113,7 @@ function toggleCategoriesMode() {
 
     // 检查当前是否处于编辑模式，如果是则不允许切换
     if (sidebar.classList.contains('editing')) {
-        alert('请先退出编辑模式');
+        alert(I18n.t("请先退出编辑模式"));
         return;
     }
 
@@ -272,7 +272,7 @@ function createCardHTML(website) {
 
     return `
         <div class="website-card ${pinnedClass} ${privateClass} ${descHiddenClass}" data-weight="${weight}">
-            <button class="card-pin-btn" title="取消特别关注" aria-label="取消特别关注"><i class="fas fa-star"></i></button>
+            <button class="card-pin-btn" title="${I18n.html("取消特别关注")}" aria-label="${I18n.html("取消特别关注")}"><i class="fas fa-star"></i></button>
             <div class="card-header">
                 <div class="card-icon ${withImgClass}">
                     ${iconContent}
@@ -283,10 +283,10 @@ function createCardHTML(website) {
                 </div>
             </div>
             ${hasSecretDescription(website)
-                ? `<div class="card-description card-secret" title="点击查看描述">${SECRET_DESCRIPTION_MASK}</div>`
+                ? `<div class="card-description card-secret" title="${I18n.html("点击查看描述")}">${SECRET_DESCRIPTION_MASK}</div>`
                 : `<div class="card-description">${escapeHtml(website.description)}</div>`}
             <div class="card-footer">
-                <button class="card-menu-btn" aria-label="菜单">
+                <button class="card-menu-btn" aria-label="${I18n.html("菜单")}">
                     <i class="fas fa-minus"></i>
                 </button>
             </div>
@@ -297,7 +297,7 @@ function createCardHTML(website) {
 // 「隐藏描述」的网站，描述里记着账号密码，默认只渲染占位符，
 // 真实文本登记在 secretDescriptions（按卡片元素），点击后才填进 DOM。
 // 私密网站不走这套：和隐藏描述互斥，描述照常显示，只跟着卡片一起模糊
-const SECRET_DESCRIPTION_MASK = '•••••• 点击查看';
+const SECRET_DESCRIPTION_MASK = I18n.t("•••••• 点击查看");
 const secretDescriptions = new WeakMap();
 
 function hasSecretDescription(website) {
@@ -322,7 +322,7 @@ function toggleSecretDescription(card) {
     if (!description) return;
     const revealed = description.classList.toggle('revealed');
     description.textContent = revealed
-        ? (secretDescriptions.get(card) || '（无描述）')
+        ? (secretDescriptions.get(card) || I18n.t("（无描述）"))
         : SECRET_DESCRIPTION_MASK;
     notifyPrivateCardChange(card);
 }
@@ -352,7 +352,7 @@ function updatePrivateRevealAllBtn() {
     if (!btn) return;
     // 文字始终是「显示全部」，打开状态靠 aria-pressed 和朱砂色描边表示
     btn.setAttribute('aria-pressed', String(privateAllRevealed));
-    btn.title = privateAllRevealed ? '重新模糊全部网站' : '显示全部网站';
+    btn.title = privateAllRevealed ? I18n.t("重新模糊全部网站") : I18n.t("显示全部网站");
 }
 
 // 离开私密收藏分区时恢复模糊，描述也收起；重新渲染出来的卡片本来就是模糊的
@@ -489,7 +489,7 @@ function renderCategorySections(categories) {
             <section class="category-section" id="${category.id}">
                 <h2 class="section-title">
                     <i class="${category.icon}"></i>
-                    ${category.name}
+                    ${escapeHtml(I18n.categoryName(category))}
                 </h2>
                 <div class="cards-grid" id="${category.id}-cards">
                     <!-- 卡片将由JavaScript动态加载 -->
@@ -514,7 +514,7 @@ function createCategoryContentSection(categoryId) {
         <section class="category-section" id="${category.id}">
             <h2 class="section-title">
                 <i class="${category.icon}"></i>
-                ${category.name}
+                ${escapeHtml(I18n.categoryName(category))}
             </h2>
             <div class="cards-grid" id="${category.id}-cards">
                 <!-- 卡片将由JavaScript动态加载 -->
@@ -564,7 +564,7 @@ function updateCategorySections(updatedCategories) {
             // 更新现有section的标题和图标
             const titleElement = existingSection.querySelector('.section-title');
             if (titleElement) {
-                titleElement.innerHTML = `<i class="${category.icon}"></i> ${category.name}`;
+                titleElement.innerHTML = `<i class="${category.icon}"></i> ${escapeHtml(I18n.categoryName(category))}`;
             }
         }
     });
@@ -587,7 +587,7 @@ function updateCategorySections(updatedCategories) {
 function openAddWebsiteModal() {
     document.getElementById('websiteForm').reset();
     syncPrivateCheckbox();
-    document.getElementById('modalTitle').textContent = '添加网站';
+    document.getElementById('modalTitle').textContent = I18n.t("添加网站");
     currentEditingCard = null;
 
     // 清空图片数据
@@ -670,11 +670,11 @@ function handleAddUrlParam() {
 
     const url = parseHttpUrl(raw);
     if (!url) {
-        showNotification('链接里的网址无效', 'error');
+        showNotification(I18n.t("链接里的网址无效"), 'error');
         return;
     }
     if (isUrlCollected(url)) {
-        showNotification('这个网址已经收录过了', 'info');
+        showNotification(I18n.t("这个网址已经收录过了"), 'info');
         return;
     }
     openAddWebsiteWithUrl(url);
@@ -685,7 +685,7 @@ let websiteToDelete = null;
 
 function deleteWebsite(card) {
     const websiteName = card.querySelector('.card-title').textContent;
-    document.getElementById('deleteWebsiteName').textContent = `「${websiteName}」删除后无法恢复。`;
+    document.getElementById('deleteWebsiteName').textContent = I18n.t("「{0}」删除后无法恢复。", { 0: websiteName });
     websiteToDelete = card;
     openModal('deleteConfirmModal');
 }
@@ -955,7 +955,7 @@ function editWebsite(card) {
     }
 
     // 更新模态框标题和按钮
-    document.getElementById('modalTitle').textContent = '编辑网站';
+    document.getElementById('modalTitle').textContent = I18n.t("编辑网站");
 
     // 标记当前编辑的卡片
     currentEditingCard = card;
@@ -990,7 +990,7 @@ function submitWebsiteForm() {
     const imageData = document.getElementById('websiteIcon').dataset.imageData || '';
 
     if (!name || !url || !category) {
-        alert('请填写所有必填字段');
+        alert(I18n.t("请填写所有必填字段"));
         return;
     }
 
@@ -1519,7 +1519,7 @@ function createWebsiteCard(name, url, description, category, iconUrl, isPinned) 
 
     const cardHTML = `
         <div class="website-card ${pinnedClass}" style="animation: fadeIn 0.5s ease-out" data-weight="${weight}">
-            <button class="card-pin-btn" title="取消特别关注" aria-label="取消特别关注"><i class="fas fa-star"></i></button>
+            <button class="card-pin-btn" title="${I18n.html("取消特别关注")}" aria-label="${I18n.html("取消特别关注")}"><i class="fas fa-star"></i></button>
             <div class="card-header">
                 <div class="card-icon">
                     ${letterIconHTML(name, url)}
@@ -1531,7 +1531,7 @@ function createWebsiteCard(name, url, description, category, iconUrl, isPinned) 
             </div>
             <div class="card-description">${description.trimStart()}</div>
             <div class="card-footer">
-                <button class="card-menu-btn" aria-label="菜单">
+                <button class="card-menu-btn" aria-label="${I18n.html("菜单")}">
                     <i class="fas fa-minus"></i>
                 </button>
             </div>
@@ -1629,7 +1629,7 @@ function copyWebsiteUrl(card) {
         navigator.clipboard.writeText(url)
             .then(() => {
                 if (typeof showNotification === 'function') {
-                    showNotification('网址已复制到剪贴板', 'success');
+                    showNotification(I18n.t("网址已复制到剪贴板"), 'success');
                 }
             })
             .catch(err => {
@@ -1644,7 +1644,7 @@ function copyWebsiteUrl(card) {
 }
 
 // 传统复制方法（兼容旧浏览器）。label 用在提示里，如「网址」「描述」
-function fallbackCopyText(text, label = '网址') {
+function fallbackCopyText(text, label = I18n.t("网址")) {
     const textArea = document.createElement('textarea');
     textArea.value = text;
     textArea.style.position = 'fixed';
@@ -1658,17 +1658,17 @@ function fallbackCopyText(text, label = '网址') {
         const successful = document.execCommand('copy');
         if (successful) {
             if (typeof showNotification === 'function') {
-                showNotification(`${label}已复制到剪贴板`, 'success');
+                showNotification(I18n.t("{0}已复制到剪贴板", { 0: label }), 'success');
             }
         } else {
             if (typeof showNotification === 'function') {
-                showNotification('复制失败，请手动复制', 'error');
+                showNotification(I18n.t("复制失败，请手动复制"), 'error');
             }
         }
     } catch (err) {
         console.error('复制失败:', err);
         if (typeof showNotification === 'function') {
-            showNotification('复制失败，请手动复制', 'error');
+            showNotification(I18n.t("复制失败，请手动复制"), 'error');
         }
     }
 
@@ -1684,39 +1684,39 @@ function createContextMenu() {
     contextMenu.innerHTML = `
         <div class="context-menu-item" id="copy-url-btn">
             <i class="fas fa-copy"></i>
-            <span>复制网址</span>
+            <span>${I18n.html("复制网址")}</span>
         </div>
         <div class="context-menu-item" id="view-description-btn">
             <i class="fas fa-file-lines"></i>
-            <span>查看描述</span>
+            <span>${I18n.html("查看描述")}</span>
         </div>
         <div class="context-menu-item" id="edit-website-btn">
             <i class="fas fa-edit"></i>
-            <span>编辑网站</span>
+            <span>${I18n.html("编辑网站")}</span>
         </div>
         <div class="context-menu-item" id="toggle-pin-btn">
             <i class="fas fa-star"></i>
-            <span id="pin-action-text">特别关注</span>
+            <span id="pin-action-text">${I18n.html("特别关注")}</span>
         </div>
         <div class="context-menu-item" id="toggle-private-btn">
             <i class="fas fa-lock"></i>
-            <span id="private-action-text">设为私密</span>
+            <span id="private-action-text">${I18n.html("设为私密")}</span>
         </div>
         <div class="context-menu-item" id="toggle-hide-desc-btn">
             <i class="fas fa-eye-slash"></i>
-            <span id="hide-desc-action-text">隐藏描述</span>
+            <span id="hide-desc-action-text">${I18n.html("隐藏描述")}</span>
         </div>
         <div class="context-menu-item" id="reorder-btn">
             <i class="fas fa-up-down-left-right"></i>
-            <span>调整顺序</span>
+            <span>${I18n.html("调整顺序")}</span>
         </div>
         <div class="context-menu-item" id="remove-frequent-btn">
             <i class="fas fa-eye-slash"></i>
-            <span>从访问最多中移除</span>
+            <span>${I18n.html("从访问最多中移除")}</span>
         </div>
         <div class="context-menu-item danger" id="delete-website-btn">
             <i class="fas fa-trash"></i>
-            <span>删除网站</span>
+            <span>${I18n.html("删除网站")}</span>
         </div>
     `;
 
@@ -1958,7 +1958,7 @@ function togglePrivateStatus(card) {
     }
 
     if (typeof showNotification === 'function') {
-        showNotification(site.private ? '已移入私密收藏' : '已移出私密收藏', 'success');
+        showNotification(site.private ? I18n.t("已移入私密收藏") : I18n.t("已移出私密收藏"), 'success');
     }
 }
 
@@ -1970,7 +1970,7 @@ function openDescriptionModal(card) {
         : card.querySelector('.card-description').textContent;
     document.getElementById('descriptionModalTitle').textContent = title;
     const view = document.getElementById('descriptionView');
-    view.textContent = description || '（无描述）';
+    view.textContent = description || I18n.t("（无描述）");
     view.classList.toggle('is-empty', !description);
     document.getElementById('descriptionCopyBtn').disabled = !description;
     openModal('descriptionModal');
@@ -1981,10 +1981,10 @@ function copyDescriptionText() {
     if (!text || document.getElementById('descriptionView').classList.contains('is-empty')) return;
     if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(text)
-            .then(() => showNotification?.('描述已复制到剪贴板', 'success'))
-            .catch(() => fallbackCopyText(text, '描述'));
+            .then(() => showNotification?.(I18n.t("描述已复制到剪贴板"), 'success'))
+            .catch(() => fallbackCopyText(text, I18n.t("描述")));
     } else {
-        fallbackCopyText(text, '描述');
+        fallbackCopyText(text, I18n.t("描述"));
     }
 }
 
@@ -2011,7 +2011,7 @@ function toggleHideDescription(card) {
     }
 
     if (typeof showNotification === 'function') {
-        showNotification(site.hideDescription ? '描述已隐藏' : '描述已公开显示', 'success');
+        showNotification(site.hideDescription ? I18n.t("描述已隐藏") : I18n.t("描述已公开显示"), 'success');
     }
 }
 
@@ -2063,12 +2063,12 @@ function showContextMenu(e, card) {
     // 根据卡片当前状态更新置顶/取消置顶菜单项
     const isPinned = card.classList.contains('pinned');
     const pinActionText = menu.querySelector('#pin-action-text');
-    pinActionText.textContent = isPinned ? '取消特别关注' : '特别关注';
+    pinActionText.textContent = isPinned ? I18n.t("取消特别关注") : I18n.t("特别关注");
 
     // 私密网站不进特别关注，隐藏这一项
     const isPrivate = card.classList.contains('private-card');
     menu.querySelector('#toggle-pin-btn').style.display = isPrivate ? 'none' : '';
-    menu.querySelector('#private-action-text').textContent = isPrivate ? '取消私密' : '设为私密';
+    menu.querySelector('#private-action-text').textContent = isPrivate ? I18n.t("取消私密") : I18n.t("设为私密");
 
     // 「查看描述」：隐藏描述的网站始终有；压缩视图和手机宫格卡片上不显示描述，也靠它看。
     // 私密卡片还模糊着时不给，只有「显示全部」能让它变清晰。隐藏描述的开关只对非私密网站有意义
@@ -2079,7 +2079,7 @@ function showContextMenu(e, card) {
     menu.querySelector('#view-description-btn').style.display = canViewDescription ? '' : 'none';
     menu.querySelector('#toggle-hide-desc-btn').style.display = isPrivate ? 'none' : '';
     menu.querySelector('#hide-desc-action-text').textContent =
-        card.classList.contains('desc-hidden-card') ? '显示描述' : '隐藏描述';
+        card.classList.contains('desc-hidden-card') ? I18n.t("显示描述") : I18n.t("隐藏描述");
 
     // 「从访问最多中移除」只在访问最多视图里出现
     const sectionId = card.closest('.category-section')?.id;
@@ -2392,7 +2392,7 @@ function handleCardClick(e) {
     // 模糊着的私密卡片点了不打开（中键也一样），悬停、单击都不会让它变清晰，免得误触；
     // 只有工具栏「显示全部」之后才能点开
     if (this.classList.contains('private-card') && !this.classList.contains('revealed')) {
-        if (typeof showNotification === 'function') showNotification('先点「显示全部」再打开', 'info');
+        if (typeof showNotification === 'function') showNotification(I18n.t("先点「显示全部」再打开"), 'info');
         return;
     }
 
@@ -2470,13 +2470,13 @@ function setIconRowState(state, tileHTML, hintHTML) {
 // 渲染「已有图片」状态
 function renderUploadedIconPreview(imageSrc) {
     setIconRowState('image',
-        `<img src="${escapeHtml(imageSrc)}" alt="网站图标">`,
-        '已上传图床 · 点击图标更换 · <button type="button" class="icon-link delete-image-btn">改用首字图标</button>');
+        `<img src="${escapeHtml(imageSrc)}" alt="${I18n.html("网站图标")}">`,
+        `${I18n.html("已上传图床 · 点击图标更换 ·")} <button type="button" class="icon-link delete-image-btn">${I18n.html("改用首字图标")}</button>`);
 }
 
 // 渲染「上传中」状态
 function renderIconUploadingState() {
-    setIconRowState('uploading', '<i class="fas fa-spinner fa-spin"></i>', '正在上传图标…');
+    setIconRowState('uploading', '<i class="fas fa-spinner fa-spin"></i>', I18n.t("正在上传图标…"));
 }
 
 // 把表单的图标设置为一张图片。imageSrc 是图床 URL（降级时才是 base64）
@@ -2487,7 +2487,7 @@ function applyUploadedIcon(imageSrc) {
 
 async function handleFileUpload(file) {
     if (!file.type.startsWith('image/')) {
-        alert('请上传图片文件');
+        alert(I18n.t("请上传图片文件"));
         return;
     }
 
@@ -2500,7 +2500,7 @@ async function handleFileUpload(file) {
         applyUploadedIcon(url);
     } catch (error) {
         console.error('图标上传失败:', error);
-        showNotification('图标上传失败: ' + error.message, 'error');
+        showNotification(I18n.t("图标上传失败: ") + error.message, 'error');
         resetIconUpload();
     }
 }
@@ -2513,7 +2513,7 @@ function deleteUploadedImage() {
 
 // 没有图片时显示首字图标，保存后卡片上就是这个样子
 function resetIconUpload() {
-    setIconRowState('letter', '', '点击或拖入图片替换图标');
+    setIconRowState('letter', '', I18n.t("点击或拖入图片替换图标"));
     refreshLetterIconPreview();
 }
 
@@ -2720,8 +2720,8 @@ function renderCategorySheet() {
         sheet.id = 'categorySheet';
         sheet.className = 'category-sheet';
         sheet.setAttribute('role', 'dialog');
-        sheet.setAttribute('aria-label', '目录');
-        sheet.innerHTML = '<div class="category-sheet-title">目录</div><div class="category-sheet-list"></div>';
+        sheet.setAttribute('aria-label', I18n.t("目录"));
+        sheet.innerHTML = `<div class="category-sheet-title">${I18n.html("目录")}</div><div class="category-sheet-list"></div>`;
         document.body.appendChild(sheet);
 
         // 点遮罩（弹层以外的地方）关闭
@@ -2742,7 +2742,7 @@ function renderCategorySheet() {
         item.className = 'mobile-category-item';
         item.dataset.category = cat.id;
         const name = document.createElement('span');
-        name.textContent = cat.name;
+        name.textContent = I18n.categoryName(cat);
         item.appendChild(name);
         item.onclick = () => {
             closeCategorySheet();
@@ -2788,7 +2788,7 @@ function updateCategoryDropdown() {
 
         const option = document.createElement('option');
         option.value = category.id;
-        option.textContent = category.name;
+        option.textContent = I18n.categoryName(category);
         categorySelect.appendChild(option);
     });
 
@@ -2977,14 +2977,14 @@ function setupAIDetection() {
 
         // 名称、描述、分类、图片都填好了就没什么可补的，不白跑一次抓取和 AI
         if (!Object.values(getAIFillNeeds()).some(Boolean)) {
-            showNotification('名称、描述、分类和图片都已填写，AI 识别只会补全空着的项', 'info');
+            showNotification(I18n.t("名称、描述、分类和图片都已填写，AI 识别只会补全空着的项"), 'info');
             return;
         }
 
         // 显示加载状态
         aiDetectBtn.disabled = true;
         aiDetectBtn.classList.add('loading');
-        aiDetectBtn.innerHTML = '<span class="ai-loading"></span> 识别中...';
+        aiDetectBtn.innerHTML = `<span class="ai-loading"></span> ${I18n.html("识别中...")}`;
 
         try {
             // 获取所有可用分类，并带上每个分类下已收录的站点作为样例。
@@ -3028,7 +3028,7 @@ function setupAIDetection() {
                     fillFormFromDomainHistory(url, errorData.error);
                     return;
                 }
-                throw new Error(errorData?.error || `网站分析请求失败（HTTP ${response.status}）`);
+                throw new Error(I18n.t(errorData?.error || I18n.t("网站分析请求失败（HTTP {0}）", { 0: response.status })));
             }
 
             const data = await response.json();
@@ -3038,12 +3038,12 @@ function setupAIDetection() {
             fillFormWithAIData(data);
         } catch (error) {
             console.error('AI识别错误:', error);
-            alert('网站识别失败: ' + error.message);
+            alert(I18n.t("网站识别失败: ") + error.message);
         } finally {
             // 恢复按钮状态
             aiDetectBtn.disabled = false;
             aiDetectBtn.classList.remove('loading');
-            aiDetectBtn.innerHTML = '<i class="fas fa-wand-magic-sparkles"></i> 自动填写';
+            aiDetectBtn.innerHTML = `<i class="fas fa-wand-magic-sparkles"></i> ${I18n.html("自动填写")}`;
         }
     });
 }
@@ -3093,7 +3093,7 @@ function fillFormFromDomainHistory(url, reason) {
     if (bestIndex >= 0 && needs.category) {
         categorySelect.selectedIndex = bestIndex;
         categorySelect.options[bestIndex].setAttribute('selected', 'selected');
-        filled.push('分类');
+        filled.push(I18n.t("分类"));
     }
 
     // 图标取同分类里第一个有自定义图片的，没有就留给首字图标
@@ -3101,15 +3101,15 @@ function fillFormFromDomainHistory(url, reason) {
         const withImage = bestSites.find(site => site.imageData);
         if (withImage) {
             applyUploadedIcon(withImage.imageData);
-            filled.push('图标');
+            filled.push(I18n.t("图标"));
         }
     }
 
     if (filled.length === 0) {
-        showNotification(`${reason}，请手动填写`, 'info');
+        showNotification(I18n.t("{0}，请手动填写", { 0: I18n.t(reason) }), 'info');
         return;
     }
-    showNotification(`${reason}，已按已收录的 ${host} 网址预填${filled.join('和')}`, 'info');
+    showNotification(I18n.t("{0}，已按已收录的 {1} 网址预填{2}", { 0: I18n.t(reason), 1: host, 2: filled.join(I18n.t("和")) }), 'info');
 }
 
 // 根据AI识别结果填充表单
@@ -3147,7 +3147,7 @@ function fillFormWithAIData(data) {
     } else {
         // 模型拿不准时不自作主张：保持分类框不动，让用户自己选。
         // 错分比不分更烦，而且静默错分用户未必会发现。
-        showNotification('AI 没能判断分类，请手动选择', 'info');
+        showNotification(I18n.t("AI 没能判断分类，请手动选择"), 'info');
     }
 
     // 设置图标：已经有图片（手动上传或原来就有）就不重新抓取上传。

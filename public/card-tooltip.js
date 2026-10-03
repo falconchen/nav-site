@@ -32,8 +32,8 @@
                 <div class="card-tooltip-description"></div>
             </div>
             <div class="card-tooltip-actions">
-                <button type="button" data-action="copy-url"><i class="fas fa-link"></i><span>复制网址</span></button>
-                <button type="button" data-action="copy-markdown"><i class="fab fa-markdown"></i><span>复制为Markdown</span></button>
+                <button type="button" data-action="copy-url"><i class="fas fa-link"></i><span>${I18n.html("复制网址")}</span></button>
+                <button type="button" data-action="copy-markdown"><i class="fab fa-markdown"></i><span>${I18n.html("复制为Markdown")}</span></button>
             </div>
         `;
         tooltip.addEventListener('click', handleActionClick);
@@ -176,7 +176,7 @@
         const icon = button.querySelector('i');
         if (!button.dataset.label) button.dataset.label = label.textContent;
         if (!button.dataset.icon) button.dataset.icon = icon.className;
-        label.textContent = '已复制';
+        label.textContent = I18n.t("已复制");
         icon.className = 'fas fa-check';
         button.classList.add('copied');
         clearTimeout(button._copiedTimer);
@@ -210,7 +210,7 @@
                     .then(() => markCopied(button))
                     .catch(() => {
                         if (typeof showNotification === 'function') {
-                            showNotification('复制失败，请手动复制', 'error');
+                            showNotification(I18n.t("复制失败，请手动复制"), 'error');
                         }
                     });
                 break;

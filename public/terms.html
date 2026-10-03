@@ -2,16 +2,18 @@
 <html lang="zh-CN" data-theme="light">
 <head>
     <meta charset="UTF-8">
+    <script src="/locales.js"></script>
+    <script src="/i18n.js"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <title>使用条款 · 皮皮2047</title>
-    <meta name="description" content="使用皮皮2047 网站、浏览器扩展和 REST API 时的约定。">
+    <title data-i18n="使用条款 · 皮皮2047">使用条款 · 皮皮2047</title>
+    <meta name="description" content="使用皮皮2047 网站、浏览器扩展和 REST API 时的约定。" data-i18n-content="使用皮皮2047 网站、浏览器扩展和 REST API 时的约定。">
     <meta name="color-scheme" content="light dark">
     <meta name="theme-color" content="#f4f2ed" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#121110" media="(prefers-color-scheme: dark)">
     <meta property="og:type" content="article">
     <meta property="og:site_name" content="皮皮2047">
-    <meta property="og:title" content="使用条款 · 皮皮2047">
-    <meta property="og:description" content="使用皮皮2047 网站、浏览器扩展和 REST API 时的约定。">
+    <meta property="og:title" content="使用条款 · 皮皮2047" data-i18n-content="使用条款 · 皮皮2047">
+    <meta property="og:description" content="使用皮皮2047 网站、浏览器扩展和 REST API 时的约定。" data-i18n-content="使用皮皮2047 网站、浏览器扩展和 REST API 时的约定。">
     <meta property="og:image" content="https://pipi2047.eu.org/img/og-cover.png">
     <meta name="twitter:card" content="summary_large_image">
     <link rel="icon" href="img/seal.svg" type="image/svg+xml">
@@ -38,11 +40,12 @@
 <body class="doc-page">
     <header class="header doc-header">
         <div class="header-container">
-            <a href="/" class="logo" aria-label="返回皮皮2047首页">
+            <a href="/" class="logo" aria-label="返回皮皮2047首页" data-i18n-aria-label="返回皮皮2047首页">
                 <span class="accent-swatch" aria-hidden="true"><span class="seal-glyph">皮</span></span>
                 <span class="brand-name">皮皮<span class="brand-num">2047</span></span>
             </a>
-            <a href="/" class="doc-back"><i class="fas fa-arrow-left"></i>返回首页</a>
+            <label class="language-control"><span data-i18n="语言">语言</span><select class="language-select" data-language-select aria-label="语言" data-i18n-aria-label="语言" title="切换语言（会刷新页面）" data-i18n-title="切换语言（会刷新页面）"><option value="zh-CN" lang="zh-CN">简体中文</option><option value="zh-TW" lang="zh-TW">繁體中文</option><option value="en" lang="en">English</option></select></label>
+            <a href="/" class="doc-back"><i class="fas fa-arrow-left"></i><span data-i18n="返回首页">返回首页</span></a>
         </div>
     </header>
 
@@ -50,75 +53,75 @@
 
         <div class="legal-header">
             <p class="doc-eyebrow">Terms</p>
-            <h1>使用条款</h1>
-            <p>使用本应用前请仔细阅读</p>
+            <h1><span data-i18n="使用条款">使用条款</span></h1>
+            <p><span data-i18n="使用本应用前请仔细阅读">使用本应用前请仔细阅读</span></p>
         </div>
 
         <div class="legal-content">
-            <p>欢迎使用皮皮2047（以下简称「本应用」）。本使用条款（以下简称「本条款」）适用于本应用的网站、浏览器扩展「皮皮2047 收藏助手」和 REST API。使用本应用即表示您同意本条款。</p>
+            <p><span data-i18n="欢迎使用皮皮2047（以下简称「本应用」）。本使用条款（以下简称「本条款」）适用于本应用的网站、浏览器扩展「皮皮2047 收藏助手」和 REST API。使用本应用即表示您同意本条款。">欢迎使用皮皮2047（以下简称「本应用」）。本使用条款（以下简称「本条款」）适用于本应用的网站、浏览器扩展「皮皮2047 收藏助手」和 REST API。使用本应用即表示您同意本条款。</span></p>
 
-            <h2>一、服务说明</h2>
-            <p>皮皮2047 是一个免费的个人网址导航工具，目前提供：</p>
+            <h2><span data-i18n="一、服务说明">一、服务说明</span></h2>
+            <p><span data-i18n="皮皮2047 是一个免费的个人网址导航工具，目前提供：">皮皮2047 是一个免费的个人网址导航工具，目前提供：</span></p>
             <ul>
-                <li>网址收藏、分类管理，以及最近添加、访问最多、特别关注、私密收藏等视图</li>
-                <li>GitHub、Google 账号登录，云端同步与历史版本</li>
-                <li>AI 识别网站标题、描述、图标和分类</li>
-                <li>适用于 Chrome 和 Firefox 的浏览器扩展</li>
-                <li>通过个人令牌访问的 REST API</li>
+                <li><span data-i18n="网址收藏、分类管理，以及最近添加、访问最多、特别关注、私密收藏等视图">网址收藏、分类管理，以及最近添加、访问最多、特别关注、私密收藏等视图</span></li>
+                <li><span data-i18n="GitHub、Google 账号登录，云端同步与历史版本">GitHub、Google 账号登录，云端同步与历史版本</span></li>
+                <li><span data-i18n="AI 识别网站标题、描述、图标和分类">AI 识别网站标题、描述、图标和分类</span></li>
+                <li><span data-i18n="适用于 Chrome 和 Firefox 的浏览器扩展">适用于 Chrome 和 Firefox 的浏览器扩展</span></li>
+                <li><span data-i18n="通过个人令牌访问的 REST API">通过个人令牌访问的 REST API</span></li>
             </ul>
 
-            <h2>二、账户与令牌安全</h2>
+            <h2><span data-i18n="二、账户与令牌安全">二、账户与令牌安全</span></h2>
             <ul>
-                <li>您应妥善保管登录所用的第三方账号，以及生成的个人令牌。</li>
-                <li>个人令牌不会过期，持有令牌的人可以读取和修改您的全部收藏。令牌泄露后请立即在「个人令牌」中吊销。</li>
-                <li>在公共设备上使用后，请退出登录。</li>
-                <li>您需对通过您的账户和令牌进行的所有操作负责。</li>
+                <li><span data-i18n="您应妥善保管登录所用的第三方账号，以及生成的个人令牌。">您应妥善保管登录所用的第三方账号，以及生成的个人令牌。</span></li>
+                <li><span data-i18n="个人令牌不会过期，持有令牌的人可以读取和修改您的全部收藏。令牌泄露后请立即在「个人令牌」中吊销。">个人令牌不会过期，持有令牌的人可以读取和修改您的全部收藏。令牌泄露后请立即在「个人令牌」中吊销。</span></li>
+                <li><span data-i18n="在公共设备上使用后，请退出登录。">在公共设备上使用后，请退出登录。</span></li>
+                <li><span data-i18n="您需对通过您的账户和令牌进行的所有操作负责。">您需对通过您的账户和令牌进行的所有操作负责。</span></li>
             </ul>
 
-            <h2>三、使用规范</h2>
-            <p>使用本应用时，您同意不会：</p>
+            <h2><span data-i18n="三、使用规范">三、使用规范</span></h2>
+            <p><span data-i18n="使用本应用时，您同意不会：">使用本应用时，您同意不会：</span></p>
             <ul>
-                <li>收藏、上传或传播违法、侵权、恶意或骚扰性内容</li>
-                <li>批量或自动化地调用 AI 识别、图标上传等接口，或试图绕过频率限制</li>
-                <li>把图标上传功能当作通用图床使用</li>
-                <li>攻击、探测或干扰本应用及其依赖的服务</li>
+                <li><span data-i18n="收藏、上传或传播违法、侵权、恶意或骚扰性内容">收藏、上传或传播违法、侵权、恶意或骚扰性内容</span></li>
+                <li><span data-i18n="批量或自动化地调用 AI 识别、图标上传等接口，或试图绕过频率限制">批量或自动化地调用 AI 识别、图标上传等接口，或试图绕过频率限制</span></li>
+                <li><span data-i18n="把图标上传功能当作通用图床使用">把图标上传功能当作通用图床使用</span></li>
+                <li><span data-i18n="攻击、探测或干扰本应用及其依赖的服务">攻击、探测或干扰本应用及其依赖的服务</span></li>
             </ul>
 
-            <h2>四、AI 识别结果</h2>
-            <p>AI 生成的标题、描述和分类建议可能不准确，仅供参考，保存前请自行核对。AI 识别需要访问您提交的网址，详见 <a href="/privacy.html">隐私政策</a>。</p>
+            <h2><span data-i18n="四、AI 识别结果">四、AI 识别结果</span></h2>
+            <p><span data-i18n="AI 生成的标题、描述和分类建议可能不准确，仅供参考，保存前请自行核对。AI 识别需要访问您提交的网址，详见">AI 生成的标题、描述和分类建议可能不准确，仅供参考，保存前请自行核对。AI 识别需要访问您提交的网址，详见</span> <a href="/privacy.html"><span data-i18n="隐私政策">隐私政策</span></a><span data-i18n="。">。</span></p>
 
-            <h2>五、您的数据</h2>
+            <h2><span data-i18n="五、您的数据">五、您的数据</span></h2>
             <ul>
-                <li>您保存的收藏内容归您所有。您授权本应用为提供服务而存储、处理和展示这些内容。</li>
-                <li>云端同步采用整份覆盖方式，在多台设备同时编辑时，较早的改动可能被覆盖。云端只保留最近 5 个历史版本。</li>
-                <li>「私密收藏」只是界面隐藏，并非加密保存。</li>
-                <li>本应用不保证数据永不丢失，请定期使用「导出数据」自行备份。</li>
+                <li><span data-i18n="您保存的收藏内容归您所有。您授权本应用为提供服务而存储、处理和展示这些内容。">您保存的收藏内容归您所有。您授权本应用为提供服务而存储、处理和展示这些内容。</span></li>
+                <li><span data-i18n="云端同步采用整份覆盖方式，在多台设备同时编辑时，较早的改动可能被覆盖。云端只保留最近 5 个历史版本。">云端同步采用整份覆盖方式，在多台设备同时编辑时，较早的改动可能被覆盖。云端只保留最近 5 个历史版本。</span></li>
+                <li><span data-i18n="「私密收藏」只是界面隐藏，并非加密保存。">「私密收藏」只是界面隐藏，并非加密保存。</span></li>
+                <li><span data-i18n="本应用不保证数据永不丢失，请定期使用「导出数据」自行备份。">本应用不保证数据永不丢失，请定期使用「导出数据」自行备份。</span></li>
             </ul>
 
-            <h2>六、知识产权</h2>
-            <p>本应用的源代码公开在 <a href="https://github.com/falconchen/nav-site" target="_blank" rel="noopener">GitHub</a>。收藏中出现的网站名称、图标和商标归其各自所有者所有。</p>
+            <h2><span data-i18n="六、知识产权">六、知识产权</span></h2>
+            <p><span data-i18n="本应用的源代码公开在">本应用的源代码公开在</span> <a href="https://github.com/falconchen/nav-site" target="_blank" rel="noopener">GitHub</a><span data-i18n="。收藏中出现的网站名称、图标和商标归其各自所有者所有。">。收藏中出现的网站名称、图标和商标归其各自所有者所有。</span></p>
 
-            <h2>七、免责声明</h2>
-            <p>本应用按「现状」免费提供，不对服务的持续可用性、准确性或适用于特定用途作任何保证。对于因使用或无法使用本应用造成的任何间接损失，包括数据丢失，我们不承担责任。</p>
-            <p>收藏中的网址指向第三方网站，我们不对这些网站的内容、安全性或隐私做法负责。</p>
+            <h2><span data-i18n="七、免责声明">七、免责声明</span></h2>
+            <p><span data-i18n="本应用按「现状」免费提供，不对服务的持续可用性、准确性或适用于特定用途作任何保证。对于因使用或无法使用本应用造成的任何间接损失，包括数据丢失，我们不承担责任。">本应用按「现状」免费提供，不对服务的持续可用性、准确性或适用于特定用途作任何保证。对于因使用或无法使用本应用造成的任何间接损失，包括数据丢失，我们不承担责任。</span></p>
+            <p><span data-i18n="收藏中的网址指向第三方网站，我们不对这些网站的内容、安全性或隐私做法负责。">收藏中的网址指向第三方网站，我们不对这些网站的内容、安全性或隐私做法负责。</span></p>
 
-            <h2>八、服务变更与终止</h2>
-            <p>我们可能调整、暂停或停止部分或全部功能，重大变更会尽量提前在网站上告知，并尽可能留出导出数据的时间。如果您违反本条款，我们可以暂停或终止您的账户及个人令牌。</p>
+            <h2><span data-i18n="八、服务变更与终止">八、服务变更与终止</span></h2>
+            <p><span data-i18n="我们可能调整、暂停或停止部分或全部功能，重大变更会尽量提前在网站上告知，并尽可能留出导出数据的时间。如果您违反本条款，我们可以暂停或终止您的账户及个人令牌。">我们可能调整、暂停或停止部分或全部功能，重大变更会尽量提前在网站上告知，并尽可能留出导出数据的时间。如果您违反本条款，我们可以暂停或终止您的账户及个人令牌。</span></p>
 
-            <h2>九、未成年人</h2>
-            <p>如果您是未成年人，请在家长或监护人的同意和指导下使用本应用。</p>
+            <h2><span data-i18n="九、未成年人">九、未成年人</span></h2>
+            <p><span data-i18n="如果您是未成年人，请在家长或监护人的同意和指导下使用本应用。">如果您是未成年人，请在家长或监护人的同意和指导下使用本应用。</span></p>
 
-            <h2>十、条款变更</h2>
-            <p>本条款可能随功能变化而更新，更新后会修改本页的「最后更新日期」。更新后继续使用本应用，即表示您接受新的条款。</p>
+            <h2><span data-i18n="十、条款变更">十、条款变更</span></h2>
+            <p><span data-i18n="本条款可能随功能变化而更新，更新后会修改本页的「最后更新日期」。更新后继续使用本应用，即表示您接受新的条款。">本条款可能随功能变化而更新，更新后会修改本页的「最后更新日期」。更新后继续使用本应用，即表示您接受新的条款。</span></p>
 
-            <h2>十一、适用法律</h2>
-            <p>本条款受中华人民共和国法律管辖。因本条款产生的争议，双方应先友好协商；协商不成的，任一方可向有管辖权的人民法院提起诉讼。</p>
+            <h2><span data-i18n="十一、适用法律">十一、适用法律</span></h2>
+            <p><span data-i18n="本条款受中华人民共和国法律管辖。因本条款产生的争议，双方应先友好协商；协商不成的，任一方可向有管辖权的人民法院提起诉讼。">本条款受中华人民共和国法律管辖。因本条款产生的争议，双方应先友好协商；协商不成的，任一方可向有管辖权的人民法院提起诉讼。</span></p>
 
-            <h2>十二、联系我们</h2>
-            <p>如对本条款有任何疑问，请联系：<a href="mailto:support@pipi2047.eu.org">support@pipi2047.eu.org</a></p>
+            <h2><span data-i18n="十二、联系我们">十二、联系我们</span></h2>
+            <p><span data-i18n="如对本条款有任何疑问，请联系：">如对本条款有任何疑问，请联系：</span><a href="mailto:support@pipi2047.eu.org">support@pipi2047.eu.org</a></p>
 
             <div class="update-date">
-                最后更新日期：2026年9月26日
+                <span data-i18n="最后更新日期：2026年9月26日">最后更新日期：2026年9月26日</span>
             </div>
         </div>
     </main>

@@ -3666,6 +3666,50 @@ html[data-sidebar="compact"] .category-section {
   border-bottom: 1px solid var(--line);
 }
 
+/* 语言选择沿用页面的纸面、边框和焦点颜色。语言名称保持各自原文。 */
+.language-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink-2);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.language-select {
+  max-width: 130px;
+  min-height: 34px;
+  padding: 4px 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  color: var(--ink);
+  background: var(--field);
+  font: inherit;
+  cursor: pointer;
+}
+
+.doc-header .language-control {
+  margin-left: auto;
+}
+
+@media (max-width: 600px) {
+  .doc-header .header-container {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  .doc-header .language-control > span {
+    display: none;
+  }
+
+  .doc-header .doc-back {
+    padding: 0 4px;
+    white-space: nowrap;
+  }
+}
+
 .doc-back {
   display: inline-flex;
   align-items: center;
@@ -3941,6 +3985,23 @@ html[data-sidebar="compact"] .category-section {
 .tool-tabs .view-tab {
   height: 46px;
   cursor: pointer;
+}
+
+@media (max-width: 768px) {
+  html[lang="en"] .tool-tabs {
+    overflow-x: auto;
+  }
+
+  html[lang="en"] .tool-tabs .view-tab {
+    flex: 1 0 auto;
+    padding: 0 7px;
+    font-size: 13px;
+  }
+
+  html[lang="en"] .tool-tabs .tab-label-short {
+    overflow: visible;
+    text-overflow: clip;
+  }
 }
 
 .tool-section {

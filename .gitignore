@@ -177,6 +177,7 @@ bak
 *.json
 # 上面的 *.json 会把扩展清单也忽略掉，Chrome 加载时报「清单文件缺失」
 !extension/manifest.json
+!extension/_locales/**/messages.json
 
 # 扩展打包产物
 nav-site-extension.zip

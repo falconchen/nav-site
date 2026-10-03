@@ -30,6 +30,7 @@
 
 - 「纸与墨」视觉风格：暖白纸面、墨色文字、宋体标题
 - 深浅色主题（默认跟随系统），四种强调色（点击印章切换）
+- 简体中文、繁体中文、英语界面，首次跟随浏览器语言；网站页脚/页眉和扩展设置可手动选择，偏好保存在本机
 
 ## 浏览器扩展
 
@@ -101,6 +102,7 @@ npm run build        # 构建到 dist/
 ## 文档
 
 - [功能待办](doc/TODO.md)
+- [多语言界面与翻译维护](doc/I18N.md)
 - [REST API v1](doc/REST_API.md)、[测试记录](doc/REST_API_TESTING.md)
 - [登录配置](doc/AUTH_SETUP.md)、[快速配置](doc/QUICK_SETUP.md)
 - [环境变量](doc/ENV_VARIABLES_GUIDE.md)、[环境隔离](doc/ENVIRONMENT_ISOLATION_GUIDE.md)、[安全配置](doc/SECURITY_CONFIG_GUIDE.md)

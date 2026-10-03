@@ -159,10 +159,10 @@ function renderTabOrderList() {
             <li class="tab-order-item" data-tab="${tab}">
                 <i class="${icon}"></i>
                 <span>${label}</span>
-                <button type="button" class="tab-order-move" data-move="-1" aria-label="上移${label}" ${index === 0 ? 'disabled' : ''}>
+                <button type="button" class="tab-order-move" data-move="-1" aria-label="${I18n.html("上移{0}", { 0: label })}" ${index === 0 ? 'disabled' : ''}>
                     <i class="fas fa-arrow-up"></i>
                 </button>
-                <button type="button" class="tab-order-move" data-move="1" aria-label="下移${label}" ${index === order.length - 1 ? 'disabled' : ''}>
+                <button type="button" class="tab-order-move" data-move="1" aria-label="${I18n.html("下移{0}", { 0: label })}" ${index === order.length - 1 ? 'disabled' : ''}>
                     <i class="fas fa-arrow-down"></i>
                 </button>
             </li>
