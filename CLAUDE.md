@@ -25,7 +25,7 @@
 - **存储**: Upstash Redis（REST）存收藏数据、版本历史、用户档案、记事本和访问统计；Cloudflare KV 存登录会话、个人令牌、限流计数和图床去重
 - **AI**: Cloudflare AI 绑定用于网站分析
 - **构建**: esbuild 用于压缩，html-minifier-terser 用于 HTML
-- **测试**: Vitest + @cloudflare/vitest-pool-workers
+- **测试**: Vitest 4 + @cloudflare/vitest-plugin（`vitest.config.mjs` 使用 `cloudflareTest()` 插件）
 
 ### 核心组件
 
@@ -366,6 +366,8 @@ v2ex 这类站点会间歇性开 Cloudflare 质询，Worker 抓取拿到 403。�
 6. 在 HTML 中添加构建时间注释
 
 ## 开发命令
+
+需要 Node.js >= 22.12.0，建议 22 或 24 LTS；使用 `npm ci` 按锁文件安装。Wrangler 升级及验证方式见 `doc/cloudflare-worker-notes.md`。
 
 ```bash
 # 首先进入 nav-site 目录
