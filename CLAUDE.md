@@ -22,7 +22,7 @@
 
 - **运行时**: Cloudflare Workers + Hono 框架
 - **前端**: 原生 JavaScript（无框架）、HTML5、CSS3
-- **存储**: Upstash Redis（REST）存收藏数据、版本历史、用户档案和记事本；Cloudflare KV 存登录会话、个人令牌、限流计数和图床去重
+- **存储**: Upstash Redis（REST）存收藏数据、版本历史、用户档案、记事本和访问统计；Cloudflare KV 存登录会话、个人令牌、限流计数和图床去重
 - **AI**: Cloudflare AI 绑定用于网站分析
 - **构建**: esbuild 用于压缩，html-minifier-terser 用于 HTML
 - **测试**: Vitest + @cloudflare/vitest-pool-workers
@@ -46,6 +46,8 @@
 - `server/lib/rate-limit.js` - 按 IP 的固定窗口限流（图床上传与 AI 识别共用）
 - `server/api/notes.js` - 记事本接口（只接受网页登录 JWT）和公开记事的只读接口
 - `server/lib/notes-store.js` - 记事本的存储与校验（Redis）
+- `server/api/visits.js` - 访问统计同步接口（只接受网页登录 JWT）
+- `server/lib/visits-store.js` - 访问统计的云端存储与合并规则（Redis）
 - `server/lib/redis.js` - Upstash Redis 的 get / set / del 薄封装，失败抛 `RedisError`
 
 **前端 (`public/`)：**
@@ -62,7 +64,7 @@
 - `public/image-upload.js` - 图标压缩转 WebP 并上传图床
 - `public/utils.js` - 共享工具函数
 - `public/view-tabs.js` - 顶部视图 tab（最近添加 / 访问最多 / 特别关注 / 全部网站）切换与移动端左右滑动手势
-- `public/visit-stats.js` - 访问统计（只存本机），给「访问最多」排序
+- `public/visit-stats.js` - 访问统计，给「访问最多」排序；登录后经 `/api/visits` 多端同步
 - `public/tools.html` + `public/tools.js` - 独立的「常用工具」页（Base64、密码生成器、UUID、URL 编码、二维码）
 - `public/notes.html` + `public/notes.js` - 独立的「记事本」页（列表、查看、编辑、文件夹、公开发布）
 - `public/note-public.html` + `public/note-public.js` - 公开发布的记事的只读页，网址是 `/n/<公开 id>`
@@ -78,8 +80,9 @@
 - 「特别关注」就是原来的「置顶」（中间一度叫「特别收藏」），只改了界面名称和图标（黄色星星）；数据字段、DOM id、`data-tab` 取值、API 参数仍叫 `pinned`
 - 访问最多：点击卡片（含中键）时 `recordVisit()` 记一次，按 frecency 排序取前 60 个（`FREQUENT_LIMIT`）。
   得分 = 次数 × 最近 10 次访问的平均权重（≤4 天 100、≤14 天 70、≤31 天 50、≤90 天 30、更早 10）。
-  数据**只存本机** IndexedDB（`navSiteVisits`，按与服务端 `urlKey()` 相同的规则归一化网址），不走 `saveNavData`：
-  同步是整份覆盖，多设备次数会互相覆盖，且每次点击都会冲掉只保留 5 份的版本历史。
+  本机数据在 IndexedDB（`navSiteVisits`，按与服务端 `urlKey()` 相同的规则归一化网址），**不走 `saveNavData`**：
+  收藏的同步是整份覆盖，多设备次数会互相覆盖，且每次点击都会冲掉只保留 5 份的版本历史。
+  登录后走单独的通道多端同步，见下面「访问统计同步」；未登录只存本机。
   点击后不立即重排，切到该 tab 或页面重新可见时再渲染；右键「从访问最多中移除」清掉该网址的记录
 - 特别关注、最近添加、访问最多都**不是分类**，是从数据派生的视图：置顶取 `website.pinned === true`，
   最近添加按 `addedTime` 倒序取前 60 个（`RECENT_LIMIT`，1～5 的最小公倍数，每行 3/4/5 张时最后一行都满）
@@ -122,6 +125,28 @@
   - `highlightSearchResults()` 拼 HTML 前一律 `escapeHtml`、关键词转义成正则字面量：标题可能是扩展抓的网页标题，不可信
   - 分类 section 跳过私密网站后 DOM 下标和数据下标对不上，按卡片找数据一律用 `siteIndexOfCard()`，不要再写 `children.indexOf(card)`
 
+### 访问统计同步
+
+登录后「访问最多」的次数和固定位置多端同步，走 `/api/visits`（`server/api/visits.js` + `server/lib/visits-store.js`），
+和收藏数据完全分开：不进 `saveNavData`、版本历史、导出文件和 `/api/v1`，只接受网页登录 JWT，写接口按用户限流 120 次/分钟。
+
+- **增量上报、服务端合并，不是覆盖**：设备只上报上次同步之后新增的访问（`{ delta: { 网址: { count, visits } }, removed, pins }`），
+  服务端把次数相加、访问时间合并去重留最近 10 个，返回合并后的整份，本机用它替换再叠上请求期间新攒的增量。不要改成上传整份
+- Redis key `visits:<userId>`（不能用 `user:` 开头），读写走 `redis.js`，读失败返回 503、不写回。
+  读-改-写不是原子的，两台设备同一瞬间上报可能少记一两次，可以接受
+- 「从访问最多中移除」上报移除时间，服务端留 30 天墓碑：早于它的访问丢弃（离线设备攒的旧点击不会把网址带回来），晚于它的重新计数
+- 固定位置整份按 `pinsUpdatedAt` 后改的为准（本机是 localStorage `frequentPinsUpdatedAt`）；整理模式中不套用云端的固定位置
+- 待上传的内容记在 localStorage `visitsPending`（同步写入，关页面也来得及）。发出去还没确认的那一批（`sending`）带批次号，
+  失败后原样重发，服务端记最近 20 个批次号去重，所以重发不会加两遍
+- 时机：登录校验通过后同步一次（`startVisitSync()`，`auth.js` 调用，**校验未成功前不启动**）；点卡片后页面转到后台立刻 `keepalive` 上报，
+  仍在前台的 5 秒去抖；回到前台距上次同步超过 1 分钟时拉一次；联网时重试。失败不空转重试。
+  点击之后的上报不重排卡片，打开页面、回到前台的拉取发现有变化才重渲染
+- localStorage `visitsSyncedUser` 记这台设备的统计并进了哪个账号：没有时第一次同步把本机整份当增量传上去；
+  和当前账号不同时不上传，直接用云端的替换。**退出登录不要清它**，否则同一账号再登录会把整份再加一遍
+- 新用户预置的默认次数带 `seed` 标记，不上传；云端还没有该网址时本机留着。加同步之前预置过的老设备没有这个标记，首次同步会当真实访问传上去
+- 收到 401 只停止同步、不删令牌。上限（500 个网址等）在 `visits-store.js` 的 `LIMITS`；
+  frecency 权重表前后端各有一份（服务端裁剪用），改一边要同步另一边
+
 ### 拖拽排序（整理模式）
 
 `public/card-reorder.js` + `public/vendor/Sortable.min.js`（SortableJS，本地托管，构建时原样复制到 `dist/vendor/`）。
@@ -132,7 +157,7 @@
   分类 → `weight`，特别关注 → `pinnedOrder`（没有时回退 `weight`），私密收藏 → `privateOrder`。
   特别关注不直接用 `weight`，否则在特别关注里拖动会打乱原分类里的顺序；分类第一次重新编号前 `freezePinnedOrder()` 把现有顺序固定到 `pinnedOrder` 上
 - 访问最多不改网站数据：上不上榜仍按 frecency 取前 60，**只有亲手拖过的网站固定在拖到的位置**，其余继续按得分浮动、填进剩下的位置
-  （`visit-stats.js` 的 `applyFrequentPins()`）。固定位置存本机 localStorage `frequentPins`（`{ 归一化网址: 第几位 }`），不触发 `saveNavData`、不同步。
+  （`visit-stats.js` 的 `applyFrequentPins()`）。固定位置存本机 localStorage `frequentPins`（`{ 归一化网址: 第几位 }`），不触发 `saveNavData`，登录后跟访问统计一起同步（整份按最后改的为准）。
   每次拖动只固定被拖的那张（`pinFrequentCard()`），已固定的若被挤了一格按现在的位置更新；掉出榜的固定记录留着，重新上榜回到原位；
   右键「从访问最多中移除」连固定记录一起删。整理模式下固定的卡片是强调色描边（`.frequent-fixed`），
   提示条多一个「恢复自动排序」（`#reorderResetBtn`）清掉全部固定
@@ -390,7 +415,7 @@ npm run deploy      # 部署到 Cloudflare Workers 生产环境
 `wrangler.jsonc` 中的关键绑定：
 - `ASSETS` - 从 public/ 或 dist/ 提供静态文件
 - `AI` - Cloudflare AI 绑定用于网站分析
-- `USER_SESSIONS` - KV 命名空间，存会话、个人令牌、限流计数、图床去重（收藏数据和记事本在 Redis）
+- `USER_SESSIONS` - KV 命名空间，存会话、个人令牌、限流计数、图床去重（收藏数据、记事本和访问统计在 Redis）
 
 ## 架构模式
 

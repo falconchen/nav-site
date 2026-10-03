@@ -18,6 +18,7 @@ import userDataApi from './api/user-data.js';
 import tokensApi from './api/tokens.js';
 import v1Api from './api/v1.js';
 import notesApi from './api/notes.js';
+import visitsApi from './api/visits.js';
 
 // 创建 Hono 应用
 const app = new Hono();
@@ -79,6 +80,7 @@ app.route('/api', userDataApi);
 app.route('/api', tokensApi);
 app.route('/api', v1Api);
 app.route('/api', notesApi);
+app.route('/api', visitsApi);
 
 // 公开发布的记事：/n/<公开 id> 都返回同一个静态页，页面自己按 id 去取内容。
 // 是用户发布的内容，不让搜索引擎收录

@@ -86,6 +86,11 @@ async function checkAuthStatus() {
                 if (typeof checkForCloudUpdates === 'function') {
                     setTimeout(() => checkForCloudUpdates(), 1000);
                 }
+
+                // 访问统计走单独的同步通道
+                if (typeof startVisitSync === 'function') {
+                    startVisitSync();
+                }
             } else if (data.valid === false) {
                 console.log('❌ Token validation failed');
                 clearTimeout(authRetryTimer);
@@ -230,6 +235,10 @@ function handleAuthMessage(event) {
             }
         }, 1000);
 
+        if (typeof startVisitSync === 'function') {
+            startVisitSync();
+        }
+
     } else if (event.data.type === 'AUTH_ERROR') {
         console.error('Auth error:', event.data.error);
         if (typeof showNotification === 'function') {
@@ -259,6 +268,9 @@ async function logout() {
     // 停止同步检测
     if (typeof stopSyncDetection === 'function') {
         stopSyncDetection();
+    }
+    if (typeof stopVisitSync === 'function') {
+        stopVisitSync();
     }
 
     try {

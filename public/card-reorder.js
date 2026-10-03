@@ -6,7 +6,7 @@
  * 前三种分区各有排序键，数值越大越靠前，拖完整个分区重新编号：
  *   分类 -> weight，特别关注 -> pinnedOrder，私密收藏 -> privateOrder
  * 访问最多不改网站数据：只有亲手拖过的网站固定在拖到的位置，其余继续按访问得分浮动，
- * 固定的位置只存本机（visit-stats.js 的 setFrequentPins）
+ * 固定的位置存本机，登录后跟访问统计一起同步（visit-stats.js 的 setFrequentPins）
  */
 
 const REORDER_TABS = ['all', 'pinned', 'private', 'frequent'];
@@ -91,7 +91,7 @@ function applyReorder(sectionId, container, evt) {
     if (sites.length !== cards.length) return;
 
     if (sectionId === 'frequent') {
-        // 只存本机，不动网站数据，所以不标 dirty、不触发云端保存。放回原位不算拖过
+        // 不动网站数据，所以不标 dirty、不触发收藏的云端保存（固定位置由 visit-stats.js 自己同步）。放回原位不算拖过
         if (evt.oldIndex !== evt.newIndex) {
             pinFrequentCard(cards, sites, evt.item);
             updateReorderResetBtn();
