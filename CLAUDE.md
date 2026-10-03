@@ -490,6 +490,8 @@ npm run deploy      # 部署到 Cloudflare Workers 生产环境
 6. 返回 HTML，通过 postMessage 发送到父窗口
 7. 前端存储 JWT，更新 UI
 
+JWT 签发与验证都固定使用 `HS256`。Hono `verify()` 的第三个算法参数必须显式传入，不能从 JWT header 推断。认证校验、登出和共享会话鉴权的回归测试见 `test/auth-jwt.spec.js`，升级记录见 `doc/JWT_CONFIG.md`。
+
 同一邮箱可绑定多个 provider（Google / GitHub）。已绑定的 provider 再次登录时，`refreshProviderProfile()`（`server/lib/oauth-profile.js`）
 用这次返回的名字和头像刷新该 provider 的记录；顶层 `name` / `avatar_url` 只在原本来自该 provider 时才跟着换，
 避免换一种方式登录头像就来回切换。资料只在登录时同步，不实时拉取。前端头像加载失败时换成站点图标。

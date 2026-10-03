@@ -462,7 +462,7 @@ async function generateAuthResponse(c, user) {
         exp: Math.floor(Date.now() / 1000) + jwtExpirationSeconds,
     };
 
-    const token = await sign(jwtPayload, c.env.JWT_SECRET);
+    const token = await sign(jwtPayload, c.env.JWT_SECRET, 'HS256');
 
     if (c.env.USER_SESSIONS) {
         const sessionKey = `user_session_${user.id}_${sessionId}`;
@@ -515,7 +515,7 @@ app.get('/auth/verify', async (c) => {
     console.log('🔐 JWT Secret available:', c.env.JWT_SECRET ? 'Yes' : 'No');
 
     try {
-        const payload = await verify(token, c.env.JWT_SECRET);
+        const payload = await verify(token, c.env.JWT_SECRET, 'HS256');
         console.log('✅ JWT verification successful, payload:', {
             userId: payload.userId,
             login: payload.login,
@@ -606,7 +606,7 @@ app.post('/auth/logout', async (c) => {
     const token = authHeader.split(' ')[1];
 
     try {
-        const payload = await verify(token, c.env.JWT_SECRET);
+        const payload = await verify(token, c.env.JWT_SECRET, 'HS256');
 
         // 从KV中删除当前session的token（如果KV可用）
         if (c.env.USER_SESSIONS && payload.sessionId) {

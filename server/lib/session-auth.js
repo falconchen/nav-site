@@ -14,7 +14,7 @@ import { verify } from 'hono/jwt';
 export async function verifySessionToken(c, token) {
     let payload;
     try {
-        payload = await verify(token, c.env.JWT_SECRET);
+        payload = await verify(token, c.env.JWT_SECRET, 'HS256');
     } catch {
         return { error: { error: 'Invalid token' } };
     }

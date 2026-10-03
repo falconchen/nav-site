@@ -106,7 +106,7 @@ git diff --check
 
 首次用 npm 10 替换旧测试依赖时遇到其依赖树解析错误 `Cannot read properties of null (reading 'edgesOut')`，本次改用本机 Node.js 24.20.0 / npm 11.19.0 生成锁文件；随后确认常用的 Node.js 22 / npm 10 可以执行 `npm ci` 和全部测试。
 
-`npm audit` 仍报告既存的 `hono@4.8.3` 为 1 个高危依赖项。本次没有升级 Hono 或改变业务代码，应另行升级 Hono 并验证 JWT、认证和路由行为；本次检查不能视为整个项目的安全审计。
+Wrangler 升级时，`npm audit` 报告既存的 `hono@4.8.3` 为 1 个高危依赖项。随后已于同日升级 Hono 到 `4.13.12` 并补齐 JWT 算法参数，依赖审计为 0 个漏洞，详见 [JWT 安全升级与验证](JWT_CONFIG.md)。
 
 ### 后续升级注意事项
 
