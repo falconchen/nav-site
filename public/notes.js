@@ -38,6 +38,7 @@
     let routeSerial = 0;
     // 当前编辑器的状态，不在编辑视图时为 null
     let editor = null;
+    let exporting = false;
 
     class ApiError extends Error {
         constructor(status, code) {
@@ -57,7 +58,7 @@
         }
     };
 
-    async function api(path, { method = 'GET', body } = {}) {
+    async function api(path, { method = 'GET', body, signal } = {}) {
         let response;
         try {
             response = await fetch(`/api/notes${path}`, {
@@ -66,7 +67,8 @@
                     'Authorization': `Bearer ${getToken()}`,
                     ...(body ? { 'Content-Type': 'application/json' } : {})
                 },
-                body: body ? JSON.stringify(body) : undefined
+                body: body ? JSON.stringify(body) : undefined,
+                signal
             });
         } catch (error) {
             throw new ApiError(0, 'NETWORK');
@@ -247,6 +249,7 @@
             <div class="notes-head">
                 <h1 class="notes-title">记事本</h1>
                 <div class="notes-head-actions">
+                    <button type="button" class="btn btn-secondary" data-action="export-notes"${exporting ? ' disabled aria-busy="true"' : ''}>${exportButtonContent()}</button>
                     <button type="button" class="btn btn-secondary" data-action="new-folder"><i class="fas fa-folder-plus"></i> 新建文件夹</button>
                     <a class="btn btn-primary" href="#/new"><i class="fas fa-plus"></i> 新建记事</a>
                 </div>
@@ -257,6 +260,136 @@
             ${notes.length ? `<ul class="notes-list">${items}</ul>` : `<p class="notes-empty">${emptyText}</p>`}`;
 
         if (folderForm) app.querySelector('.notes-folder-form input').focus();
+    }
+
+    // 导出包含所有文件夹的云端原文，不使用当前筛选或仅含元数据的列表缓存。
+    function exportButtonContent() {
+        return exporting
+            ? '<i class="fas fa-spinner fa-spin"></i> 导出中…'
+            : '<i class="fas fa-download"></i> 导出所有笔记';
+    }
+
+    function syncExportButton() {
+        const button = app.querySelector('[data-action="export-notes"]');
+        if (!button) return;
+        button.disabled = exporting;
+        button.setAttribute('aria-busy', String(exporting));
+        button.innerHTML = exportButtonContent();
+    }
+
+    function exportTime(value) {
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return '未知';
+        const pad = n => String(n).padStart(2, '0');
+        const offset = -date.getTimezoneOffset();
+        const zone = `${offset < 0 ? '-' : '+'}${pad(Math.floor(Math.abs(offset) / 60))}:${pad(Math.abs(offset) % 60)}`;
+        return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())} ${zone}`;
+    }
+
+    function exportFileName(note, usedNames) {
+        let title = String(note.title || '无标题').normalize('NFC')
+            .replace(/[<>:"/\\|?*\u0000-\u001f\u007f]/g, '_');
+        title = Array.from(title).slice(0, 50).join('').replace(/^[.\s]+|[.\s]+$/g, '') || '无标题';
+        if (/^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(title)) title = '_' + title;
+        const extension = note.syntax === 'markdown' ? '.md' : '.txt';
+        let name = title + extension;
+        let suffix = 2;
+        while (usedNames.has(name.toLowerCase())) name = `${title} (${suffix++})${extension}`;
+        usedNames.add(name.toLowerCase());
+        return name;
+    }
+
+    function exportFileContent(note, folders) {
+        const category = (folders.find(folder => folder.id === note.folderId)?.name || (note.folderId ? '未知分类' : '未归档'))
+            .replace(/\s+/g, ' ');
+        const created = exportTime(note.createdAt);
+        const updated = exportTime(note.updatedAt);
+        let lines;
+        if (note.syntax === 'markdown') {
+            // 值放进行内代码里按字面显示；分类名里有反引号时，用更长的一串反引号包住。
+            const code = text => {
+                const fence = '`'.repeat(Math.max(0, ...(text.match(/`+/g) || []).map(run => run.length)) + 1);
+                const pad = /^`|`$/.test(text) ? ' ' : '';
+                return fence + pad + text + pad + fence;
+            };
+            lines = [`- 分类：${code(category)}`, `- 添加于：${code(created)}`, `- 最后编辑：${code(updated)}`];
+        } else {
+            lines = [`分类：${category}`, `添加于：${created}`, `最后编辑：${updated}`];
+        }
+        // 分隔线前必须空一行，否则 Markdown 会把正文最后一行当成标题。
+        const separator = /(?:\r?\n){2}$/.test(note.content) ? '' : /\r?\n$/.test(note.content) ? '\n' : '\n\n';
+        return note.content + separator + '---\n' + lines.join('\n') + '\n';
+    }
+
+    async function exportNotes() {
+        if (exporting) return;
+        exporting = true;
+        syncExportButton();
+        const token = getToken();
+        const checkSession = () => {
+            if (!token || getToken() !== token) throw new Error('登录状态已变化，请重新导出');
+        };
+        const request = async path => {
+            checkSession();
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), 30000);
+            try {
+                return await api(path, { signal: controller.signal });
+            } finally {
+                clearTimeout(timer);
+            }
+        };
+        try {
+            if (typeof JSZip === 'undefined') throw new Error('ZIP 导出组件未加载，请刷新页面后重试');
+            const index = await request('');
+            if (!Array.isArray(index.notes) || !Array.isArray(index.folders)) {
+                throw new Error('笔记列表格式异常，请稍后重试');
+            }
+            const notes = [];
+            // 最多同时读取 4 条；任何一条失败都不生成部分备份。
+            for (let offset = 0; offset < index.notes.length; offset += 4) {
+                const batch = await Promise.allSettled(index.notes.slice(offset, offset + 4).map(async meta => {
+                    const { note } = await request(`/${encodeURIComponent(meta.id)}`);
+                    if (note?.id !== meta.id || typeof note.content !== 'string') {
+                        throw new Error('笔记内容格式异常，请稍后重试');
+                    }
+                    return note;
+                }));
+                const failed = batch.find(result => result.status === 'rejected');
+                if (failed) throw failed.reason;
+                notes.push(...batch.map(result => result.value));
+            }
+            checkSession();
+            const now = new Date();
+            const zip = new JSZip();
+            const usedNames = new Set();
+            for (const note of notes) {
+                const updated = new Date(note.updatedAt);
+                zip.file(exportFileName(note, usedNames), exportFileContent(note, index.folders), {
+                    date: Number.isNaN(updated.getTime()) ? now : updated
+                });
+            }
+            const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
+            checkSession();
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            const pad = value => String(value).padStart(2, '0');
+            const stamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
+            link.href = url;
+            link.download = `皮皮2047_所有笔记_${stamp}.zip`;
+            try {
+                document.body.appendChild(link);
+                link.click();
+            } finally {
+                setTimeout(() => { link.remove(); URL.revokeObjectURL(url); }, 100);
+            }
+            showNotification(`已导出 ${notes.length} 条笔记`, 'success');
+        } catch (error) {
+            handleError(error);
+        } finally {
+            exporting = false;
+            syncExportButton();
+        }
     }
 
     async function showList(filter) {
@@ -715,6 +848,9 @@
         if (!target || target.tagName === 'SELECT') return;
         const action = target.dataset.action;
         switch (action) {
+            case 'export-notes':
+                exportNotes();
+                break;
             case 'new-folder':
                 renderList(currentFilter, { mode: 'new' });
                 break;

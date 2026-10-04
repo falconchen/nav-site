@@ -213,7 +213,7 @@
 ### 记事本
 
 复刻 V2EX 的记事本。`/notes.html` 是独立页面，入口在登录后的用户菜单（`#userMenu`，桌面和小屏都显示）。
-**必须登录、只存云端**，和收藏的「离线优先」不同；和收藏数据完全独立，不进 `saveNavData`、版本历史、导出文件和 `/api/v1`。
+**必须登录、只存云端**，和收藏的「离线优先」不同；和收藏数据完全独立，不进 `saveNavData`、版本历史、收藏导出文件和 `/api/v1`。
 
 **存储**（`server/lib/notes-store.js`，Redis）：
 - `notes:<userId>` 是索引：记事的元数据（`id, title, syntax, folderId, length, createdAt, updatedAt, publicId`）和文件夹列表，不含正文；
@@ -235,6 +235,8 @@
 - 公开页在 `/n/` 下，资源一律用绝对路径
 
 **前端**：
+- 列表页「导出所有笔记」位于「新建文件夹」之前，用 JSZip 3.10.2 打包 ZIP：每条笔记分别导出 `.txt` / `.md`，正文后空一行接 `---` 和分类、添加于、最后编辑三行（Markdown 是列表、值放行内代码，不用脚注）。正文不改写，标题作为文件名，非法字符替换、同名自动编号。最多 4 个并发读取云端正文；失败不下载部分文件，登录状态变化时终止。见 `docs/notes-export.md`
+- `public/vendor/jszip.min.js` 是本地托管的官方浏览器产物（选择 MIT 许可），仅记事本加载；`npm run build:zip` 重新生成，`npm run build` 自动执行
 - 记事本页**不加载 `auth.js`**（它硬依赖首页页眉的 DOM），自己读 localStorage `authToken`。没有令牌显示「请先登录」；
   收到 401 只提示回首页重新登录，**不删令牌**——是否真过期由首页的校验流程判断
 - 视图按 hash 切：`#/`、`#/f/<文件夹 id | none>` 列表，`#/new`、`#/n/<id>/edit` 编辑，`#/n/<id>` 查看。视图整块用 innerHTML 重画，

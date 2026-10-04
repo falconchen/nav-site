@@ -4336,6 +4336,7 @@ html[data-tool="qrcode"] #tool-qrcode {
 
 .notes-head-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
 }
 
@@ -4845,6 +4846,7 @@ button.doc-back {
 
   .notes-head-actions .btn {
     flex: 1;
+    white-space: nowrap;
   }
 
   .note-tools-buttons {
