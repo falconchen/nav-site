@@ -47,7 +47,7 @@ async function resolveLoggedOutChanges() {
 
     let status;
     const token = authToken;
-    const loading = showNavLoadStatus('正在检查云端收藏…');
+    const loading = showNavLoadStatus('正在检查云端收藏…', { quiet: true });
     try {
         const { response, data } = await fetchJSONWithRetry('/api/user-data/status', {
             headers: { 'Authorization': `Bearer ${token}` }
@@ -119,7 +119,7 @@ async function loadUserDataOnce(forceLoad, token) {
 
     console.log('📥 Loading user data from server, forceLoad:', forceLoad);
 
-    const status = showNavLoadStatus('正在下载云端收藏…');
+    const status = showNavLoadStatus('正在下载云端收藏…', { quiet: true });
     const progress = showHeaderProgress();
     progress.update(10);
 
@@ -742,7 +742,7 @@ async function runCloudUpdateCheck(force, token) {
     console.log('🔍 Checking for cloud updates...');
 
     const revision = window.navDataRevision;
-    const status = showNavLoadStatus('正在检查云端收藏…');
+    const status = showNavLoadStatus('正在检查云端收藏…', { quiet: true });
     try {
         const { response, data } = await fetchJSONWithRetry('/api/user-data/status', {
             method: 'GET',

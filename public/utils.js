@@ -332,8 +332,10 @@ async function fetchJSONWithRetry(url, options = {}, { timeoutMs = 15000, onRetr
 }
 
 // 后启动的加载流程拥有提示，旧请求完成时不能隐藏新请求的状态。
+// quiet：提示条没显示时不为「加载中」把它弹出来（会把卡片往下顶），只在失败时显示；
+// 已经显示着（比如点了错误提示里的「重试」）才原地换成加载中。
 let navLoadStatusId = 0;
-function showNavLoadStatus(message) {
+function showNavLoadStatus(message, { quiet = false } = {}) {
     const id = ++navLoadStatusId;
     const status = document.getElementById('navLoadStatus');
     const text = document.getElementById('navLoadMessage');
@@ -341,6 +343,7 @@ function showNavLoadStatus(message) {
     const content = document.querySelector('.content-area');
     const update = (state, message, retryAction) => {
         if (!status || id !== navLoadStatusId) return;
+        if (quiet && state === 'loading' && status.hidden) return;
         status.hidden = state === 'ready';
         status.dataset.state = state;
         status.classList.toggle('is-initial', !window.navDataReady);

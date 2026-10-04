@@ -207,6 +207,18 @@ test('旧加载结束不会隐藏新加载或失败提示', () => {
     assert.equal(ctx.elements.navLoadStatus.hidden, false); assert.equal(ctx.elements.navLoadStatus.dataset.state, 'error');
 });
 
+test('静默的云端检查不弹出加载提示，失败才显示；提示已显示时原地换成加载中', () => {
+    const ctx = sandbox(); ctx.showNavLoadStatus('本机').complete();
+    const quiet = ctx.showNavLoadStatus('正在检查云端收藏…', { quiet: true });
+    assert.equal(ctx.elements.navLoadStatus.hidden, true);
+    quiet.update('正在重试…'); assert.equal(ctx.elements.navLoadStatus.hidden, true);
+    quiet.fail('云端响应超时，请重试。', () => {});
+    assert.equal(ctx.elements.navLoadStatus.hidden, false); assert.equal(ctx.elements.navLoadStatus.dataset.state, 'error');
+    const retry = ctx.showNavLoadStatus('正在检查云端收藏…', { quiet: true });
+    assert.equal(ctx.elements.navLoadStatus.dataset.state, 'loading'); assert.equal(ctx.elements.navLoadRetry.hidden, true);
+    retry.complete(); assert.equal(ctx.elements.navLoadStatus.hidden, true);
+});
+
 test('下载完成后先渲染；缓存失败不推进版本，保存标记正常复位', async () => {
     const ctx = sandbox({ dataVersion: '10' }); const rejectWrites = [];
     ctx.dbStorage.setItem = () => new Promise((_, reject) => { rejectWrites.push(reject); });
