@@ -348,7 +348,8 @@ function showNavLoadStatus(message, { quiet = false } = {}) {
         status.dataset.state = state;
         status.classList.toggle('is-initial', !window.navDataReady);
         content?.setAttribute('aria-busy', String(state === 'loading'));
-        text.textContent = message;
+        // 加载中的省略号由 .nav-load-dots 的动画来画，文案末尾的「…」去掉
+        text.textContent = state === 'loading' ? message.replace(/…$/, '') : message;
         retry.hidden = !retryAction;
         retry.onclick = retryAction || null;
     };

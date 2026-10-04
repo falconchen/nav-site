@@ -1656,11 +1656,23 @@ html[data-sidebar="compact"] .category-section {
 .nav-load-status p { margin: 0; }
 .nav-load-status[hidden],
 .nav-load-status button[hidden],
-.nav-load-status[data-state="error"] .spinner { display: none; }
+.nav-load-status:not([data-state="loading"]) .nav-load-dots { display: none; }
 .nav-load-status[data-state="error"] { color: var(--danger); }
 
+/* 省略号三个点依次出现再一起消失；点始终占位，文字不会跟着左右晃 */
+.nav-load-dots span {
+  opacity: 0;
+  animation: nav-load-dot-1 1.6s infinite;
+}
+.nav-load-dots span:nth-child(2) { animation-name: nav-load-dot-2; }
+.nav-load-dots span:nth-child(3) { animation-name: nav-load-dot-3; }
+
+@keyframes nav-load-dot-1 { 0%, 5% { opacity: 0; } 20%, 90% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes nav-load-dot-2 { 0%, 30% { opacity: 0; } 45%, 90% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes nav-load-dot-3 { 0%, 55% { opacity: 0; } 70%, 90% { opacity: 1; } 100% { opacity: 0; } }
+
 @media (prefers-reduced-motion: reduce) {
-  .nav-load-status .spinner { animation: none; }
+  .nav-load-dots span { animation: none; opacity: 1; }
 }
 
 .tab-empty {
@@ -2875,8 +2887,7 @@ html[data-sidebar="compact"] .category-section {
   color: var(--ink);
 }
 
-.save-panel .spinner,
-.nav-load-status .spinner {
+.save-panel .spinner {
   width: 14px;
   height: 14px;
   border: 1.5px solid var(--line-strong);
