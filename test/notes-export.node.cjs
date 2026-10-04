@@ -42,7 +42,6 @@ function sandbox(data = fixture(), respond) {
         setTimeout(fn, ms) { const id = ++timerId; if (ms === 100) queueMicrotask(fn); else timers.set(id, fn); return id; },
         clearTimeout(id) { timers.delete(id); },
         escapeHtml: value => String(value),
-        NoteRender: { renderNoteContent: () => ({ html: '', plain: true }), formatNoteTime: () => '刚刚' },
         showNotification: (message, kind) => messages.push({ message, kind }),
         fetch: async (url, init) => {
             requests.push({ url, init }); active++; maxActive = Math.max(maxActive, active);
@@ -59,6 +58,8 @@ function sandbox(data = fixture(), respond) {
             } finally { active--; }
         }
     });
+    // 文件名和下载在共用的 note-render.js 里，用真实实现。
+    vm.runInContext(fs.readFileSync(path.join(__dirname, '../public/note-render.js'), 'utf8'), ctx);
     const source = fs.readFileSync(path.join(__dirname, '../public/notes.js'), 'utf8');
     // 保留真实导出、渲染和事件处理，只跳过启动时的云端读取。
     vm.runInContext(source.replace('    route();\n})();', '    globalThis.testNotes = { exportNotes, renderList, showNote, state, actions: () => viewActions };\n})();'), ctx);
@@ -224,13 +225,12 @@ test('分类按字面放进行内代码，反引号不会截断；正文末尾�
     assert.ok(txt.startsWith(data.notes[1].content + '---\n分类：'));
 });
 
-test('查看页「下载笔记」在复制全文之前，单独下载 txt / md，内容与打包导出的文件一致', async () => {
+test('查看页「下载笔记」在复制全文之前，单独下载 txt / md，内容是原文、不附加尾部信息', async () => {
     const data = fixture(2);
     data.notes[1].title = 'a/b:c';
     data.notes[1].folderId = 'work';
+    data.notes[1].content = '结尾换行原样保留\r\n\r\n';
     const s = sandbox(data);
-    await s.ctx.testNotes.exportNotes();
-    const zip = await readZip(s.downloads[0]);
     for (const [note, name, type] of [[data.notes[0], '中文笔记 0.md', 'text/markdown;charset=utf-8'], [data.notes[1], 'a_b_c.txt', 'text/plain;charset=utf-8']]) {
         await s.ctx.testNotes.showNote(note.id);
         assert.ok(s.app.innerHTML.indexOf('data-action="download"') < s.app.innerHTML.indexOf('data-action="copy"'));
@@ -238,10 +238,44 @@ test('查看页「下载笔记」在复制全文之前，单独下载 txt / md�
         const downloaded = s.downloads.at(-1);
         assert.equal(downloaded.filename, name);
         assert.equal(downloaded.blob.type, type);
-        assert.equal(await downloaded.blob.text(), await zip.file(name).async('string'));
+        assert.equal(await downloaded.blob.text(), note.content);
     }
-    assert.equal(s.downloads.length, 3);
-    assert.equal(s.revoked.length, 3);
+    assert.equal(s.downloads.length, 2);
+    assert.equal(s.revoked.length, 2);
+});
+
+test('公开页有「下载笔记」，下载的是原文', async () => {
+    const note = { title: '公开: 笔记', content: '# 公开\n\n<b>原文</b>\n', syntax: 'markdown', updatedAt: '2026-10-04T01:02:03.000Z' };
+    const downloads = [], blobs = new Map();
+    let html = '', onClick;
+    const container = {
+        get innerHTML() { return html; }, set innerHTML(value) { html = value; },
+        querySelector: selector => (selector === '[data-action="download"]' && html.includes('data-action="download"')
+            ? { addEventListener(name, fn) { if (name === 'click') onClick = fn; } } : null)
+    };
+    const ctx = vm.createContext({
+        Blob, console, setTimeout: fn => queueMicrotask(fn),
+        location: { pathname: '/n/public-id' }, escapeHtml: value => String(value),
+        document: {
+            title: '', getElementById: () => container, body: { appendChild() {} },
+            createElement() { return { click() { downloads.push({ filename: this.download, blob: blobs.get(this.href) }); }, remove() {} }; }
+        },
+        URL: { createObjectURL(blob) { const url = `blob:test-${blobs.size}`; blobs.set(url, blob); return url; }, revokeObjectURL() {} },
+        fetch: async url => {
+            assert.equal(url, '/api/public/notes/public-id');
+            return { ok: true, status: 200, json: async () => ({ note }) };
+        }
+    });
+    for (const file of ['note-render.js', 'note-public.js']) {
+        vm.runInContext(fs.readFileSync(path.join(__dirname, '../public', file), 'utf8'), ctx);
+    }
+    await new Promise(resolve => setImmediate(resolve));
+    assert.ok(html.indexOf('note-content') < html.indexOf('data-action="download"'));
+    onClick();
+    assert.equal(downloads.length, 1);
+    assert.equal(downloads[0].filename, '公开_ 笔记.md');
+    assert.equal(downloads[0].blob.type, 'text/markdown;charset=utf-8');
+    assert.equal(await downloads[0].blob.text(), note.content);
 });
 
 test('ZIP 组件缺失或打包失败时不下载，按钮恢复', async () => {

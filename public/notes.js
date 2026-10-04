@@ -25,7 +25,7 @@
         NETWORK: '网络连接失败，稍后再试'
     };
 
-    const { renderNoteContent, formatNoteTime } = NoteRender;
+    const { renderNoteContent, formatNoteTime, noteFileName, downloadBlob, downloadNote } = NoteRender;
     const app = document.getElementById('notesApp');
 
     // 索引（不含正文）在页面里缓存一份，各视图共用
@@ -286,19 +286,6 @@
         return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())} ${zone}`;
     }
 
-    function exportFileName(note, usedNames) {
-        let title = String(note.title || '无标题').normalize('NFC')
-            .replace(/[<>:"/\\|?*\u0000-\u001f\u007f]/g, '_');
-        title = Array.from(title).slice(0, 50).join('').replace(/^[.\s]+|[.\s]+$/g, '') || '无标题';
-        if (/^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(title)) title = '_' + title;
-        const extension = note.syntax === 'markdown' ? '.md' : '.txt';
-        let name = title + extension;
-        let suffix = 2;
-        while (usedNames.has(name.toLowerCase())) name = `${title} (${suffix++})${extension}`;
-        usedNames.add(name.toLowerCase());
-        return name;
-    }
-
     function exportFileContent(note, folders) {
         const category = (folders.find(folder => folder.id === note.folderId)?.name || (note.folderId ? '未知分类' : '未归档'))
             .replace(/\s+/g, ' ');
@@ -319,19 +306,6 @@
         // 分隔线前必须空一行，否则 Markdown 会把正文最后一行当成标题。
         const separator = /(?:\r?\n){2}$/.test(note.content) ? '' : /\r?\n$/.test(note.content) ? '\n' : '\n\n';
         return note.content + separator + '---\n' + lines.join('\n') + '\n';
-    }
-
-    function downloadBlob(blob, filename) {
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = filename;
-        try {
-            document.body.appendChild(link);
-            link.click();
-        } finally {
-            setTimeout(() => { link.remove(); URL.revokeObjectURL(url); }, 100);
-        }
     }
 
     async function exportNotes() {
@@ -378,7 +352,7 @@
             const usedNames = new Set();
             for (const note of notes) {
                 const updated = new Date(note.updatedAt);
-                zip.file(exportFileName(note, usedNames), exportFileContent(note, index.folders), {
+                zip.file(noteFileName(note, usedNames), exportFileContent(note, index.folders), {
                     date: Number.isNaN(updated.getTime()) ? now : updated
                 });
             }
@@ -538,11 +512,8 @@
                     handleError(error);
                 }
             },
-            // 和「导出所有笔记」里的单个文件一样：正文原样，末尾附分类和时间。
             download() {
-                const type = note.syntax === 'markdown' ? 'text/markdown' : 'text/plain';
-                downloadBlob(new Blob([exportFileContent(note, state.folders)], { type: type + ';charset=utf-8' }),
-                    exportFileName(note, new Set()));
+                downloadNote(note);
             },
             copy(button) {
                 copyText(note.content)

@@ -2,7 +2,7 @@
 // 内容是别人写的，渲染一律走 note-render.js 的过滤
 (function () {
     const container = document.getElementById('publicNote');
-    const { renderNoteContent, formatNoteTime } = NoteRender;
+    const { renderNoteContent, formatNoteTime, downloadNote } = NoteRender;
 
     function showMessage(text) {
         container.innerHTML = `<p class="notes-empty">${escapeHtml(text)}</p>`;
@@ -31,7 +31,13 @@
         document.title = `${note.title} · 皮皮2047`;
         container.innerHTML = `
             <p class="note-meta">${escapeHtml(formatNoteTime(note.updatedAt))}修改 · ${note.content.length.toLocaleString('zh-CN')} 字</p>
-            <article class="note-content${plain ? ' note-plain' : ''}">${html}</article>`;
+            <article class="note-content${plain ? ' note-plain' : ''}">${html}</article>
+            <div class="note-tools">
+                <div class="note-tools-buttons">
+                    <button type="button" class="btn btn-secondary" data-action="download"><i class="fas fa-download"></i> 下载笔记</button>
+                </div>
+            </div>`;
+        container.querySelector('[data-action="download"]').addEventListener('click', () => downloadNote(note));
     }
 
     load();

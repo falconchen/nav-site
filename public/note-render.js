@@ -1,4 +1,4 @@
-// 记事正文的渲染，记事本页（notes.html）和公开页（note-public.html）共用。
+// 记事正文的渲染和下载，记事本页（notes.html）和公开页（note-public.html）共用。
 // 依赖 utils.js 的 escapeHtml，以及 vendor 里的 marked、DOMPurify。
 // 公开页渲染的是别人写的内容，所以这里出来的 HTML 必须是过滤过的，调用方直接塞进 innerHTML
 (function () {
@@ -86,5 +86,39 @@
         return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
     }
 
-    globalThis.NoteRender = { renderNoteContent, renderPlain, formatNoteTime };
+    // 下载用的文件名：标题换掉文件系统不认的字符，纯文本 .txt、Markdown .md。
+    // usedNames 用来给同一批里重名的文件编号（打包导出时传同一个 Set）
+    function noteFileName(note, usedNames = new Set()) {
+        let title = String(note.title || '无标题').normalize('NFC')
+            .replace(/[<>:"/\\|?*\u0000-\u001f\u007f]/g, '_');
+        title = Array.from(title).slice(0, 50).join('').replace(/^[.\s]+|[.\s]+$/g, '') || '无标题';
+        if (/^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(title)) title = '_' + title;
+        const extension = note.syntax === 'markdown' ? '.md' : '.txt';
+        let name = title + extension;
+        let suffix = 2;
+        while (usedNames.has(name.toLowerCase())) name = `${title} (${suffix++})${extension}`;
+        usedNames.add(name.toLowerCase());
+        return name;
+    }
+
+    function downloadBlob(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        try {
+            document.body.appendChild(link);
+            link.click();
+        } finally {
+            setTimeout(() => { link.remove(); URL.revokeObjectURL(url); }, 100);
+        }
+    }
+
+    // 「下载笔记」：正文原样存成一个文件，不附加任何信息
+    function downloadNote(note) {
+        const type = note.syntax === 'markdown' ? 'text/markdown' : 'text/plain';
+        downloadBlob(new Blob([String(note.content ?? '')], { type: type + ';charset=utf-8' }), noteFileName(note));
+    }
+
+    globalThis.NoteRender = { renderNoteContent, renderPlain, formatNoteTime, noteFileName, downloadBlob, downloadNote };
 })();
