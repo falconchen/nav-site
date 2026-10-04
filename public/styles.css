@@ -4343,10 +4343,12 @@ html[data-tool="qrcode"] #tool-qrcode {
   margin-left: -12px;
 }
 
+.note-detail-bar,
 .note-editor .notes-bar {
   flex-wrap: wrap;
 }
 
+.note-detail-actions,
 .note-editor-actions {
   display: flex;
   align-items: center;
@@ -4359,11 +4361,13 @@ html[data-tool="qrcode"] #tool-qrcode {
   min-width: 0;
 }
 
+.note-detail-actions .form-select,
 .note-editor-actions .note-tools-field .form-select {
   width: 160px;
   min-width: 0;
 }
 
+.note-detail-actions .btn,
 .note-editor-actions .btn {
   flex-shrink: 0;
 }

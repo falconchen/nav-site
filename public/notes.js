@@ -346,18 +346,17 @@
             </div>` : '';
 
         app.innerHTML = `
-            <div class="notes-bar">
-                <a class="doc-back" href="${listHash(note.folderId)}"><i class="fas fa-arrow-left"></i>${note.folderId ? escapeHtml(folderName(note.folderId)) : '记事本'}</a>
-                <a class="btn btn-primary" href="#/n/${escapeHtml(note.id)}/edit"><i class="fas fa-pen"></i> 编辑</a>
+            <div class="notes-bar note-detail-bar">
+                <a class="doc-back" href="${listHash(note.folderId || NO_FOLDER)}"><i class="fas fa-arrow-left"></i>返回</a>
+                <div class="note-detail-actions">
+                    <select class="form-select" name="folderId" data-action="move" aria-label="移动到文件夹">${folderOptions(note.folderId)}</select>
+                    <a class="btn btn-primary" href="#/n/${escapeHtml(note.id)}/edit"><i class="fas fa-pen"></i> 编辑</a>
+                </div>
             </div>
             <p class="note-meta">${meta}</p>
             <article class="note-content${plain ? ' note-plain' : ''}">${html}</article>
             ${publish}
             <div class="note-tools">
-                <label class="note-tools-field">
-                    <span class="form-label">文件夹</span>
-                    <select class="form-select" data-action="move" aria-label="移动到文件夹">${folderOptions(note.folderId)}</select>
-                </label>
                 <div class="note-tools-buttons">
                     <button type="button" class="btn btn-secondary" data-action="copy"><i class="fas fa-copy"></i> 复制全文</button>
                     ${note.publicId ? '' : '<button type="button" class="btn btn-secondary" data-action="publish"><i class="fas fa-globe"></i> 公开发布</button>'}
@@ -458,7 +457,6 @@
                     <button type="button" class="doc-back" data-action="cancel-edit"><i class="fas fa-arrow-left"></i>返回</button>
                     <div class="note-editor-actions">
                         <label class="note-tools-field">
-                            <span class="form-label">文件夹</span>
                             <select class="form-select" name="folderId" aria-label="文件夹">${folderOptions(folderId)}</select>
                         </label>
                         <button type="submit" class="btn btn-primary"><i class="fas fa-check"></i> 保存</button>
