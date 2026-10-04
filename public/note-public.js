@@ -2,7 +2,7 @@
 // 内容是别人写的，渲染一律走 note-render.js 的过滤
 (function () {
     const container = document.getElementById('publicNote');
-    const { renderNoteContent, formatNoteTime, downloadNote } = NoteRender;
+    const { renderNoteContent, formatNoteTime } = NoteRender;
 
     function showMessage(text) {
         container.innerHTML = `<p class="notes-empty">${escapeHtml(text)}</p>`;
@@ -31,20 +31,7 @@
         document.title = `${note.title} · 皮皮2047`;
         container.innerHTML = `
             <p class="note-meta">${escapeHtml(formatNoteTime(note.updatedAt))}修改 · ${note.content.length.toLocaleString('zh-CN')} 字</p>
-            <article class="note-content${plain ? ' note-plain' : ''}">${html}</article>
-            <div class="note-tools">
-                <div class="note-tools-buttons">
-                    <button type="button" class="btn btn-secondary" data-action="download"><i class="fas fa-download"></i> 下载笔记</button>
-                    <button type="button" class="btn btn-secondary" data-action="copy-link"><i class="fas fa-link"></i> 复制链接</button>
-                </div>
-            </div>`;
-        container.querySelector('[data-action="download"]').addEventListener('click', () => downloadNote(note));
-        // 只复制 /n/<公开 id>，不带别人分享时加在后面的参数和 hash
-        container.querySelector('[data-action="copy-link"]').addEventListener('click', () => {
-            copyText(location.origin + location.pathname)
-                .then(() => showNotification('链接已复制', 'success'))
-                .catch(() => showNotification('复制失败，请手动复制', 'error'));
-        });
+            <article class="note-content${plain ? ' note-plain' : ''}">${html}</article>`;
     }
 
     load();
