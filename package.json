@@ -7,17 +7,20 @@
 	},
 	"scripts": {
 		"build": "node build-script.js",
+		"build:markdown": "node scripts/build-markdown-vendor.js",
 		"build:firefox": "node build-firefox-extension.js",
 		"sign:firefox": "npm run build:firefox && npx -y web-ext@10 sign --channel=unlisted --source-dir extension-firefox --artifacts-dir web-ext-artifacts",
 		"release:firefox": "node release-firefox-extension.js",
 		"dev": "wrangler dev",
 		"start": "wrangler dev",
 		"test": "vitest",
-		"test:frontend": "node --test test/frontend-loading.node.cjs",
+		"test:frontend": "node --test test/frontend-loading.node.cjs test/note-render.node.cjs",
 		"deploy": "npm run build && wrangler deploy --env production"
 	},
 	"devDependencies": {
 		"@cloudflare/vitest-plugin": "^1.3.6",
+		"marked": "18.0.14",
+		"marked-cjk-friendly": "0.1.2",
 		"vitest": "~4.1.11",
 		"wrangler": "^4.147.0"
 	},

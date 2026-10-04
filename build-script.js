@@ -2,11 +2,13 @@ const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const { build } = require('esbuild');
+const { buildMarkdownVendor } = require('./scripts/build-markdown-vendor.js');
 
 async function buildProject() {
     console.log('🚀 开始构建项目...');
 
     try {
+        await buildMarkdownVendor();
         // 1. 清理并创建 dist 目录
         console.log('📁 清理构建目录...');
         if (fs.existsSync('dist')) {

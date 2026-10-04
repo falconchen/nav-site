@@ -247,8 +247,9 @@
 - 正文渲染一律走 `note-render.js` 的 `renderNoteContent()`：Markdown 是 `marked` → `DOMPurify`（禁 `style` / `class` / `id`、表单类标签，
   输入框只留禁用的勾选框，链接加 `rel="noopener nofollow ugc"`）；纯文本是 `escapeHtml` + 网址变链接。库没加载上时退回纯文本，不显示没过滤的 HTML。
   **公开页渲染的是别人写的内容，不要绕过这个函数直接往 innerHTML 塞正文**
-- `public/vendor/marked.min.js`（marked 18.0.14，MIT，包里的 `lib/marked.umd.js`）和 `purify.min.js`（DOMPurify 3.4.16，MPL-2.0 / Apache-2.0，
-  包里的 `dist/purify.min.js`），原样放进来只去掉了 sourceMappingURL 那一行，只在记事本两个页面加载
+- `public/vendor/marked.min.js` 由 `npm run build:markdown` 生成：保留 marked 18.0.14 的官方 UMD 入口，附加 marked-cjk-friendly 0.1.2（均为 MIT），
+  修复 `**中文。**下一句` 等中文强调边界。`npm run build` 会自动重新生成；不要手改 vendor 文件。详见 `docs/notes-markdown.md`
+- `purify.min.js`（DOMPurify 3.4.16，MPL-2.0 / Apache-2.0，包里的 `dist/purify.min.js`）原样放进来只去掉 sourceMappingURL；这两个库只在记事本两个页面加载
 
 ### AI 网站识别
 
