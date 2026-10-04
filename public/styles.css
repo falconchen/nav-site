@@ -4286,6 +4286,31 @@ html[data-tool="qrcode"] #tool-qrcode {
   margin-left: -12px;
 }
 
+.note-editor .notes-bar {
+  flex-wrap: wrap;
+}
+
+.note-editor-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 100%;
+  margin-left: auto;
+}
+
+.note-editor-actions .note-tools-field {
+  min-width: 0;
+}
+
+.note-editor-actions .note-tools-field .form-select {
+  width: 160px;
+  min-width: 0;
+}
+
+.note-editor-actions .btn {
+  flex-shrink: 0;
+}
+
 button.doc-back {
   background: transparent;
   border: none;

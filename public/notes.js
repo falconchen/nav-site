@@ -456,7 +456,13 @@
             <form class="note-editor">
                 <div class="notes-bar">
                     <button type="button" class="doc-back" data-action="cancel-edit"><i class="fas fa-arrow-left"></i>返回</button>
-                    <button type="submit" class="btn btn-primary"><i class="fas fa-check"></i> 保存</button>
+                    <div class="note-editor-actions">
+                        <label class="note-tools-field">
+                            <span class="form-label">文件夹</span>
+                            <select class="form-select" name="folderId" aria-label="文件夹">${folderOptions(folderId)}</select>
+                        </label>
+                        <button type="submit" class="btn btn-primary"><i class="fas fa-check"></i> 保存</button>
+                    </div>
                 </div>
                 <div class="note-banner" id="noteBanner" hidden></div>
                 <textarea class="form-textarea note-editor-text" name="content" spellcheck="false"
@@ -468,10 +474,6 @@
                         <label class="option-chip"><input type="radio" name="syntax" value="markdown"${syntax === 'markdown' ? ' checked' : ''}> Markdown</label>
                         <label class="option-chip note-preview-toggle"><input type="checkbox" name="preview"> <i class="fas fa-eye"></i> 预览</label>
                     </div>
-                    <label class="note-tools-field">
-                        <span class="form-label">文件夹</span>
-                        <select class="form-select" name="folderId" aria-label="文件夹">${folderOptions(folderId)}</select>
-                    </label>
                     <span class="note-count" aria-live="polite"></span>
                 </div>
             </form>`;
