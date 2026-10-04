@@ -321,6 +321,19 @@
         return note.content + separator + '---\n' + lines.join('\n') + '\n';
     }
 
+    function downloadBlob(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        try {
+            document.body.appendChild(link);
+            link.click();
+        } finally {
+            setTimeout(() => { link.remove(); URL.revokeObjectURL(url); }, 100);
+        }
+    }
+
     async function exportNotes() {
         if (exporting) return;
         exporting = true;
@@ -371,18 +384,9 @@
             }
             const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
             checkSession();
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
             const pad = value => String(value).padStart(2, '0');
             const stamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
-            link.href = url;
-            link.download = `皮皮2047_所有笔记_${stamp}.zip`;
-            try {
-                document.body.appendChild(link);
-                link.click();
-            } finally {
-                setTimeout(() => { link.remove(); URL.revokeObjectURL(url); }, 100);
-            }
+            downloadBlob(blob, `皮皮2047_所有笔记_${stamp}.zip`);
             showNotification(`已导出 ${notes.length} 条笔记`, 'success');
         } catch (error) {
             handleError(error);
@@ -491,6 +495,7 @@
             ${publish}
             <div class="note-tools">
                 <div class="note-tools-buttons">
+                    <button type="button" class="btn btn-secondary" data-action="download"><i class="fas fa-download"></i> 下载笔记</button>
                     <button type="button" class="btn btn-secondary" data-action="copy"><i class="fas fa-copy"></i> 复制全文</button>
                     ${note.publicId ? '' : '<button type="button" class="btn btn-secondary" data-action="publish"><i class="fas fa-globe"></i> 公开发布</button>'}
                     <button type="button" class="btn btn-secondary note-danger" data-action="delete"><i class="fas fa-trash"></i> 删除</button>
@@ -532,6 +537,12 @@
                     select.value = note.folderId || '';
                     handleError(error);
                 }
+            },
+            // 和「导出所有笔记」里的单个文件一样：正文原样，末尾附分类和时间。
+            download() {
+                const type = note.syntax === 'markdown' ? 'text/markdown' : 'text/plain';
+                downloadBlob(new Blob([exportFileContent(note, state.folders)], { type: type + ';charset=utf-8' }),
+                    exportFileName(note, new Set()));
             },
             copy(button) {
                 copyText(note.content)

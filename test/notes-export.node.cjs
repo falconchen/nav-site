@@ -42,7 +42,7 @@ function sandbox(data = fixture(), respond) {
         setTimeout(fn, ms) { const id = ++timerId; if (ms === 100) queueMicrotask(fn); else timers.set(id, fn); return id; },
         clearTimeout(id) { timers.delete(id); },
         escapeHtml: value => String(value),
-        NoteRender: { renderNoteContent() {}, formatNoteTime: () => '刚刚' },
+        NoteRender: { renderNoteContent: () => ({ html: '', plain: true }), formatNoteTime: () => '刚刚' },
         showNotification: (message, kind) => messages.push({ message, kind }),
         fetch: async (url, init) => {
             requests.push({ url, init }); active++; maxActive = Math.max(maxActive, active);
@@ -61,7 +61,7 @@ function sandbox(data = fixture(), respond) {
     });
     const source = fs.readFileSync(path.join(__dirname, '../public/notes.js'), 'utf8');
     // 保留真实导出、渲染和事件处理，只跳过启动时的云端读取。
-    vm.runInContext(source.replace('    route();\n})();', '    globalThis.testNotes = { exportNotes, renderList, state };\n})();'), ctx);
+    vm.runInContext(source.replace('    route();\n})();', '    globalThis.testNotes = { exportNotes, renderList, showNote, state, actions: () => viewActions };\n})();'), ctx);
     ctx.testNotes.state.notes = data.notes.map(({ content, ...meta }) => meta);
     ctx.testNotes.state.folders = data.folders;
     ctx.testNotes.renderList('all');
@@ -222,6 +222,26 @@ test('分类按字面放进行内代码，反引号不会截断；正文末尾�
     assert.ok(!md.includes('[^note-export-2'));
     const txt = await zip.file('中文笔记 1.txt').async('string');
     assert.ok(txt.startsWith(data.notes[1].content + '---\n分类：'));
+});
+
+test('查看页「下载笔记」在复制全文之前，单独下载 txt / md，内容与打包导出的文件一致', async () => {
+    const data = fixture(2);
+    data.notes[1].title = 'a/b:c';
+    data.notes[1].folderId = 'work';
+    const s = sandbox(data);
+    await s.ctx.testNotes.exportNotes();
+    const zip = await readZip(s.downloads[0]);
+    for (const [note, name, type] of [[data.notes[0], '中文笔记 0.md', 'text/markdown;charset=utf-8'], [data.notes[1], 'a_b_c.txt', 'text/plain;charset=utf-8']]) {
+        await s.ctx.testNotes.showNote(note.id);
+        assert.ok(s.app.innerHTML.indexOf('data-action="download"') < s.app.innerHTML.indexOf('data-action="copy"'));
+        s.ctx.testNotes.actions().download();
+        const downloaded = s.downloads.at(-1);
+        assert.equal(downloaded.filename, name);
+        assert.equal(downloaded.blob.type, type);
+        assert.equal(await downloaded.blob.text(), await zip.file(name).async('string'));
+    }
+    assert.equal(s.downloads.length, 3);
+    assert.equal(s.revoked.length, 3);
 });
 
 test('ZIP 组件缺失或打包失败时不下载，按钮恢复', async () => {
