@@ -7,6 +7,7 @@ let currentUser = null;
 let authToken = null;
 let authRetryTimer = null;
 let authRetryPending = false;
+let logoutInProgress = false;
 
 // 初始化认证状态
 document.addEventListener('DOMContentLoaded', function() {
@@ -177,6 +178,7 @@ function showUserInfo(user) {
 
 // 登录函数 - GitHub
 function login(provider = 'github') {
+    if (logoutInProgress) return;
     const authUrl = provider === 'google' ? '/api/auth/google' : '/api/auth/github';
     
     const popup = window.open(
@@ -199,7 +201,7 @@ function login(provider = 'github') {
 
 // 处理认证消息
 function handleAuthMessage(event) {
-    if (event.origin !== window.location.origin) {
+    if (event.origin !== window.location.origin || logoutInProgress) {
         return;
     }
 
@@ -257,12 +259,47 @@ function toggleLoginMenu() {
     document.getElementById('loginMenu').classList.toggle('show');
 }
 
-// 登出函数
-async function logout() {
-    if (!authToken) return;
+// 只有用户主动退出才弹窗；同步发现登录过期时仍直接退出并保留数据。
+function showLogoutConfirm() {
+    if (!authToken || logoutInProgress) return;
+    document.getElementById('logoutClearLocalData').checked = true;
+    document.getElementById('userMenu').classList.remove('show');
+    openModal('logoutConfirmModal');
+    document.getElementById('logoutCancelBtn').focus();
+}
+
+async function confirmLogout() {
+    const clearLocalData = document.getElementById('logoutClearLocalData').checked;
+    closeModal('logoutConfirmModal');
+    await logout({ clearLocalData });
+}
+
+async function clearLocalUserData() {
+    await dbStorage.clear();
+    const keys = [
+        'navSiteCategories', 'navSiteWebsites', 'navSiteVisits', 'dataVersion',
+        'pendingCloudSave', 'loggedOutChanges', 'visitsPending', 'visitsSyncedUser',
+        'frequentPins', 'frequentPinsUpdatedAt'
+    ];
+    // 只清本站的数据，保留主题、强调色、分区顺序及工具偏好。
+    for (const key of Object.keys(localStorage)) {
+        if (keys.includes(key) || key.startsWith('navSiteStorageFallback:') || key.startsWith('noteDraft:')) {
+            localStorage.removeItem(key);
+        }
+    }
+    sessionStorage.removeItem('privateRevealed');
+}
+
+// 登出函数；内部的登录过期处理默认保留本地数据。
+async function logout({ clearLocalData = false } = {}) {
+    if (!authToken || logoutInProgress) return;
+    logoutInProgress = true;
+    const token = authToken;
 
     clearTimeout(authRetryTimer);
     authRetryPending = false;
+    clearTimeout(window.saveTimeout);
+    window.saveTimeout = null;
 
     // 停止同步检测
     if (typeof stopSyncDetection === 'function') {
@@ -272,30 +309,49 @@ async function logout() {
         stopVisitSync();
     }
 
+    // 先结束本机登录，防止在途的同步响应继续写回当前账号的数据。
+    authToken = null;
+    currentUser = null;
+    localStorage.removeItem('authToken');
+    if (typeof clearPendingCloudSave === 'function') clearPendingCloudSave();
+    showLoginButton();
+    document.getElementById('userMenu').classList.remove('show');
+
+    if (clearLocalData) {
+        window.isClearingLocalData = true;
+        dbStorage.writesPaused = true;
+        if (typeof visitStatsSaveTimer !== 'undefined') clearTimeout(visitStatsSaveTimer);
+    }
+
     try {
         // 调用登出API
-        await fetch('/api/auth/logout', {
+        await fetchJSONWithRetry('/api/auth/logout', {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${authToken}`
+                'Authorization': `Bearer ${token}`
             }
         });
     } catch (error) {
         console.error('Error during logout:', error);
     }
 
-    // 清除本地状态
-    authToken = null;
-    currentUser = null;
-    localStorage.removeItem('authToken');
-    if (typeof clearPendingCloudSave === 'function') clearPendingCloudSave();
+    if (clearLocalData) {
+        try {
+            await clearLocalUserData();
+            // 刷新同时丢弃内存中的收藏、统计和已渲染的私密内容。
+            window.location.reload();
+            return;
+        } catch (error) {
+            console.error('Error clearing local data:', error);
+            window.isClearingLocalData = false;
+            dbStorage.writesPaused = false;
+            logoutInProgress = false;
+            showNotification('已退出登录，但本地数据清除失败，请在浏览器设置中清除此站点的数据', 'error');
+            return;
+        }
+    }
 
-    // 显示登录按钮
-    showLoginButton();
-
-    // 关闭用户菜单
-    document.getElementById('userMenu').classList.remove('show');
-
+    logoutInProgress = false;
     if (typeof showNotification === 'function') {
         showNotification('已退出登录', 'info');
     }

@@ -2104,6 +2104,24 @@ html[data-sidebar="compact"] .category-section {
   color: var(--ink-3);
 }
 
+.logout-clear-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 16px 0 8px;
+  min-height: 32px;
+  color: var(--ink);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.logout-clear-option input {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  accent-color: var(--ink);
+}
+
 /* ---------- 表单 ---------- */
 
 .form-group {

@@ -369,6 +369,7 @@ const dbStorage = {
     db: null,
     opening: null,
     timeoutMs: 5000,
+    writesPaused: false,
 
     reset() {
         this.db?.close();
@@ -413,15 +414,18 @@ const dbStorage = {
         return opening;
     },
 
-    async run(mode, key, value) {
+    async run(mode, key, value, operation = mode === 'readonly' ? 'get' : 'put') {
         for (let attempt = 0; attempt < 2; attempt++) {
             let db;
             try {
                 db = await this.init();
+                // 清除期间，尚在等待连接的旧写入也不能重新填回数据。
+                if (mode === 'readwrite' && this.writesPaused && operation !== 'clear') return;
                 return await new Promise((resolve, reject) => {
                     const transaction = db.transaction([this.storeName], mode);
                     const store = transaction.objectStore(this.storeName);
-                    const request = mode === 'readonly' ? store.get(key) : store.put(value, key);
+                    const request = operation === 'clear' ? store.clear()
+                        : mode === 'readonly' ? store.get(key) : store.put(value, key);
                     let result;
                     let settled = false;
                     const finish = (error) => {
@@ -471,10 +475,13 @@ const dbStorage = {
 
     // 存储数据
     async setItem(key, value) {
+        if (this.writesPaused) return;
         try {
             await this.run('readwrite', key, value);
+            if (this.writesPaused) return;
             localStorage.removeItem(`navSiteStorageFallback:${key}`);
         } catch (error) {
+            if (this.writesPaused) return;
             console.error(`Error setting item ${key} in IndexedDB:`, error);
             // 降级使用 localStorage，但捕获可能的容量超限错误
             try {
@@ -485,6 +492,11 @@ const dbStorage = {
                 throw e;
             }
         }
+    },
+
+    // 清除失败必须向调用方报错，不能仅删 localStorage 后声称清除成功。
+    async clear() {
+        await this.run('readwrite', undefined, undefined, 'clear');
     }
 };
 

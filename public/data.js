@@ -707,7 +707,7 @@ function renderCategoryList() {
 
 // 保存数据到存储（优先使用 IndexedDB）
 async function saveNavData() {
-  if (window.navDataLoadFailed || !window.navDataReady) return;
+  if (window.isClearingLocalData || window.navDataLoadFailed || !window.navDataReady) return;
   window.navDataRevision++;
   try {
     let categoriesFromGlobal = null;
@@ -727,6 +727,7 @@ async function saveNavData() {
     // 保存到 IndexedDB
     await dbStorage.setItem('navSiteCategories', categories);
     await dbStorage.setItem('navSiteWebsites', websites);
+    if (window.isClearingLocalData) return;
 
     // 同时尝试保存到 localStorage 作为备份（仅当数据较小时）
     try {

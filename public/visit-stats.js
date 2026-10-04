@@ -386,6 +386,7 @@ async function syncVisits({ keepalive = false, render = true } = {}) {
     visitSyncTimer = null;
     try {
         await window.visitStatsLoaded;
+        if (visitSyncStopped || visitSyncToken() !== token) return;
         const batch = prepareVisitBatch(userId);
         const options = { headers: { 'Authorization': `Bearer ${token}` } };
         if (batch) {

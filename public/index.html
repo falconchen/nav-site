@@ -149,7 +149,7 @@
                             <span class="theme-menu-label">深色模式</span>
                         </div>
 
-                        <div class="user-menu-item" onclick="logout()">
+                        <div class="user-menu-item" onclick="showLogoutConfirm()">
                             <i class="fas fa-sign-out-alt"></i>
                             退出登录
                         </div>
@@ -494,6 +494,29 @@
                 <button type="button" class="btn btn-danger" onclick="confirmDeleteWebsite()">
                     删除
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 退出前可选择清除当前浏览器的本地数据，默认勾选 -->
+    <div class="modal-overlay" id="logoutConfirmModal">
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="logoutConfirmTitle" style="max-width: 420px;">
+            <div class="modal-header">
+                <h3 class="modal-title" id="logoutConfirmTitle">退出登录</h3>
+                <button type="button" class="modal-close" onclick="closeModal('logoutConfirmModal')" aria-label="关闭">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <p class="confirm-title">是否同时清除保存在本地的数据？</p>
+            <label class="logout-clear-option">
+                <input type="checkbox" id="logoutClearLocalData" checked>
+                <span>同时清除本地数据</span>
+            </label>
+
+            <div class="form-buttons">
+                <button type="button" class="btn btn-secondary" id="logoutCancelBtn" onclick="closeModal('logoutConfirmModal')">取消</button>
+                <button type="button" class="btn btn-primary" onclick="confirmLogout()">退出登录</button>
             </div>
         </div>
     </div>

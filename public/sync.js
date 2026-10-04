@@ -222,6 +222,7 @@ async function saveUserData({ keepalive = false } = {}) {
 
     // 设置正在保存的标志，防止版本检查干扰
     window.isSavingToCloud = true;
+    const token = authToken;
     console.log('🏁 Setting isSavingToCloud = true, preventing version checks during save');
 
     // 上传期间又有新改动的话，这次成功也不能清掉标记
@@ -253,6 +254,7 @@ async function saveUserData({ keepalive = false } = {}) {
 
         // 压缩数据
         const compressedData = await compressData(localData);
+        if (authToken !== token) { progress.complete(false); return; }
 
         progress.update(50);
 
@@ -260,13 +262,14 @@ async function saveUserData({ keepalive = false } = {}) {
         const response = await fetch('/api/user-data/save', {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${authToken}`,
+                'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json'
             },
             body,
             // keepalive 的请求体上限 64KB，超了 fetch 会直接失败，只能留给下次打开时重传
             keepalive: keepalive && body.length < KEEPALIVE_BODY_LIMIT
         });
+        if (authToken !== token) { progress.complete(false); return; }
 
         console.log('🌐 Response status:', response.status, response.statusText);
         console.log('🌐 Response headers:', Object.fromEntries(response.headers.entries()));
@@ -275,6 +278,7 @@ async function saveUserData({ keepalive = false } = {}) {
 
         if (response.ok) {
             const responseData = await response.json();
+            if (authToken !== token) { progress.complete(false); return; }
             console.log('✅ Save response:', responseData);
             localStorage.setItem('dataVersion', localData.version.toString());
             if (localStorage.getItem(PENDING_SAVE_KEY) === pendingAt) clearPendingCloudSave();
@@ -399,6 +403,7 @@ async function updateLocalData(cloudData) {
             dbStorage.setItem('navSiteCategories', categories),
             dbStorage.setItem('navSiteWebsites', websites)
         ]);
+        if (window.isClearingLocalData) return false;
         window.hasStoredNavData = true;
         if (cloudData.version) localStorage.setItem('dataVersion', cloudData.version.toString());
         return true;
