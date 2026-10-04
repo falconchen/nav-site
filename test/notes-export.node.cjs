@@ -244,18 +244,23 @@ test('查看页「下载笔记」在复制全文之前，单独下载 txt / md�
     assert.equal(s.revoked.length, 2);
 });
 
-test('公开页有「下载笔记」，下载的是原文', async () => {
+test('公开页有「下载笔记」和「复制链接」，下载的是原文', async () => {
     const note = { title: '公开: 笔记', content: '# 公开\n\n<b>原文</b>\n', syntax: 'markdown', updatedAt: '2026-10-04T01:02:03.000Z' };
     const downloads = [], blobs = new Map();
-    let html = '', onClick;
+    const copied = [], messages = [], clicks = {};
+    let html = '';
     const container = {
         get innerHTML() { return html; }, set innerHTML(value) { html = value; },
-        querySelector: selector => (selector === '[data-action="download"]' && html.includes('data-action="download"')
-            ? { addEventListener(name, fn) { if (name === 'click') onClick = fn; } } : null)
+        querySelector(selector) {
+            const action = /^\[data-action="([\w-]+)"\]$/.exec(selector)?.[1];
+            return action && html.includes(`data-action="${action}"`)
+                ? { addEventListener(name, fn) { if (name === 'click') clicks[action] = fn; } } : null;
+        }
     };
     const ctx = vm.createContext({
         Blob, console, setTimeout: fn => queueMicrotask(fn),
-        location: { pathname: '/n/public-id' }, escapeHtml: value => String(value),
+        location: { origin: 'https://example.test', pathname: '/n/public-id', search: '?from=share', hash: '#top' }, escapeHtml: value => String(value),
+        copyText: async text => { copied.push(text); }, showNotification: (message, kind) => messages.push({ message, kind }),
         document: {
             title: '', getElementById: () => container, body: { appendChild() {} },
             createElement() { return { click() { downloads.push({ filename: this.download, blob: blobs.get(this.href) }); }, remove() {} }; }
@@ -271,7 +276,12 @@ test('公开页有「下载笔记」，下载的是原文', async () => {
     }
     await new Promise(resolve => setImmediate(resolve));
     assert.ok(html.indexOf('note-content') < html.indexOf('data-action="download"'));
-    onClick();
+    assert.ok(html.indexOf('data-action="download"') < html.indexOf('data-action="copy-link"'));
+    clicks['copy-link']();
+    await new Promise(resolve => setImmediate(resolve));
+    assert.deepEqual(copied, ['https://example.test/n/public-id']);
+    assert.deepEqual(messages, [{ message: '链接已复制', kind: 'success' }]);
+    clicks.download();
     assert.equal(downloads.length, 1);
     assert.equal(downloads[0].filename, '公开_ 笔记.md');
     assert.equal(downloads[0].blob.type, 'text/markdown;charset=utf-8');

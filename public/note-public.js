@@ -35,9 +35,16 @@
             <div class="note-tools">
                 <div class="note-tools-buttons">
                     <button type="button" class="btn btn-secondary" data-action="download"><i class="fas fa-download"></i> 下载笔记</button>
+                    <button type="button" class="btn btn-secondary" data-action="copy-link"><i class="fas fa-link"></i> 复制链接</button>
                 </div>
             </div>`;
         container.querySelector('[data-action="download"]').addEventListener('click', () => downloadNote(note));
+        // 只复制 /n/<公开 id>，不带别人分享时加在后面的参数和 hash
+        container.querySelector('[data-action="copy-link"]').addEventListener('click', () => {
+            copyText(location.origin + location.pathname)
+                .then(() => showNotification('链接已复制', 'success'))
+                .catch(() => showNotification('复制失败，请手动复制', 'error'));
+        });
     }
 
     load();
