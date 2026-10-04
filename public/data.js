@@ -6,6 +6,11 @@ let websites = {};
 window.categories = categories;
 window.websites = websites;
 window.dataLoaded = null; // 将在 loadData 开始时被赋值为 Promise
+window.navDataReady = false;
+window.navDataLoadFailed = false;
+window.hasStoredNavData = false;
+window.navDataRevision = 0;
+let navDataLoading = false;
 
 // 默认网站数据（新用户首次打开时使用）
 const defaultCategories = [
@@ -540,15 +545,18 @@ function createDefaultWebsites() {
 
 // 从localStorage加载数据或使用默认数据
 // 从存储加载数据或使用默认数据
-async function loadData() {
-  if (window.dataLoaded) return window.dataLoaded;
+async function loadData(retry = false) {
+  if (window.dataLoaded && (!retry || navDataLoading)) return window.dataLoaded;
 
+  navDataLoading = true;
+  const status = showNavLoadStatus('正在加载收藏…');
   window.dataLoaded = (async () => {
     try {
       console.log('📂 Starting loadData from storage...');
       // 尝试从 IndexedDB 加载
-      let savedCategories = await dbStorage.getItem('navSiteCategories');
-      let savedWebsites = await dbStorage.getItem('navSiteWebsites');
+      let [savedCategories, savedWebsites] = await Promise.all([
+        dbStorage.getItem('navSiteCategories'), dbStorage.getItem('navSiteWebsites')
+      ]);
 
       // 迁移逻辑：如果 IndexedDB 没数据但 localStorage 有，则迁移
       if (!savedCategories || !savedWebsites) {
@@ -571,7 +579,8 @@ async function loadData() {
         }
       }
 
-      if (savedCategories && savedWebsites) {
+      window.hasStoredNavData = !!(savedCategories && savedWebsites);
+      if (window.hasStoredNavData) {
         categories = typeof savedCategories === 'string' ? JSON.parse(savedCategories) : savedCategories;
         websites = typeof savedWebsites === 'string' ? JSON.parse(savedWebsites) : savedWebsites;
       } else {
@@ -587,6 +596,8 @@ async function loadData() {
 
       // 确保固定分类存在，并剥掉旧数据里的虚拟分类
       ensureFixedCategories();
+      window.navDataLoadFailed = false;
+      window.navDataReady = true;
 
       console.log('✅ loadData completed');
 
@@ -594,24 +605,29 @@ async function loadData() {
       if (typeof renderCategoryList === 'function') {
         renderCategoryList();
       }
+      if (typeof loadWebsitesFromData === 'function') loadWebsitesFromData();
+      status.complete();
 
       return { categories, websites };
     } catch (error) {
       console.error('❌ 加载数据出错:', error);
-      categories = [...defaultCategories];
-      websites = createDefaultWebsites();
-      window.websites = websites;
-      window.categories = categories;
-      ensureFixedCategories();
-
-      if (typeof renderCategoryList === 'function') {
-        renderCategoryList();
-      }
+      // 读取失败不等于没有收藏。保留内存里的数据，不用默认数据覆盖或自动上传。
+      window.navDataLoadFailed = true;
+      status.fail(error.name === 'TimeoutError' ? '收藏加载超时，请重试。' : '收藏加载失败，请重试。', retryNavDataLoad);
       return { categories, websites };
+    } finally {
+      navDataLoading = false;
     }
   })();
 
   return window.dataLoaded;
+}
+
+async function retryNavDataLoad() {
+  await loadData(true);
+  if (typeof checkForCloudUpdates === 'function') {
+    await checkForCloudUpdates({ force: true });
+  }
 }
 
 // 旧版本把「置顶」「最近添加」当成分类存在数据里，现在它们是由 website.pinned /
@@ -691,6 +707,8 @@ function renderCategoryList() {
 
 // 保存数据到存储（优先使用 IndexedDB）
 async function saveNavData() {
+  if (window.navDataLoadFailed || !window.navDataReady) return;
+  window.navDataRevision++;
   try {
     let categoriesFromGlobal = null;
     if (window.categories) {

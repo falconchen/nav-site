@@ -8,6 +8,10 @@ let lastSyncCheck = 0;
 const SYNC_CHECK_INTERVAL = 900000; // 15分钟检查一次
 const MIN_CHECK_INTERVAL = 10000; // 最小检查间隔10秒
 const KEEPALIVE_BODY_LIMIT = 60 * 1024;
+let cloudLoadPromise = null;
+let cloudCheckPromise = null;
+let cloudLoadToken = null;
+let cloudCheckToken = null;
 
 // 初始化保存状态标志
 window.isSavingToCloud = false;
@@ -42,16 +46,22 @@ async function resolveLoggedOutChanges() {
     if (!authToken || document.getElementById('loginDataChoiceModal').classList.contains('active')) return;
 
     let status;
+    const token = authToken;
+    const loading = showNavLoadStatus('正在检查云端收藏…');
     try {
-        const response = await fetch('/api/user-data/status', {
-            headers: { 'Authorization': `Bearer ${authToken}` }
-        });
-        if (!response.ok) return; // 留着标记，下次检查再来
-        status = await response.json();
+        const { response, data } = await fetchJSONWithRetry('/api/user-data/status', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        }, { onRetry: () => loading.update('云端暂时未响应，正在重试…') });
+        if (authToken !== token) { loading.complete(); return; }
+        if (!response.ok) throw new Error('云端收藏检查失败');
+        status = data;
     } catch (error) {
         console.error('❌ Error checking cloud data after login:', error);
+        if (authToken !== token) { loading.complete(); return; }
+        loading.fail(error.name === 'TimeoutError' ? '云端响应超时，请重试。' : '云端收藏检查失败，请重试。', () => checkForCloudUpdates({ force: true }));
         return;
     }
+    loading.complete();
     if (!authToken || !hasLoggedOutChanges()) return;
 
     const useLocal = () => {
@@ -93,70 +103,93 @@ function flushPendingCloudSave() {
 // 加载用户数据（直接覆盖本地）
 async function loadUserData(forceLoad = false) {
     if (!authToken) return;
+    const token = authToken;
+    if (cloudLoadPromise && cloudLoadToken === token) return cloudLoadPromise;
+    const pending = loadUserDataOnce(forceLoad, token);
+    cloudLoadPromise = pending;
+    cloudLoadToken = token;
+    try { return await pending; }
+    finally { if (cloudLoadPromise === pending) cloudLoadPromise = null; }
+}
+
+async function loadUserDataOnce(forceLoad, token) {
+    if (window.dataLoaded) await window.dataLoaded;
+    if (authToken !== token) return;
+    const revision = window.navDataRevision;
 
     console.log('📥 Loading user data from server, forceLoad:', forceLoad);
 
+    const status = showNavLoadStatus('正在下载云端收藏…');
     const progress = showHeaderProgress();
     progress.update(10);
 
     try {
-        const response = await fetch('/api/user-data/load', {
+        const { response, data: responseData } = await fetchJSONWithRetry('/api/user-data/load', {
             method: 'GET',
             headers: {
-                'Authorization': `Bearer ${authToken}`
+                'Authorization': `Bearer ${token}`
             }
-        });
+        }, { onRetry: () => status.update('下载较慢或暂时失败，正在重试…') });
+        if (authToken !== token) { status.complete(); progress.complete(false); return; }
 
         progress.update(40);
 
         if (response.ok) {
-            const responseData = await response.json();
             console.log('📥 Server data received (compressed)');
 
             if (responseData.data && responseData.lastUpdated) {
                 progress.update(60);
 
                 // 解压缩数据
-                const data = await decompressData(responseData.data);
+                status.update('正在整理收藏…');
+                const data = await withTimeout(decompressData(responseData.data), 15000, '收藏处理超时');
+                if (authToken !== token) { status.complete(); progress.complete(false); return; }
+                // 自动下载期间新增的本机改动仍然优先；手动选云端版本沿用覆盖语义。
+                if (!forceLoad && (window.navDataRevision !== revision || hasPendingCloudSave() || hasLoggedOutChanges() || window.saveTimeout || window.isSavingToCloud)) {
+                    status.complete();
+                    progress.complete(true);
+                    return;
+                }
                 console.log('📥 Server data decompressed:', data);
 
                 progress.update(80);
 
                 console.log('✅ Updating local data with server data');
-                await updateLocalData(data);
-
-                progress.complete(true);
+                const persisted = await updateLocalData(data);
+                progress.complete(persisted);
+                if (persisted) status.complete();
+                else status.fail('收藏已加载，但本机保存失败，请重试。', () => loadUserData());
             } else if (!responseData.data || !responseData.lastUpdated) {
                 console.log('📊 No server data found, keeping local data');
                 progress.complete(true);
+                if (window.navDataLoadFailed) status.fail('云端没有可恢复的收藏，请重试本机加载。', retryNavDataLoad);
+                else status.complete();
             }
         } else {
-            let errorInfo;
-            try {
-                errorInfo = await response.json();
-            } catch {
-                errorInfo = { error: await response.text() };
-            }
+            const errorInfo = responseData;
 
             console.error('❌ Failed to load user data:', response.status, response.statusText, errorInfo);
 
             // 处理需要重新认证的情况
-            if (errorInfo.needReauth) {
+            if (errorInfo.needReauth || response.status === 401) {
                 console.log('🔄 Token outdated, need to re-authenticate');
                 progress.complete(false);
                 showNotification('登录状态已过期，请重新登录', 'error');
+                status.fail('登录状态已过期，请重新登录。');
                 setTimeout(() => {
                     logout();
                 }, 2000);
             } else {
                 progress.complete(false);
                 showNotification('从云端下载数据失败', 'error');
+                status.fail('云端收藏加载失败，请重试。', () => loadUserData(forceLoad));
             }
         }
     } catch (error) {
+        if (authToken !== token) { status.complete(); progress.complete(false); return; }
         console.error('❌ Error loading user data:', error);
         progress.complete(false);
-        showNotification('从云端下载数据失败', 'error');
+        status.fail(error.name === 'TimeoutError' ? '云端收藏加载超时，请重试。' : '云端收藏加载失败，请重试。', () => loadUserData(forceLoad));
     }
 }
 
@@ -177,6 +210,10 @@ function getWebsiteCounts(websites) {
 async function saveUserData({ keepalive = false } = {}) {
     if (!authToken) {
         console.log('🔐 No authToken available, skipping cloud save');
+        return;
+    }
+    if (!window.navDataReady || window.navDataLoadFailed) {
+        showNavLoadStatus('').fail('本机收藏读取失败，请重试后再同步。', retryNavDataLoad);
         return;
     }
 
@@ -288,74 +325,87 @@ async function saveUserData({ keepalive = false } = {}) {
 
 // 更新本地数据
 async function updateLocalData(cloudData) {
+    if (!Array.isArray(cloudData.categories) || !cloudData.websites || typeof cloudData.websites !== 'object' || Array.isArray(cloudData.websites)) {
+        throw new Error('云端收藏数据格式错误');
+    }
     console.log('🔄 Updating local data with cloud data:', cloudData);
 
     // 设置标志，防止在更新过程中触发自动保存
     window.isUpdatingFromCloud = true;
+    try {
 
-    // 更新分类数据
-    if (cloudData.categories) {
-        console.log('📂 Updating categories:', cloudData.categories.length, 'items');
-        categories = cloudData.categories;
-        window.categories = categories; // 确保全局变量同步
-    }
-
-    // 更新网站数据
-    if (cloudData.websites) {
-        console.log('🌐 Updating websites:', Object.keys(cloudData.websites).length, 'categories');
-        websites = cloudData.websites;
-        window.websites = websites; // 确保全局变量同步
-    }
-
-    if (cloudData.categories || cloudData.websites) {
-        // 旧版本页面上传的数据里还带着「置顶」「最近添加」两个虚拟分类
-        if (typeof ensureFixedCategories === 'function') {
-            ensureFixedCategories();
+        // 更新分类数据
+        if (cloudData.categories) {
+            console.log('📂 Updating categories:', cloudData.categories.length, 'items');
+            categories = cloudData.categories;
+            window.categories = categories; // 确保全局变量同步
         }
-        await dbStorage.setItem('navSiteCategories', categories);
-        await dbStorage.setItem('navSiteWebsites', websites);
+
+        // 更新网站数据
+        if (cloudData.websites) {
+            console.log('🌐 Updating websites:', Object.keys(cloudData.websites).length, 'categories');
+            websites = cloudData.websites;
+            window.websites = websites; // 确保全局变量同步
+        }
+
+        if (cloudData.categories || cloudData.websites) {
+            // 旧版本页面上传的数据里还带着「置顶」「最近添加」两个虚拟分类
+            if (typeof ensureFixedCategories === 'function') {
+                ensureFixedCategories();
+            }
+        }
+
+        // 更新设置（不覆盖本地偏好：theme 与 categoriesCompactMode 保持 localStorage）
+        if (cloudData.settings) {
+            console.log('⚙️ Received cloud settings (ignored for local prefs):', cloudData.settings);
+            // 保留占位逻辑，未来可扩展其它非本地偏好类设置
+        }
+
+        // 重新渲染页面
+        console.log('🔄 Starting page re-render after data update');
+
+        // 更新分类列表
+        if (typeof renderCategoryList === 'function') {
+            renderCategoryList();
+            console.log('✅ Category list rendered');
+        }
+
+        // 更新分类下拉菜单
+        if (typeof updateCategoryDropdown === 'function') {
+            updateCategoryDropdown();
+            console.log('✅ Category dropdown updated');
+        }
+
+        // 重新加载网站数据和渲染
+        if (typeof loadWebsitesFromData === 'function') {
+            loadWebsitesFromData();
+            console.log('✅ Websites data loaded and rendered');
+        } else if (typeof renderCategorySections === 'function') {
+            renderCategorySections(categories);
+            console.log('✅ Category sections rendered');
+        }
+
+        console.log('🔄 Page re-render completed');
+        window.navDataReady = true;
+        window.navDataLoadFailed = false;
+    } finally {
+        // 渲染异常或存储失败也不能把后续保存永远锁住。
+        window.isUpdatingFromCloud = false;
     }
 
-    // 更新设置（不覆盖本地偏好：theme 与 categoriesCompactMode 保持 localStorage）
-    if (cloudData.settings) {
-        console.log('⚙️ Received cloud settings (ignored for local prefs):', cloudData.settings);
-        // 保留占位逻辑，未来可扩展其它非本地偏好类设置
+    // 已下载的收藏先显示，缓存失败不会让页面空白；只有持久化成功才推进版本号。
+    try {
+        await Promise.all([
+            dbStorage.setItem('navSiteCategories', categories),
+            dbStorage.setItem('navSiteWebsites', websites)
+        ]);
+        window.hasStoredNavData = true;
+        if (cloudData.version) localStorage.setItem('dataVersion', cloudData.version.toString());
+        return true;
+    } catch (error) {
+        console.error('❌ Cloud data displayed but local persistence failed:', error);
+        return false;
     }
-
-    // 更新版本号
-    if (cloudData.version) {
-        console.log('🔢 Updating version to:', cloudData.version);
-        localStorage.setItem('dataVersion', cloudData.version.toString());
-    }
-
-    // 重新渲染页面
-    console.log('🔄 Starting page re-render after data update');
-
-    // 更新分类列表
-    if (typeof renderCategoryList === 'function') {
-        renderCategoryList();
-        console.log('✅ Category list rendered');
-    }
-
-    // 更新分类下拉菜单
-    if (typeof updateCategoryDropdown === 'function') {
-        updateCategoryDropdown();
-        console.log('✅ Category dropdown updated');
-    }
-
-    // 重新加载网站数据和渲染
-    if (typeof loadWebsitesFromData === 'function') {
-        loadWebsitesFromData();
-        console.log('✅ Websites data loaded and rendered');
-    } else if (typeof renderCategorySections === 'function') {
-        renderCategorySections(categories);
-        console.log('✅ Category sections rendered');
-    }
-
-    console.log('🔄 Page re-render completed');
-
-    // 清除标志，允许后续的正常保存
-    window.isUpdatingFromCloud = false;
 }
 
 // 用户菜单「历史版本」：选一个云端版本覆盖本地
@@ -563,7 +613,11 @@ async function restoreFromVersion(version) {
 
                 progress.update(80, '正在恢复数据...');
 
-                await updateLocalData(data);
+                const persisted = await updateLocalData(data);
+                if (!persisted) {
+                    showNavLoadStatus('').fail('收藏已恢复，但本机保存失败，请重试。', () => loadUserData(true));
+                    throw new Error('收藏已恢复，但本机保存失败');
+                }
             }
 
             // 用户选了历史版本覆盖本地，本机没传上去的改动也一并放弃
@@ -641,8 +695,25 @@ function stopSyncDetection() {
 }
 
 // 检查云端更新
-async function checkForCloudUpdates() {
+async function checkForCloudUpdates({ force = false } = {}) {
     if (!authToken) return;
+    const token = authToken;
+    if (cloudCheckPromise && cloudCheckToken === token) return cloudCheckPromise;
+    const pending = runCloudUpdateCheck(force, token);
+    cloudCheckPromise = pending;
+    cloudCheckToken = token;
+    try { return await pending; }
+    finally { if (cloudCheckPromise === pending) cloudCheckPromise = null; }
+}
+
+async function runCloudUpdateCheck(force, token) {
+    if (window.dataLoaded) await window.dataLoaded;
+    if (authToken !== token) return;
+    // 本地尚未读出时，不能上传空内存，也不能用云端覆盖尚未同步的本机收藏。
+    if (window.navDataLoadFailed && (hasPendingCloudSave() || hasLoggedOutChanges())) {
+        showNavLoadStatus('').fail('本机收藏读取失败，请重试后再同步。', retryNavDataLoad);
+        return;
+    }
 
     // 如果正在保存或有待保存的本地改动，跳过版本检查，避免云端数据覆盖还没上传的修改
     if (window.isSavingToCloud || window.saveTimeout) {
@@ -662,7 +733,7 @@ async function checkForCloudUpdates() {
 
     // 避免频繁检查
     const now = Date.now();
-    if (now - lastSyncCheck < MIN_CHECK_INTERVAL) {
+    if (!force && now - lastSyncCheck < MIN_CHECK_INTERVAL) {
         console.log('🔍 Skipping sync check - too frequent');
         return;
     }
@@ -670,16 +741,18 @@ async function checkForCloudUpdates() {
 
     console.log('🔍 Checking for cloud updates...');
 
+    const revision = window.navDataRevision;
+    const status = showNavLoadStatus('正在检查云端收藏…');
     try {
-        const response = await fetch('/api/user-data/status', {
+        const { response, data } = await fetchJSONWithRetry('/api/user-data/status', {
             method: 'GET',
             headers: {
-                'Authorization': `Bearer ${authToken}`
+                'Authorization': `Bearer ${token}`
             }
-        });
+        }, { onRetry: () => status.update('云端暂时未响应，正在重试…') });
+        if (authToken !== token) { status.complete(); return; }
 
         if (response.ok) {
-            const data = await response.json();
             const localVersion = parseInt(localStorage.getItem('dataVersion') || '0');
             const cloudVersion = data.version || 0;
 
@@ -691,39 +764,40 @@ async function checkForCloudUpdates() {
                 isSavingToCloud: window.isSavingToCloud
             });
 
-            if (data.hasData && cloudVersion > localVersion) {
+            if (data.hasData && (cloudVersion > localVersion || window.navDataLoadFailed || !window.hasStoredNavData)) {
                 console.log('🆕 New cloud data detected!');
 
                 // 检查请求期间用户可能又改了数据，再确认一次
-                if (window.isSavingToCloud || window.saveTimeout || hasPendingCloudSave()) {
+                if (window.navDataRevision !== revision || window.isSavingToCloud || window.saveTimeout || hasPendingCloudSave() || hasLoggedOutChanges()) {
                     console.log('🔍 Skipping cloud update - local changes are being saved');
+                    status.complete();
                     return;
                 }
 
-                await loadUserData(true); // 直接从云端加载覆盖本地
+                await loadUserData();
             } else {
                 console.log('📊 Local data is up to date');
+                if (window.navDataLoadFailed) status.fail('收藏加载失败，请重试。', retryNavDataLoad);
+                else status.complete();
             }
         } else {
-            let errorInfo;
-            try {
-                errorInfo = await response.json();
-            } catch {
-                errorInfo = { error: await response.text() };
-            }
+            const errorInfo = data;
 
             // 处理需要重新认证的情况
-            if (errorInfo.needReauth) {
+            if (errorInfo.needReauth || response.status === 401) {
                 console.log('🔄 Token outdated during sync check');
                 stopSyncDetection();
                 showNotification('登录状态已过期，请重新登录', 'error');
+                status.fail('登录状态已过期，请重新登录。');
                 setTimeout(() => {
                     logout();
                 }, 2000);
-            }
+            } else status.fail('云端收藏检查失败，请重试。', () => checkForCloudUpdates({ force: true }));
         }
     } catch (error) {
         console.error('❌ Error checking cloud updates:', error);
+        if (authToken !== token) { status.complete(); return; }
+        status.fail(error.name === 'TimeoutError' ? '云端响应超时，请重试。' : '云端收藏检查失败，请重试。', () => checkForCloudUpdates({ force: true }));
     }
 }
 

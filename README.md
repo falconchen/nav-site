@@ -105,6 +105,7 @@ npm run build        # 构建到 dist/
 
 - [功能待办](doc/TODO.md)
 - [Wrangler 升级与验证](doc/cloudflare-worker-notes.md#wrangler-升级与验证2026-10-04)
+- [收藏加载、超时与重试](doc/FRONTEND_LOADING.md)
 - [REST API v1](doc/REST_API.md)、[测试记录](doc/REST_API_TESTING.md)
 - [登录配置](doc/AUTH_SETUP.md)、[快速配置](doc/QUICK_SETUP.md)
 - [环境变量](doc/ENV_VARIABLES_GUIDE.md)、[环境隔离](doc/ENVIRONMENT_ISOLATION_GUIDE.md)、[安全配置](doc/SECURITY_CONFIG_GUIDE.md)

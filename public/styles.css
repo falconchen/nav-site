@@ -1636,6 +1636,33 @@ html[data-sidebar="compact"] .category-section {
 
 /* ---------- 空状态 ---------- */
 
+.nav-load-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 20px 16px;
+  color: var(--ink-3);
+  font-size: 14px;
+  text-align: center;
+}
+
+.nav-load-status.is-initial {
+  flex-direction: column;
+  padding: 80px 16px;
+}
+
+.nav-load-status p { margin: 0; }
+.nav-load-status[hidden],
+.nav-load-status button[hidden],
+.nav-load-status[data-state="error"] .spinner { display: none; }
+.nav-load-status[data-state="error"] { color: var(--danger); }
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-load-status .spinner { animation: none; }
+}
+
 .tab-empty {
   display: none;
   max-width: 26em;
@@ -2848,7 +2875,8 @@ html[data-sidebar="compact"] .category-section {
   color: var(--ink);
 }
 
-.save-panel .spinner {
+.save-panel .spinner,
+.nav-load-status .spinner {
   width: 14px;
   height: 14px;
   border: 1.5px solid var(--line-strong);

@@ -288,17 +288,95 @@ async function decompressData(base64String) {
     }
 }
 
-// IndexedDB 存储工具，用于突破 localStorage 的容量限制
+// 超时覆盖整个异步操作；网络请求还会中止连接，避免只限制响应头而漏掉响应体。
+function withTimeout(promise, timeoutMs, message, cancel = () => {}) {
+    let timer;
+    const timeout = new Promise((_, reject) => {
+        timer = setTimeout(() => {
+            const error = new Error(message);
+            error.name = 'TimeoutError';
+            reject(error);
+            cancel();
+        }, timeoutMs);
+    });
+    return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
+// 只对读取请求的网络故障和 5xx 自动重试一次，不重试鉴权错误或写入请求。
+async function fetchJSONWithRetry(url, options = {}, { timeoutMs = 15000, onRetry = () => {} } = {}) {
+    const attempts = (options.method || 'GET').toUpperCase() === 'GET' ? 2 : 1;
+    for (let attempt = 0; attempt < attempts; attempt++) {
+        const controller = new AbortController();
+        try {
+            const result = await withTimeout((async () => {
+                const response = await fetch(url, { ...options, signal: controller.signal });
+                const body = await response.text();
+                let data;
+                try { data = JSON.parse(body); } catch {
+                    if (response.ok) {
+                        const error = new Error('服务器返回的数据格式错误');
+                        error.name = 'DataFormatError';
+                        throw error;
+                    }
+                    data = { error: body };
+                }
+                return { response, data };
+            })(), timeoutMs, '云端请求超时', () => controller.abort());
+            if (result.response.status < 500 || attempt === attempts - 1) return result;
+        } catch (error) {
+            if (attempt === attempts - 1 || error.name === 'DataFormatError') throw error;
+        }
+        onRetry();
+        await new Promise(resolve => setTimeout(resolve, 1000));
+    }
+}
+
+// 后启动的加载流程拥有提示，旧请求完成时不能隐藏新请求的状态。
+let navLoadStatusId = 0;
+function showNavLoadStatus(message) {
+    const id = ++navLoadStatusId;
+    const status = document.getElementById('navLoadStatus');
+    const text = document.getElementById('navLoadMessage');
+    const retry = document.getElementById('navLoadRetry');
+    const content = document.querySelector('.content-area');
+    const update = (state, message, retryAction) => {
+        if (!status || id !== navLoadStatusId) return;
+        status.hidden = state === 'ready';
+        status.dataset.state = state;
+        status.classList.toggle('is-initial', !window.navDataReady);
+        content?.setAttribute('aria-busy', String(state === 'loading'));
+        text.textContent = message;
+        retry.hidden = !retryAction;
+        retry.onclick = retryAction || null;
+    };
+    update('loading', message);
+    return {
+        update: message => update('loading', message),
+        complete: () => update('ready', ''),
+        fail: (message, retryAction) => update('error', message, retryAction)
+    };
+}
+
+// IndexedDB 存储工具，用于突破 localStorage 的容量限制。
+// 打开和事务各限时 5 秒，失败后重新连接并重试一次。
 const dbStorage = {
     dbName: 'NavSiteDB',
     storeName: 'settings',
     db: null,
+    opening: null,
+    timeoutMs: 5000,
+
+    reset() {
+        this.db?.close();
+        this.db = null;
+    },
 
     // 初始化数据库
-    async init() {
-        if (this.db) return this.db;
-
-        return new Promise((resolve, reject) => {
+    init() {
+        if (this.db) return Promise.resolve(this.db);
+        if (this.opening) return this.opening;
+        let expired = false;
+        const pending = new Promise((resolve, reject) => {
             const request = indexedDB.open(this.dbName, 1);
 
             request.onupgradeneeded = (event) => {
@@ -309,53 +387,95 @@ const dbStorage = {
             };
 
             request.onsuccess = (event) => {
-                this.db = event.target.result;
+                const db = event.target.result;
+                if (expired) { db.close(); return; }
+                this.db = db;
+                db.onversionchange = () => { db.close(); if (this.db === db) this.db = null; };
+                db.onclose = () => { if (this.db === db) this.db = null; };
                 resolve(this.db);
             };
-
+            request.onblocked = () => {
+                expired = true;
+                reject(new Error('本地数据库连接被阻塞'));
+            };
             request.onerror = (event) => {
                 console.error('IndexedDB open error:', event.target.error);
                 reject(event.target.error);
             };
         });
+        const opening = withTimeout(pending, this.timeoutMs, '本地数据库连接超时', () => { expired = true; })
+            .finally(() => { if (this.opening === opening) this.opening = null; });
+        this.opening = opening;
+        return opening;
+    },
+
+    async run(mode, key, value) {
+        for (let attempt = 0; attempt < 2; attempt++) {
+            let db;
+            try {
+                db = await this.init();
+                return await new Promise((resolve, reject) => {
+                    const transaction = db.transaction([this.storeName], mode);
+                    const store = transaction.objectStore(this.storeName);
+                    const request = mode === 'readonly' ? store.get(key) : store.put(value, key);
+                    let result;
+                    let settled = false;
+                    const finish = (error) => {
+                        if (settled) return;
+                        settled = true;
+                        clearTimeout(timer);
+                        error ? reject(error) : resolve(result);
+                    };
+                    const timer = setTimeout(() => {
+                        const error = new Error('本地数据库读写超时');
+                        error.name = 'TimeoutError';
+                        finish(error);
+                        try { transaction.abort(); } catch { /* 已结束的事务不能再取消 */ }
+                    }, this.timeoutMs);
+                    request.onsuccess = () => { result = request.result; };
+                    request.onerror = () => finish(request.error || new Error('本地数据库读写失败'));
+                    // 写入请求成功不等于事务提交成功，必须等 complete。
+                    transaction.oncomplete = () => finish();
+                    transaction.onabort = () => finish(transaction.error || new Error('本地数据库事务已中止'));
+                    transaction.onerror = () => finish(transaction.error || new Error('本地数据库事务失败'));
+                });
+            } catch (error) {
+                if (db && this.db === db) this.reset();
+                if (attempt === 1) throw error;
+            }
+        }
     },
 
     // 获取数据
     async getItem(key) {
+        const fallbackKey = `navSiteStorageFallback:${key}`;
+        // 上次写入降级后，localStorage 是最新数据，不能读回 IndexedDB 的旧副本。
+        if (localStorage.getItem(fallbackKey)) {
+            const saved = localStorage.getItem(key);
+            if (saved !== null) return JSON.parse(saved);
+        }
         try {
-            await this.init();
-            return new Promise((resolve, reject) => {
-                const transaction = this.db.transaction([this.storeName], 'readonly');
-                const store = transaction.objectStore(this.storeName);
-                const request = store.get(key);
-
-                request.onsuccess = () => resolve(request.result);
-                request.onerror = () => reject(request.error);
-            });
+            return await this.run('readonly', key);
         } catch (error) {
             console.error(`Error getting item ${key} from IndexedDB:`, error);
             // 降级使用 localStorage
-            return localStorage.getItem(key);
+            const saved = localStorage.getItem(key);
+            if (saved === null) throw error;
+            return JSON.parse(saved);
         }
     },
 
     // 存储数据
     async setItem(key, value) {
         try {
-            await this.init();
-            return new Promise((resolve, reject) => {
-                const transaction = this.db.transaction([this.storeName], 'readwrite');
-                const store = transaction.objectStore(this.storeName);
-                const request = store.put(value, key);
-
-                request.onsuccess = () => resolve();
-                request.onerror = () => reject(request.error);
-            });
+            await this.run('readwrite', key, value);
+            localStorage.removeItem(`navSiteStorageFallback:${key}`);
         } catch (error) {
             console.error(`Error setting item ${key} in IndexedDB:`, error);
             // 降级使用 localStorage，但捕获可能的容量超限错误
             try {
-                localStorage.setItem(key, value);
+                localStorage.setItem(key, JSON.stringify(value));
+                localStorage.setItem(`navSiteStorageFallback:${key}`, '1');
             } catch (e) {
                 console.error('localStorage also failed:', e);
                 throw e;

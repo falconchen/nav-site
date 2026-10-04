@@ -440,7 +440,8 @@ function validatePinnedStatus() {
     });
 
     // 如果数据有变化，保存到localStorage
-    if (dataChanged && window.saveNavData) {
+    // 首次打开的示例数据不能在云端恢复前被当成用户修改上传。
+    if (dataChanged && window.saveNavData && window.hasStoredNavData && !window.isUpdatingFromCloud) {
         window.saveNavData();
     }
 }
@@ -2556,8 +2557,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     // 更新分类下拉菜单
     updateCategoryDropdown();
 
-    // 加载数据并创建卡片
-    loadWebsitesFromData();
+    // loadData 负责首次加载和重试后的卡片渲染；失败时仍继续安装页面操作监听器。
 
     // 访问统计从 IndexedDB 异步读取，读完再渲染一次访问最多
     if (window.visitStatsLoaded) {

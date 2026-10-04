@@ -54,7 +54,7 @@ async function checkAuthStatus() {
     }
 
     try {
-        const response = await fetch('/api/auth/verify', {
+        const { response, data } = await fetchJSONWithRetry('/api/auth/verify', {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`
@@ -65,7 +65,6 @@ async function checkAuthStatus() {
         if (localStorage.getItem('authToken') !== token) return;
 
         if (response.ok) {
-            const data = await response.json();
             if (localStorage.getItem('authToken') !== token) return;
             console.log('🔍 Auth verify response:', data);
 

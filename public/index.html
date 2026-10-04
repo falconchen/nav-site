@@ -254,6 +254,11 @@
 
         <!-- 网址卡片区域 -->
         <div class="content-area">
+            <div class="nav-load-status is-initial" id="navLoadStatus" role="status" aria-live="polite" aria-atomic="true">
+                <span class="spinner" aria-hidden="true"></span>
+                <p id="navLoadMessage">正在加载收藏…</p>
+                <button type="button" class="btn btn-secondary" id="navLoadRetry" hidden>重试</button>
+            </div>
             <div class="tab-panel" id="tab-recent" role="tabpanel">
                 <section class="category-section" id="recent">
                     <div class="cards-grid" id="recent-cards"></div>
