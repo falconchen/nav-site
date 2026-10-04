@@ -370,6 +370,9 @@ const dbStorage = {
     opening: null,
     timeoutMs: 5000,
     writesPaused: false,
+    // 进行中的事务，页面进往返缓存前要全部结束掉，见 suspend()
+    active: new Set(),
+    suspended: false,
 
     reset() {
         this.db?.close();
@@ -418,6 +421,8 @@ const dbStorage = {
         for (let attempt = 0; attempt < 2; attempt++) {
             let db;
             try {
+                // 挂起期间不能再开连接和事务，被取消的操作也不在这时重试
+                if (this.suspended) throw new Error('页面已挂起，暂不读写本地数据库');
                 db = await this.init();
                 // 清除期间，尚在等待连接的旧写入也不能重新填回数据。
                 if (mode === 'readwrite' && this.writesPaused && operation !== 'clear') return;
@@ -428,9 +433,12 @@ const dbStorage = {
                         : mode === 'readonly' ? store.get(key) : store.put(value, key);
                     let result;
                     let settled = false;
+                    const entry = { transaction, key, value, writing: mode === 'readwrite' && operation !== 'clear' };
+                    this.active.add(entry);
                     const finish = (error) => {
                         if (settled) return;
                         settled = true;
+                        this.active.delete(entry);
                         clearTimeout(timer);
                         error ? reject(error) : resolve(result);
                     };
@@ -473,9 +481,38 @@ const dbStorage = {
         }
     },
 
+    // 写到 localStorage 并打上降级标记，下次读取以它为准
+    saveFallback(key, value) {
+        localStorage.setItem(key, JSON.stringify(value));
+        localStorage.setItem(`navSiteStorageFallback:${key}`, '1');
+    },
+
+    // Safari 把页面放进往返缓存时会连同没提交的事务一起冻住，同一个库上其它页面的读写全部排在它后面等到超时
+    // （从首页去记事本再点「返回首页」，新首页一直「正在加载收藏」）。所以挂起前把没写完的内容同步存到
+    // localStorage、取消事务并关掉连接；挂起期间的写入也只写 localStorage。
+    suspend() {
+        this.suspended = true;
+        for (const entry of this.active) {
+            if (entry.writing && !this.writesPaused) {
+                // localStorage 放不下时留着事务让它继续写，丢数据比卡住别的页面更糟
+                try { this.saveFallback(entry.key, entry.value); } catch { continue; }
+            }
+            try { entry.transaction.abort(); } catch { /* 已结束的事务不能再取消 */ }
+        }
+        this.reset();
+    },
+
+    resume() {
+        this.suspended = false;
+    },
+
     // 存储数据
     async setItem(key, value) {
         if (this.writesPaused) return;
+        if (this.suspended) {
+            this.saveFallback(key, value);
+            return;
+        }
         try {
             await this.run('readwrite', key, value);
             if (this.writesPaused) return;
@@ -485,8 +522,7 @@ const dbStorage = {
             console.error(`Error setting item ${key} in IndexedDB:`, error);
             // 降级使用 localStorage，但捕获可能的容量超限错误
             try {
-                localStorage.setItem(key, JSON.stringify(value));
-                localStorage.setItem(`navSiteStorageFallback:${key}`, '1');
+                this.saveFallback(key, value);
             } catch (e) {
                 console.error('localStorage also failed:', e);
                 throw e;
@@ -501,3 +537,7 @@ const dbStorage = {
 };
 
 window.dbStorage = dbStorage;
+
+// 捕获阶段：要赶在其它脚本的 pagehide 处理（它们会发起写入）之前
+window.addEventListener('pagehide', (event) => { if (event.persisted) dbStorage.suspend(); }, true);
+window.addEventListener('pageshow', () => dbStorage.resume());

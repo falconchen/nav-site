@@ -153,6 +153,27 @@ test('put 成功但事务 abort 不能报告保存成功；降级数据保留对
     assert.equal((await ctx.dbStorage.getItem('example')).repaired, true);
 });
 
+test('进往返缓存前取消没提交的事务、关掉连接，没写完的和挂起期间的写入落到 localStorage', async () => {
+    const ctx = sandbox(); const db = idb({ example: { old: true } }); db.transactionMode = 'hang'; ctx.indexedDB = db;
+    ctx.dbStorage.timeoutMs = 5000;
+    ctx.dbStorage.setItem('example', { latest: true }).catch(() => {});
+    await tick();
+    assert.equal(ctx.dbStorage.active.size, 1);
+    ctx.dbStorage.suspend();
+    assert.equal(db.aborts, 1); assert.equal(db.closes, 1); assert.equal(ctx.dbStorage.db, null);
+    assert.equal(ctx.localStorage.getItem('example'), '{"latest":true}');
+    assert.equal(ctx.localStorage.getItem('navSiteStorageFallback:example'), '1');
+    const opens = db.opens;
+    await ctx.dbStorage.setItem('other', { hidden: true });
+    assert.equal(db.opens, opens);
+    assert.equal(ctx.localStorage.getItem('other'), '{"hidden":true}');
+    // 恢复后照常写 IndexedDB，并清掉降级标记
+    db.transactionMode = 'ok'; ctx.dbStorage.resume();
+    await ctx.dbStorage.setItem('other', { back: true });
+    assert.equal(db.values.get('other').back, true);
+    assert.equal(ctx.localStorage.getItem('navSiteStorageFallback:other'), null);
+});
+
 test('打开阻塞和无法降级的写入都会明确失败', async () => {
     const ctx = sandbox(); const db = idb(); db.openMode = 'blocked'; ctx.indexedDB = db;
     ctx.localStorage.setItem = () => { throw new Error('quota'); };
