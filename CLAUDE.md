@@ -169,7 +169,14 @@
 - 进入时用 WeakMap 记下卡片 → 网站数据的对应，拖动后 DOM 下标对不上数据，别在整理中用 `siteIndexOfCard()`
 - Sortable 用 `forceFallback`（鼠标触屏同一套实现）、触屏按住 150ms 才开始拖，快速划动仍是滚动页面
 
-登录状态在页面启动时通过 `/api/auth/verify` 校验。只有明确收到 401 或 `valid: false` 才删除本地令牌；断网、请求异常及服务端临时故障会保留令牌，并在网络恢复或 15 秒后重试。校验未成功前不启动云端同步。修改此流程时需检查断网刷新后恢复、真正过期以及校验期间切换账号这三种情况。
+登录状态在页面启动时通过 `/api/auth/verify` 校验。只有明确收到 401 或 `valid: false` 才删除本地令牌；断网、请求异常及服务端临时故障会保留令牌，并在网络恢复或 15 秒后重试。校验未成功前不启动云端同步。
+
+页眉不等校验就先按已登录显示，免得每次打开都闪一下登录按钮：`showUserInfo()` 把名字和头像地址缓存在 localStorage `authUser`，
+`index.html` 头部内联脚本发现令牌和缓存都在时设 `<html data-auth="pending">`，`#userInfo` 后面的内联脚本用缓存填头像和名字。
+`pending` 只管显示（CSS 里隐藏登录按钮、显示头像且不可点），`authToken` 变量仍要等校验通过才赋值；校验通过变成 `in`，
+失败时 `showLoginButton()` 去掉这个属性。删令牌的地方要同时删 `authUser`，暂时性失败两样都保留。
+
+修改此流程时需检查断网刷新后恢复、真正过期以及校验期间切换账号这三种情况。
 
 ### 从链接添加网站（`?add=`）
 
@@ -357,6 +364,22 @@ v2ex 这类站点会间歇性开 Cloudflare 质询，Worker 抓取拿到 403。�
 - 导入数据（`importData()`）必须走 `saveNavData()`：加载时优先读 IndexedDB，只写 localStorage 刷新后会读回旧数据
 - 「历史版本」在用户菜单里（`loadUserDataFromCloud()`），选一个版本覆盖本地
 - 版本历史存储在 Redis 中，靠数量裁剪（`MAX_USER_VERSIONS`，默认 5），没有过期时间
+
+### 本地 IndexedDB 与 Safari 往返缓存
+
+本机的收藏和访问统计都经 `utils.js` 的 `dbStorage` 读写 IndexedDB（库 `NavSiteDB`），打开和事务各限时 5 秒，失败重连重试一次，
+再不行降级到 localStorage 并打 `navSiteStorageFallback:<key>` 标记（有标记时读取以 localStorage 为准，下次写成功后清掉）。
+
+Safari（macOS 和 iOS）把页面放进往返缓存（bfcache）时，会连同**没提交的事务**一起冻住，同一个库上其它页面的读写全部排在它后面等到超时。
+表现是：打开首页后马上去记事本 / 常用工具，再点「返回首页」（新开一个首页，不是后退），首页一直「正在加载收藏」，
+控制台报 `TimeoutError: 本地数据库读写超时`；另开标签页打开首页也一样。Chrome 没有这个问题。
+
+- `pagehide` 且 `event.persisted` 时 `dbStorage.suspend()`：没写完的内容同步存到 localStorage 并打降级标记，取消所有进行中的事务（`active`），关掉连接。
+  挂起期间（`suspended`）的写入只写 localStorage，`run()` 不开连接、不重试；`pageshow` 时 `resume()`，连接下次用到时自动重开
+- 监听挂在 window 捕获阶段，要赶在其它脚本的 `pagehide` 处理之前（`visit-stats.js`、`card-reorder.js` 会在 `pagehide` 里发起写入）
+- localStorage 放不下时那个事务不取消、让它继续写：宁可卡住别的页面也不丢数据
+- 新增读写一律走 `dbStorage`，不要另外直接开 `indexedDB` 连接或事务，否则绕过了这套处理
+- 验证时先关掉所有开着本站的旧标签页（含主屏幕 PWA）：强制刷新换不掉往返缓存里挂着的旧页面。回归测试在 `test/frontend-loading.node.cjs`
 
 ### 构建系统
 

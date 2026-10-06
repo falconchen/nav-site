@@ -569,6 +569,19 @@ a.user-menu-item {
   background: var(--paper-sunk);
 }
 
+/* 登录校验返回前先按缓存显示已登录（index.html 内联脚本设 data-auth="pending"）。
+   这时令牌还没校验，菜单里的功能都用不了，所以不可点 */
+html[data-auth="pending"] #loginBtn,
+html[data-auth="pending"] #loginBtnGoogle,
+html[data-auth="pending"] #loginEntry {
+  display: none !important;
+}
+
+html[data-auth="pending"] #userInfo {
+  display: flex !important;
+  pointer-events: none;
+}
+
 #userName {
   max-width: 120px;
   overflow: hidden;

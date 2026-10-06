@@ -96,6 +96,7 @@ async function checkAuthStatus() {
                 clearTimeout(authRetryTimer);
                 authRetryPending = false;
                 localStorage.removeItem('authToken');
+                localStorage.removeItem('authUser');
                 showLoginButton();
             } else {
                 scheduleAuthRetry();
@@ -105,6 +106,7 @@ async function checkAuthStatus() {
             clearTimeout(authRetryTimer);
             authRetryPending = false;
             localStorage.removeItem('authToken');
+            localStorage.removeItem('authUser');
             showLoginButton();
         } else {
             console.error('❌ Auth verify temporarily unavailable:', response.status, response.statusText);
@@ -118,6 +120,7 @@ async function checkAuthStatus() {
 
 // 显示登录按钮
 function showLoginButton() {
+    document.documentElement.removeAttribute('data-auth');
     document.getElementById('loginBtn').style.display = 'flex';
     document.getElementById('loginBtnGoogle').style.display = 'flex';
     document.getElementById('loginEntry').hidden = false;
@@ -151,6 +154,7 @@ function showUserInfo(user) {
     console.log('👤 Processed user data:', userData);
     console.log('📧 User email:', userData.email);
 
+    document.documentElement.setAttribute('data-auth', 'in');
     document.getElementById('loginBtn').style.display = 'none';
     document.getElementById('loginBtnGoogle').style.display = 'none';
     document.getElementById('loginEntry').hidden = true;
@@ -166,13 +170,18 @@ function showUserInfo(user) {
         avatar.onerror = null;
         avatar.src = 'img/seal.svg';
     };
-    avatar.src = avatarUrl;
+    // 首屏已经用缓存显示了同一张头像时不重设，免得再闪一下
+    if (avatar.getAttribute('src') !== avatarUrl) avatar.src = avatarUrl;
 
     // 设置用户名
     const displayName = userData.name || userData.login || 'Unknown User';
     console.log('👤 Setting display name:', displayName);
     document.getElementById('userName').textContent = displayName;
 
+    // 缓存名字和头像：下次打开时 index.html 的内联脚本在校验返回前先显示它们，页眉不闪登录按钮
+    try {
+        localStorage.setItem('authUser', JSON.stringify({ name: displayName, avatar: avatarUrl }));
+    } catch (e) {}
 
 }
 
@@ -313,6 +322,7 @@ async function logout({ clearLocalData = false } = {}) {
     authToken = null;
     currentUser = null;
     localStorage.removeItem('authToken');
+    localStorage.removeItem('authUser');
     if (typeof clearPendingCloudSave === 'function') clearPendingCloudSave();
     showLoginButton();
     document.getElementById('userMenu').classList.remove('show');

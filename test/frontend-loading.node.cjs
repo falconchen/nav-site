@@ -26,7 +26,9 @@ function element() {
             add(name) { classes.add(name); }, remove(name) { classes.delete(name); },
             contains(name) { return classes.has(name); }
         },
-        setAttribute(key, value) { this.attributes[key] = value; }
+        setAttribute(key, value) { this.attributes[key] = value; },
+        getAttribute(key) { return this.attributes[key] ?? null; },
+        removeAttribute(key) { delete this.attributes[key]; }
     };
 }
 
@@ -348,9 +350,10 @@ function logoutSandbox() {
     ];
     const initial = Object.fromEntries(dataKeys.map(key => [key, 'fixture']));
     const ctx = sandbox({ ...initial, authToken: 'fixture-token', theme: 'dark', tabOrder: '[]', otherApp: 'keep' });
-    for (const id of ['loginBtn', 'loginBtnGoogle', 'loginEntry', 'userInfo', 'userMenu', 'logoutClearLocalData', 'logoutCancelBtn']) {
+    for (const id of ['loginBtn', 'loginBtnGoogle', 'loginEntry', 'loginMenu', 'userInfo', 'userMenu', 'userAvatar', 'userName', 'logoutClearLocalData', 'logoutCancelBtn']) {
         ctx.elements[id] = element();
     }
+    ctx.document.documentElement = element();
     ctx.sessionStorage = storage({ privateRevealed: '1' });
     ctx.indexedDB = idb({ navSiteCategories: ['private'], navSiteWebsites: { private: ['secret'] }, navSiteVisits: { secret: 1 } });
     ctx.requests = []; ctx.notifications = []; ctx.reloads = 0; ctx.modals = new Set();
@@ -367,6 +370,32 @@ function logoutSandbox() {
     ctx.dataKeys = dataKeys;
     return ctx;
 }
+
+test('显示用户信息时缓存名字和头像，退出登录后清掉', async () => {
+    const ctx = logoutSandbox(); const root = ctx.document.documentElement;
+    ctx.showUserInfo({ name: 'Fixture', avatar_url: 'https://example.com/a.png' });
+    assert.equal(root.getAttribute('data-auth'), 'in');
+    assert.deepEqual(JSON.parse(ctx.localStorage.getItem('authUser')), { name: 'Fixture', avatar: 'https://example.com/a.png' });
+    await ctx.logout();
+    assert.equal(ctx.localStorage.getItem('authUser'), null);
+    assert.equal(root.getAttribute('data-auth'), null);
+});
+
+test('登录校验返回 401 时清掉缓存的用户信息，暂时失败时保留', async () => {
+    const ctx = logoutSandbox(); const root = ctx.document.documentElement;
+    ctx.localStorage.setItem('authUser', '{"name":"Fixture"}');
+    root.setAttribute('data-auth', 'pending');
+    ctx.fetch = async () => response({}, 503);
+    await ctx.checkAuthStatus();
+    vm.runInContext('clearTimeout(authRetryTimer)', ctx);
+    assert.equal(ctx.localStorage.getItem('authUser'), '{"name":"Fixture"}');
+    assert.equal(ctx.localStorage.getItem('authToken'), 'fixture-token');
+    assert.equal(root.getAttribute('data-auth'), null);
+    ctx.fetch = async () => response({}, 401);
+    await ctx.checkAuthStatus();
+    assert.equal(ctx.localStorage.getItem('authUser'), null);
+    assert.equal(ctx.localStorage.getItem('authToken'), null);
+});
 
 test('退出弹窗默认勾选清除；取消后保持登录且不修改本地数据', async () => {
     const ctx = logoutSandbox(); ctx.elements.logoutClearLocalData.checked = false;

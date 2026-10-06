@@ -78,6 +78,11 @@
         if (accent) {
           document.documentElement.setAttribute('data-accent', accent);
         }
+
+        // 上次登录的名字和头像有缓存时，页眉先按已登录显示，校验结果回来再由 auth.js 修正
+        if (localStorage.getItem('authToken') && JSON.parse(localStorage.getItem('authUser')).name) {
+          document.documentElement.setAttribute('data-auth', 'pending');
+        }
       } catch(e) {}
     })();
     </script>
@@ -155,6 +160,22 @@
                         </div>
                     </div>
                 </div>
+                <script>
+                  // 用缓存的名字和头像填页眉，紧跟在 #userInfo 后面同步执行，首屏不闪登录按钮
+                  (function () {
+                    if (document.documentElement.getAttribute('data-auth') !== 'pending') return;
+                    try {
+                      var user = JSON.parse(localStorage.getItem('authUser'));
+                      var avatar = document.getElementById('userAvatar');
+                      avatar.onerror = function () {
+                        avatar.onerror = null;
+                        avatar.src = 'img/seal.svg';
+                      };
+                      avatar.src = user.avatar || 'img/seal.svg';
+                      document.getElementById('userName').textContent = user.name;
+                    } catch (e) {}
+                  })();
+                </script>
                 <button class="login-btn" id="loginBtn" onclick="login('github')">
                     <i class="fab fa-github"></i>
                     <span class="login-btn-text">登录</span>
