@@ -175,6 +175,34 @@ Authorization: Bearer navpat_xxxxxxxx
 写操作（POST/DELETE）按 IP 限流 30 次/分钟，每次写入都会生成一个版本快照，
 误操作可以在网页端的版本历史里恢复。
 
+## 分享草稿（iOS 快捷指令浮层）
+
+iOS 快捷指令的「显示网页」浮层读不到浏览器里的登录状态，也带不了请求头。快捷指令先用个人令牌换一个带短时令牌的网址，
+浮层打开它。快捷指令的设置步骤见 [IOS_SHORTCUT.md](IOS_SHORTCUT.md)。
+
+### `POST /api/share/draft`
+
+只接受个人令牌（`Authorization: Bearer navpat_…`），网页登录 JWT 不行。请求体 `{ "url": "https://…" }`。
+
+```json
+{ "edit_url": "https://pipi2047.eu.org/add?url=https%3A%2F%2Fexample.com%2F&t=<短时令牌>" }
+```
+
+- 令牌无效返回 `401`，`url` 不是 http(s) 网址返回 `400`，按用户限流 30 次/分钟
+- 短时令牌 30 分钟过期。KV 里只存摘要：`share:<sha256>` → `{ userId, url, createdAt }`
+
+### 短时令牌能做什么
+
+`/add` 页面把令牌从地址栏去掉、存进 sessionStorage，请求时放在 `X-Share-Token` 头里。它只能调下面四个接口，
+其余 `/api/v1` 接口返回 `403 SHARE_SCOPE`，`/api/v1` 以外的接口不认它：
+
+- `GET /api/v1/me`、`GET /api/v1/categories`
+- `POST /api/v1/websites/analyze`、`POST /api/v1/websites`
+
+`POST /api/v1/websites` 保存成功后令牌立即作废；过期、已用过或无效返回 `401 SHARE_TOKEN_INVALID`。
+KV 是最终一致的，作废后短时间内其它节点可能还认它，这时重复提交会被网址查重挡住（`409 DUPLICATE`）。
+图标上传走不鉴权的 `/api/proxy-image` 和 `/api/upload-image`，和网页端一样。
+
 ## 与网页端同步的关系
 
 API 写入后云端 `version` 变大。已打开的网页在获得焦点或切回标签页时检查云端版本，

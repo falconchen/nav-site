@@ -83,9 +83,10 @@ describe('个人令牌 + REST API v1', () => {
     let sessionJwt;
     const ctx = { waitUntil() {}, passThroughOnException() {} };
 
-    function call(path, { method = 'GET', token, body } = {}) {
+    function call(path, { method = 'GET', token, share, body } = {}) {
         const headers = { 'CF-Connecting-IP': '203.0.113.1' };
         if (token) headers.Authorization = `Bearer ${token}`;
+        if (share) headers['X-Share-Token'] = share;
         if (body !== undefined) headers['Content-Type'] = 'application/json';
         return worker.fetch(new Request(`https://nav.test${path}`, {
             method,
@@ -551,6 +552,96 @@ describe('个人令牌 + REST API v1', () => {
                 method: 'POST', token, body: { url: 'https://code.claude.com/', category: 'tools', description: 'd' }
             });
             expect(ok.status).toBe(201);
+        });
+    });
+
+    describe('分享令牌（iOS 快捷指令浮层）', () => {
+        async function createDraft(url = 'https://example.com/post?id=1#top') {
+            const { token } = await createPat('快捷指令');
+            const res = await call('/api/share/draft', { method: 'POST', token, body: { url } });
+            expect(res.status).toBe(200);
+            const editUrl = new URL((await res.json()).edit_url);
+            return { editUrl, share: editUrl.searchParams.get('t') };
+        }
+
+        it('用个人令牌换带短时令牌的完整网址，KV 里只存摘要', async () => {
+            const { editUrl, share } = await createDraft();
+            expect(editUrl.origin + editUrl.pathname).toBe('https://nav.test/add');
+            expect(editUrl.searchParams.get('url')).toBe('https://example.com/post?id=1');
+            expect(share).toMatch(/^[A-Za-z0-9_-]{43}$/);
+
+            const entries = [...env.USER_SESSIONS.store].filter(([key]) => key.startsWith('share:'));
+            expect(entries).toHaveLength(1);
+            expect(entries[0][0]).toMatch(/^share:[0-9a-f]{64}$/);
+            expect(JSON.parse(entries[0][1])).toMatchObject({ userId: USER_ID, url: 'https://example.com/post?id=1' });
+            for (const [key, value] of env.USER_SESSIONS.store) {
+                expect(key.includes(share)).toBe(false);
+                expect(String(value).includes(share)).toBe(false);
+            }
+        });
+
+        it('签发时设 30 分钟过期', async () => {
+            const put = vi.spyOn(env.USER_SESSIONS, 'put');
+            await createDraft();
+            const call = put.mock.calls.find(([key]) => key.startsWith('share:'));
+            expect(call[2]).toEqual({ expirationTtl: 1800 });
+        });
+
+        it('只接受个人令牌；网址不合法返回 400', async () => {
+            const body = { url: 'https://example.com/' };
+            expect((await call('/api/share/draft', { method: 'POST', body })).status).toBe(401);
+            expect((await call('/api/share/draft', { method: 'POST', token: sessionJwt, body })).status).toBe(401);
+            expect((await call('/api/share/draft', { method: 'POST', token: 'navpat_forged', body })).status).toBe(401);
+
+            const { token } = await createPat();
+            for (const url of ['javascript:alert(1)', 'example.com', '', 42]) {
+                expect((await call('/api/share/draft', { method: 'POST', token, body: { url } })).status).toBe(400);
+            }
+        });
+
+        it('能读账号和分类、保存网站，保存后令牌作废', async () => {
+            const { share } = await createDraft();
+
+            const me = await call('/api/v1/me', { share });
+            expect(me.status).toBe(200);
+            expect((await me.json()).auth.via).toBe('share');
+            expect((await call('/api/v1/categories', { share })).status).toBe(200);
+
+            const body = { url: 'https://example.com/post?id=1', title: '示例', category: 'tools', description: '一个例子' };
+            const res = await call('/api/v1/websites', { method: 'POST', share, body });
+            expect(res.status).toBe(201);
+            const saved = await readUserData(redisStore);
+            expect(saved.websites.tools.map((site) => site.title)).toContain('示例');
+            expect([...env.USER_SESSIONS.store.keys()].some((key) => key.startsWith('share:'))).toBe(false);
+
+            expect((await call('/api/v1/websites', { method: 'POST', share, body })).status).toBe(401);
+            expect((await call('/api/v1/me', { share })).status).toBe(401);
+        });
+
+        it('白名单以外的接口返回 403', async () => {
+            const { share } = await createDraft();
+            const denied = [
+                ['/api/v1/websites', 'GET'],
+                ['/api/v1/websites?url=https://chatgpt.com/', 'DELETE'],
+                ['/api/v1/websites/touch', 'POST']
+            ];
+            for (const [path, method] of denied) {
+                const res = await call(path, { method, share, body: method === 'POST' ? { url: 'https://chatgpt.com/' } : undefined });
+                expect(res.status, `${method} ${path}`).toBe(403);
+            }
+            expect((await readUserData(redisStore)).websites.social).toHaveLength(1);
+        });
+
+        it('v1 以外的接口不认分享令牌', async () => {
+            const { share } = await createDraft();
+            expect((await call('/api/tokens', { share })).status).toBe(401);
+            expect((await call('/api/notes', { share })).status).toBe(401);
+            expect((await call('/api/share/draft', { method: 'POST', share, body: { url: 'https://example.com/' } })).status).toBe(401);
+        });
+
+        it('伪造的令牌返回 401', async () => {
+            expect((await call('/api/v1/me', { share: 'x'.repeat(43) })).status).toBe(401);
+            expect((await call('/api/v1/me', { share: 'short' })).status).toBe(401);
         });
     });
 });

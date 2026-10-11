@@ -19,6 +19,7 @@ import tokensApi from './api/tokens.js';
 import v1Api from './api/v1.js';
 import notesApi from './api/notes.js';
 import visitsApi from './api/visits.js';
+import shareApi from './api/share.js';
 
 // 创建 Hono 应用
 const app = new Hono();
@@ -81,6 +82,7 @@ app.route('/api', tokensApi);
 app.route('/api', v1Api);
 app.route('/api', notesApi);
 app.route('/api', visitsApi);
+app.route('/api', shareApi);
 
 // 公开发布的记事：/n/<公开 id> 都返回同一个静态页，页面自己按 id 去取内容。
 // 是用户发布的内容，不让搜索引擎收录
@@ -90,6 +92,16 @@ app.get('/n/:id', async (c) => {
 	const asset = await c.env.ASSETS.fetch(new Request(url, c.req.raw));
 	const response = new Response(asset.body, asset);
 	response.headers.set('X-Robots-Tag', 'noindex, nofollow');
+	return response;
+});
+
+// iOS 快捷指令浮层用的添加页：网址里带短时令牌，不让它经 Referer 泄露，也不让搜索引擎收录
+app.get('/add', async (c) => {
+	const asset = await c.env.ASSETS.fetch(c.req.raw);
+	const response = new Response(asset.body, asset);
+	response.headers.set('Referrer-Policy', 'no-referrer');
+	response.headers.set('X-Robots-Tag', 'noindex, nofollow');
+	response.headers.set('Cache-Control', 'no-store');
 	return response;
 });
 

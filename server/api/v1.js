@@ -2,6 +2,7 @@
  * RESTful API v1
  *
  * 给浏览器扩展、脚本等第三方客户端用，鉴权接受个人访问令牌（navpat_ 开头）或网页登录 JWT。
+ * /add 页面（iOS 快捷指令的浮层）用 X-Share-Token 头带短时分享令牌，只能调 SHARE_ALLOWED 里的接口。
  * 数据仍是整份存在 Redis 里的 { categories, websites }，写操作是读-改-写整份数据，
  * 并照常生成版本快照，所以误操作可以在「版本历史」里恢复。
  *
@@ -11,6 +12,7 @@
 import { Hono } from 'hono';
 import { getBearerToken, verifySessionToken } from '../lib/session-auth.js';
 import { isPersonalToken, verifyPersonalToken } from '../lib/personal-tokens.js';
+import { SHARE_TOKEN_HEADER, revokeShareToken, verifyShareToken } from '../lib/share-tokens.js';
 import { isRateLimited, getClientIp } from '../lib/rate-limit.js';
 import { analyzeWebsite } from '../lib/website-analyzer.js';
 import { rehostIcon } from '../lib/rehost-icon.js';
@@ -36,9 +38,35 @@ const DEFAULT_ICON = 'fas fa-globe';
 
 // ---------- 鉴权 ----------
 
+// 分享令牌只能走「添加网站」这条链路，其它接口一律 403。用白名单，新加的接口默认不放行
+const SHARE_ALLOWED = new Set([
+    'GET /api/v1/me',
+    'GET /api/v1/categories',
+    'POST /api/v1/websites/analyze',
+    'POST /api/v1/websites'
+]);
+
+const requireShareAuth = async (c, next) => {
+    if (!c.env.USER_SESSIONS) {
+        return c.json({ error: 'Token storage not available' }, 503);
+    }
+    const share = await verifyShareToken(c.env.USER_SESSIONS, c.req.header(SHARE_TOKEN_HEADER));
+    if (!share) {
+        return c.json({ error: 'Share link expired or invalid', code: 'SHARE_TOKEN_INVALID' }, 401);
+    }
+    if (!SHARE_ALLOWED.has(`${c.req.method} ${c.req.path}`)) {
+        return c.json({ error: 'Not allowed with a share token', code: 'SHARE_SCOPE' }, 403);
+    }
+    c.set('auth', { userId: share.userId, via: 'share', shareKey: share.key });
+    await next();
+};
+
 const requireApiAuth = async (c, next) => {
     const token = getBearerToken(c);
     if (!token) {
+        if (c.req.header(SHARE_TOKEN_HEADER)) {
+            return requireShareAuth(c, next);
+        }
         return c.json({ error: 'Missing or invalid authorization header' }, 401);
     }
 
@@ -182,6 +210,12 @@ async function persist(c, userId, data, description) {
     if (!saved) return null;
     await saveVersionToRedis(c, userId, dataToSave, description);
     return dataToSave;
+}
+
+// 版本快照描述里的来源
+function viaLabel(auth) {
+    if (auth.via === 'token') return `令牌「${auth.tokenName}」`;
+    return auth.via === 'share' ? '快捷指令' : 'API';
 }
 
 const NO_CLOUD_DATA = {
@@ -439,13 +473,20 @@ app.post('/v1/websites', limitWrites, async (c) => {
     }
     websites[categoryId] = [...(websites[categoryId] || []), site];
 
-    const via = auth.via === 'token' ? `令牌「${auth.tokenName}」` : 'API';
+    const via = viaLabel(auth);
     const categoryName = realCategories(data).find((cat) => cat.id === categoryId)?.name || categoryId;
     const sourceLabel = CATEGORY_SOURCE_LABELS[analysis.sources.category];
     const note = sourceLabel ? `（自动归类：${categoryName}，${sourceLabel}）` : '';
     const saved = await persist(c, auth.userId, { ...data, websites }, `通过${via}添加：${site.title}${note}`);
     if (!saved) {
         return c.json({ error: 'Failed to save data' }, 500);
+    }
+
+    // 分享令牌用一次就作废；删除失败也不影响这次保存，令牌 30 分钟后自己过期
+    if (auth.shareKey) {
+        await revokeShareToken(c.env.USER_SESSIONS, auth.shareKey).catch((error) => {
+            console.error('作废分享令牌失败:', error);
+        });
     }
 
     return c.json({ success: true, website: siteView(site, categoryId), analysis, version: saved.version }, 201);
@@ -502,7 +543,7 @@ app.post('/v1/websites/touch', limitWrites, async (c) => {
         [categoryId]: data.websites[categoryId].map((item) => (item === site ? touched : item))
     };
 
-    const via = auth.via === 'token' ? `令牌「${auth.tokenName}」` : 'API';
+    const via = viaLabel(auth);
     const saved = await persist(c, auth.userId, { ...data, websites }, `通过${via}重新收藏：${site.title}`);
     if (!saved) {
         return c.json({ error: 'Failed to save data' }, 500);
@@ -549,7 +590,7 @@ app.delete('/v1/websites', limitWrites, async (c) => {
         return c.json({ error: 'Website not found' }, 404);
     }
 
-    const via = auth.via === 'token' ? `令牌「${auth.tokenName}」` : 'API';
+    const via = viaLabel(auth);
     const saved = await persist(c, auth.userId, { ...data, websites }, `通过${via}删除：${removed[0].title}`);
     if (!saved) {
         return c.json({ error: 'Failed to save data' }, 500);

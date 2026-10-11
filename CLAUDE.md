@@ -35,6 +35,8 @@
 - `server/api/user-data.js` - 用户数据存储和版本管理系统
 - `server/api/tokens.js` - 个人访问令牌的生成、列出、吊销（只接受网页登录 JWT）
 - `server/api/v1.js` - RESTful API v1，给浏览器扩展等第三方客户端读写网址（文档见 `doc/REST_API.md`）
+- `server/api/share.js` - `POST /api/share/draft`，iOS 快捷指令用个人令牌换带短时令牌的 `/add` 网址
+- `server/lib/share-tokens.js` - 短时分享令牌的签发、校验、作废（KV）
 - `server/api/analyze.js` - AI 驱动的网站元数据提取（分类 + 描述生成）
 - `server/api/proxy-image.js` - 图片代理用于解决 CORS
 - `server/api/upload-image.js` - 图标上传中转到 cf-photos 图床，返回公开 URL
@@ -68,6 +70,7 @@
 - `public/tools.html` + `public/tools.js` - 独立的「常用工具」页（Base64、密码生成器、UUID、URL 编码、二维码）
 - `public/notes.html` + `public/notes.js` - 独立的「记事本」页（列表、查看、编辑、文件夹、公开发布）
 - `public/note-public.html` + `public/note-public.js` - 公开发布的记事的只读页，网址是 `/n/<公开 id>`
+- `public/add.html` + `public/add.js` - iOS 快捷指令浮层里的「添加网站」页，拿短时令牌走 `/api/v1`
 - `public/note-render.js` - 记事正文渲染（Markdown 过滤、纯文本转义）和单条下载，上面两个页面共用
 
 ### 视图 tab
@@ -186,6 +189,21 @@
 
 主要给 iOS 快捷指令用：iOS（含主屏幕 PWA）的网页不能自动读剪贴板，也进不了系统分享菜单，设置步骤见 `doc/IOS_SHORTCUT.md`。
 以前有过「识别剪贴板网址」开关（切回页面时自动读剪贴板弹添加窗口），只有 Chromium 能用、扩展新标签页里不生效，不实用，已移除，不要加回来。
+
+### 快捷指令浮层（`/add`）
+
+`?add=` 要在 Safari 里新开标签。浮层版用快捷指令的「显示网页」把表单盖在当前网页上，设置步骤同样在 `doc/IOS_SHORTCUT.md`，接口见 `doc/REST_API.md`。
+
+- 浮层（Safari View）和 Safari、PWA 的存储隔离，**没有登录令牌也没有本机收藏数据**，所以 `/add` 是独立页面（只加载 `utils.js`、`image-upload.js`、`add.js`），
+  不走首页那套「改本机数据再整份同步」，而是和扩展弹窗一样直接调 `/api/v1`：`/me` + `/categories` → `/websites/analyze` 预填 → `POST /websites`
+- 快捷指令用个人令牌调 `POST /api/share/draft`，换来 `/add?url=…&t=<短时令牌>`。个人令牌只在请求头里，不进网址
+- 短时令牌（`share-tokens.js`）：KV `share:<sha256>`，30 分钟过期，保存成功后删掉。只认 `X-Share-Token` 头，
+  只能调 `v1.js` 里 `SHARE_ALLOWED` 白名单的四个接口，其余 403；**给 `/api/v1` 加接口时默认不在白名单里，别顺手加进去**
+- `add.html` 头部内联脚本在加载任何外部资源之前把 `t` 存进 sessionStorage 并从地址栏去掉（浮层里刷新还能用）；
+  `/add` 路由加 `Referrer-Policy: no-referrer` 和 `X-Robots-Tag: noindex`
+- 页面关不掉浮层：保存成功、已收录、取消都只提示「点左上角 ✕ 关闭」。401 / 403 显示「链接已过期」
+- 不带令牌打开 `/add?url=` 会转到 `/?add=`，旧的快捷指令和首页流程不受影响
+- 表单沿用 `.website-modal` 的样式，外壳是 `.add-card`（`styles.css`「添加页」一节）
 
 ### 常用工具页
 

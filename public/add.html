@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>添加网站 · 皮皮2047</title>
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="referrer" content="no-referrer">
+    <meta name="color-scheme" content="light dark">
+    <meta name="theme-color" content="#f4f2ed" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#121110" media="(prefers-color-scheme: dark)">
+    <script>
+    (function() {
+      // 网址里的短时令牌读完立刻从地址栏去掉，存 sessionStorage，浮层里刷新后还能接着用。
+      // 放在所有外部资源前面，令牌不会跟着后面的请求出去
+      try {
+        var params = new URLSearchParams(location.search);
+        var token = params.get('t');
+        if (token) {
+          window.__shareToken = token;
+          params.delete('t');
+          var query = params.toString();
+          history.replaceState(history.state, '', location.pathname + (query ? '?' + query : '') + location.hash);
+          sessionStorage.setItem('shareToken', token);
+        }
+      } catch(e) {}
+      try {
+        var theme = localStorage.getItem('theme');
+        if (theme !== 'dark' && theme !== 'light') {
+          theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        document.documentElement.setAttribute('data-theme', theme);
+        var accent = localStorage.getItem('accent');
+        if (accent) {
+          document.documentElement.setAttribute('data-accent', accent);
+        }
+      } catch(e) {}
+    })();
+    </script>
+    <link rel="icon" href="/img/seal.svg" type="image/svg+xml">
+    <link rel="icon" href="/img/favicon-32.png" sizes="32x32" type="image/png">
+    <link rel="stylesheet" href="https://cdnjs.snrat.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha384-iw3OoTErCYJJB9mCa8LNS2hbsQ7M3C0EpIsO/H5+EGAkPGc6rk+V8i04oW/K5xq0" crossorigin="anonymous">
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body class="doc-page add-page">
+    <main class="add-container">
+        <div class="add-card website-modal">
+            <div class="modal-header">
+                <h1 class="modal-title">添加网站</h1>
+                <span class="add-account" id="addAccount" hidden></span>
+            </div>
+
+            <!-- 加载中、已保存、已收录、链接过期等，都显示在这一块 -->
+            <div class="add-message" id="addMessage" role="status">
+                <i class="fas fa-spinner fa-spin" id="addMessageIcon"></i>
+                <p id="addMessageText">正在读取网页…</p>
+                <p class="add-message-hint" id="addMessageHint" hidden></p>
+            </div>
+
+            <form id="addForm" hidden>
+                <div class="form-group">
+                    <label class="form-label" for="addUrl">网址</label>
+                    <div class="url-row">
+                        <input type="url" id="addUrl" class="form-input" placeholder="https://example.com" required>
+                        <button type="button" id="addAnalyzeBtn" class="ai-detect-btn">
+                            <i class="fas fa-wand-magic-sparkles"></i> 自动填写
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="addTitle">标题</label>
+                    <input type="text" id="addTitle" class="form-input" placeholder="网站名称" maxlength="200" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="addCategory">分类</label>
+                    <select id="addCategory" class="form-select" required></select>
+                    <p class="add-notice" id="addNotice" hidden></p>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="addDescription">描述</label>
+                    <textarea id="addDescription" class="form-textarea" placeholder="一句话介绍这个网站" maxlength="1000"></textarea>
+                </div>
+
+                <div class="option-chips" role="group" aria-label="标记">
+                    <label class="option-chip" for="addPinned">
+                        <input type="checkbox" id="addPinned">
+                        <i class="fas fa-star"></i> 特别关注
+                    </label>
+                    <label class="option-chip" for="addPrivate">
+                        <input type="checkbox" id="addPrivate">
+                        <i class="fas fa-lock"></i> 私密收藏
+                    </label>
+                    <label class="option-chip" for="addHideDescription">
+                        <input type="checkbox" id="addHideDescription">
+                        <i class="fas fa-eye-slash"></i> 隐藏描述
+                    </label>
+                </div>
+
+                <div class="icon-row">
+                    <button type="button" class="icon-tile" id="addIconTile" aria-label="上传网站图标"></button>
+                    <div class="icon-row-text">
+                        <div class="icon-row-title">网站图标</div>
+                        <div class="icon-row-hint" id="addIconHint"></div>
+                    </div>
+                    <input type="file" id="addIconFile" class="file-input" accept="image/*">
+                </div>
+
+                <div class="form-buttons">
+                    <button type="button" class="btn btn-secondary" id="addCancelBtn">取消</button>
+                    <button type="submit" class="btn btn-primary" id="addSaveBtn">保存</button>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <script src="/utils.js"></script>
+    <script src="/image-upload.js"></script>
+    <script src="/add.js"></script>
+</body>
+</html>

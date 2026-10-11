@@ -5003,3 +5003,91 @@ body.reordering .website-card.reorder-drag {
   box-shadow: var(--shadow-2);
   opacity: 0.96;
 }
+
+/* ---------- 添加页（/add，iOS 快捷指令的浮层） ---------- */
+
+/* 没有页眉和 tab 栏，通知贴着顶部出现 */
+.add-page {
+  --header-h: 0px;
+  --tabs-h: 0px;
+}
+
+.add-container {
+  width: 100%;
+  max-width: 650px;
+  margin: 0 auto;
+  padding: 32px var(--page-pad) 48px;
+}
+
+/* 表单沿用 .website-modal 的样式，这里只补上弹窗外壳给的那部分 */
+.add-card {
+  background: var(--card);
+  border-radius: var(--r-xl);
+  box-shadow: 0 0 0 1px var(--line);
+}
+
+.add-account {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13px;
+  color: var(--ink-3);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.add-message {
+  padding: 56px 8px 64px;
+  font-size: 16px;
+  line-height: 1.7;
+  text-align: center;
+  color: var(--ink);
+}
+
+.add-message i {
+  margin-bottom: 14px;
+  font-size: 28px;
+  color: var(--ink-3);
+}
+
+.add-message[data-type="success"] i {
+  color: var(--success);
+}
+
+.add-message[data-type="error"] i {
+  color: var(--danger);
+}
+
+.add-message-hint {
+  margin-top: 6px;
+  font-size: 14px;
+  color: var(--ink-3);
+}
+
+.add-notice {
+  margin-top: 8px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--ink-3);
+}
+
+@media (max-width: 768px) {
+  /* 浮层本身就是一张卡片，里面不再套一层 */
+  .add-container {
+    padding: 0;
+  }
+
+  .add-card {
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
+    background: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  /* 弹窗里的按钮栏是吸在弹窗底部的，这里滚动的是整页，吸在视口底部 */
+  .add-card .form-buttons {
+    bottom: 0;
+    background: color-mix(in srgb, var(--paper) 88%, transparent);
+  }
+}
