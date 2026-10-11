@@ -4,6 +4,7 @@
 
 import { Hono } from 'hono';
 import { requireSession } from '../lib/session-auth.js';
+import { RedisError, redisDel, redisGet, redisKeys, redisSet } from '../lib/redis.js';
 
 const app = new Hono();
 
@@ -468,38 +469,33 @@ async function deleteDataFromRedis(c, userId) {
     }
 }
 
-// 辅助函数：保存版本历史到Redis
+/**
+ * 记一个历史版本：写版本数据、更新版本列表、清掉不再保留的旧版本
+ *
+ * 版本列表是「读 → 改 → 写回」。读失败时必须放弃，不能当成「没有历史」继续：
+ * 那样会用只含新版本的列表覆盖原列表，原来的版本数据全部变成没人记得的孤儿，
+ * 界面上的历史版本也只剩一条（线上出过，留下了 4 个孤儿）。
+ *
+ * 旧版本按实际存在的 key 清理，不是只删这一次从列表里挤出去的那一个：
+ * 以前某次删除失败、请求中断、两次保存互相覆盖列表留下的孤儿，下次保存时一起收走。
+ *
+ * @returns {Promise<boolean>} 版本有没有记上。主数据由调用方先存好，这里失败不影响它
+ */
 export async function saveVersionToRedis(c, userId, data, description) {
     try {
-        const redisUrl = c.env.UPSTASH_REDIS_REST_URL;
-        const redisToken = c.env.UPSTASH_REDIS_REST_TOKEN;
-
-        if (!redisUrl || !redisToken) {
-            console.log('Redis credentials not configured');
-            return false;
-        }
-
-        const versionKey = `userdata_versions:${userId}`;
+        const listKey = `userdata_versions:${userId}`;
+        const keyPrefix = `userdata_version:${userId}:`;
         const version = data.version || Date.now();
+        const maxVersions = parseInt(c.env.MAX_USER_VERSIONS || '5', 10);
 
-        // 保存单个版本数据（压缩）
-        const versionDataKey = `userdata_version:${userId}:${version}`;
-        const compressedVersionData = await compressData(data);
-        const versionDataResponse = await fetch(`${redisUrl}/set/${versionDataKey}`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${redisToken}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ compressed: compressedVersionData }),
-        });
-
-        if (!versionDataResponse.ok) {
-            console.error('Failed to save version data');
-            return false;
+        // 先读列表：读不到就什么都不写，不留下列表里没有的版本数据
+        const stored = await redisGet(c.env, listKey);
+        if (stored !== null && !Array.isArray(stored)) {
+            throw new RedisError(`Redis value of ${listKey} is not a list`);
         }
 
-        // 更新版本列表
+        await redisSet(c.env, `${keyPrefix}${version}`, { compressed: await compressData(data) });
+
         const versionInfo = {
             version: version,
             lastUpdated: data.lastUpdated,
@@ -509,61 +505,47 @@ export async function saveVersionToRedis(c, userId, data, description) {
             userCountry: data.userCountry || null // 添加用户国家
         };
 
-        // 获取现有版本列表
-        const existingVersionsResponse = await fetch(`${redisUrl}/get/${versionKey}`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${redisToken}`,
-            },
-        });
+        // 同一个版本号重传时（上传失败后重试）只留一条：两条指向同一份数据，裁掉其中一条会把另一条的数据也删了
+        const versions = [versionInfo, ...(stored || []).filter((item) => item && item.version !== version)]
+            .slice(0, maxVersions);
 
-        let versions = [];
-        if (existingVersionsResponse.ok) {
-            const existingData = await existingVersionsResponse.json();
-            if (existingData.result) {
-                versions = JSON.parse(existingData.result);
+        // 清理是尽力而为，失败留到下次保存再清，不影响这次记版本
+        let existing = null;
+        try {
+            existing = await listVersionNumbers(c.env, keyPrefix);
+        } catch (error) {
+            console.error('列出历史版本失败，这次不清理:', error);
+        }
+
+        await redisSet(c.env, listKey, versions);
+
+        if (existing) {
+            const keep = new Set(versions.map((item) => String(item.version)));
+            // 只删比保留的最老版本还旧的：另一个请求刚写下、还没来得及进列表的版本比它新，不能误删
+            const oldestKept = Math.min(...versions.map((item) => Number(item.version)));
+            for (const number of existing) {
+                if (keep.has(number) || !(Number(number) < oldestKept)) continue;
+                try {
+                    await redisDel(c.env, `${keyPrefix}${number}`);
+                    console.log(`🗑️ Deleted old version: ${number}`);
+                } catch (error) {
+                    console.error(`删除旧版本 ${number} 失败，下次保存再清:`, error);
+                }
             }
         }
 
-        // 添加新版本到列表开头
-        versions.unshift(versionInfo);
-
-        // 从环境变量读取最大版本数，默认为 5
-        const maxVersions = parseInt(c.env.MAX_USER_VERSIONS || '5', 10);
-
-        // 删除超出限制的旧版本数据
-        if (versions.length > maxVersions) {
-            const versionsToDelete = versions.slice(maxVersions);
-            for (const oldVersion of versionsToDelete) {
-                const oldVersionKey = `userdata_version:${userId}:${oldVersion.version}`;
-                await fetch(`${redisUrl}/del/${oldVersionKey}`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${redisToken}`,
-                    }
-                });
-                console.log(`🗑️ Deleted old version: ${oldVersion.version}`);
-            }
-        }
-
-        // 只保留最近 N 个版本
-        versions = versions.slice(0, maxVersions);
-
-        // 保存更新后的版本列表
-        const versionsResponse = await fetch(`${redisUrl}/set/${versionKey}`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${redisToken}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(versions),
-        });
-
-        return versionsResponse.ok;
+        return true;
     } catch (error) {
         console.error('Error saving version to Redis:', error);
         return false;
     }
+}
+
+// 某个用户实际存着的版本号（字符串）。userId 拼进了 glob，里面有特殊字符时不查（返回 null，这次不清理），免得匹配到别人的 key
+async function listVersionNumbers(env, keyPrefix) {
+    if (!/^[\w:-]+$/.test(keyPrefix)) return null;
+    const keys = await redisKeys(env, `${keyPrefix}*`);
+    return new Set(keys.filter((key) => key.startsWith(keyPrefix)).map((key) => key.slice(keyPrefix.length)));
 }
 
 // 辅助函数：获取版本列表

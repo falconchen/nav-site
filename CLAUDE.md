@@ -384,7 +384,11 @@ v2ex 这类站点会间歇性开 Cloudflare 质询，Worker 抓取拿到 403。�
   选之前不上传也不下载，弹窗 Esc 关不掉（`data-required`）。否则登录后会被云端整份覆盖，这些改动从没上传过，历史版本里也找不回
 - 导入数据（`importData()`）必须走 `saveNavData()`：加载时优先读 IndexedDB，只写 localStorage 刷新后会读回旧数据
 - 「历史版本」在用户菜单里（`loadUserDataFromCloud()`），选一个版本覆盖本地
-- 版本历史存储在 Redis 中，靠数量裁剪（`MAX_USER_VERSIONS`，默认 5），没有过期时间
+- 版本历史存储在 Redis 中，靠数量裁剪（`MAX_USER_VERSIONS`，默认 5），没有过期时间。`saveVersionToRedis()`（`user-data.js`，网页端和 `/api/v1` 共用）的规则：
+  - 版本列表 `userdata_versions:<userId>` 是读-改-写，**读失败就放弃这次记版本**（主数据已经存好），不能当成空列表继续，否则会把列表覆盖成只剩一条、原来的版本数据全成孤儿
+  - 旧版本按实际存在的 key 清理（`redisKeys` 列出 `userdata_version:<userId>:*`），不在列表里、且比保留的最老版本还旧的都删，
+    所以删除失败、请求中断、并发覆盖留下的孤儿会在下次保存时收走。比最老保留版本新的不删：可能是另一个请求刚写下、还没进列表
+  - 同一个版本号重传只记一条。读写走 `server/lib/redis.js`
 
 ### 本地 IndexedDB 与 Safari 往返缓存
 

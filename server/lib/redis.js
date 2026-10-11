@@ -62,3 +62,14 @@ export async function redisSet(env, key, value) {
 export async function redisDel(env, key) {
     await command(env, `del/${key}`, { method: 'POST' });
 }
+
+/**
+ * 列出匹配的 key。只用于单个用户名下的少量 key（比如某个用户的历史版本），不要拿来扫全库
+ *
+ * @param {string} pattern Redis glob，原样拼进路径（和 get / set 的 key 一样），调用方保证里面没有需要转义的字符
+ * @returns {Promise<string[]>}
+ */
+export async function redisKeys(env, pattern) {
+    const result = await command(env, `keys/${pattern}`);
+    return Array.isArray(result) ? result : [];
+}

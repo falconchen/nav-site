@@ -26,9 +26,16 @@ function mockRedis(fetchSpy) {
         if (!url.startsWith(REDIS_URL)) return store.pageFetch(url, init);
         const [, op, ...rest] = url.slice(REDIS_URL.length).split('/');
         const key = decodeURIComponent(rest.join('/'));
+        if (op === 'get' && store.failGet === key) return new Response('error', { status: 500 });
         if (op === 'get') return Response.json({ result: store.has(key) ? store.get(key) : null });
         if (op === 'set') { store.set(key, init.body); return Response.json({ result: 'OK' }); }
         if (op === 'del') { const had = store.delete(key); return Response.json({ result: had ? 1 : 0 }); }
+        // 只支持「前缀*」这一种 glob，够版本清理用
+        if (op === 'keys') {
+            if (store.failKeys) return new Response('error', { status: 500 });
+            const prefix = key.replace(/\*$/, '');
+            return Response.json({ result: [...store.keys()].filter((k) => typeof k === 'string' && k.startsWith(prefix)) });
+        }
         throw new Error(`unexpected op ${op}`);
     });
     return store;
@@ -639,6 +646,98 @@ describe('个人令牌 + REST API v1', () => {
         it('伪造的令牌返回 401', async () => {
             expect((await call('/api/v1/categories', { share: 'x'.repeat(43) })).status).toBe(401);
             expect((await call('/api/v1/categories', { share: 'short' })).status).toBe(401);
+        });
+    });
+
+    describe('历史版本的保留和清理', () => {
+        const listKey = `userdata_versions:${USER_ID}`;
+        const dataKey = (version) => `userdata_version:${USER_ID}:${version}`;
+
+        // 走网页端的保存接口，版本号由调用方给，方便控制先后
+        async function saveVersion(version) {
+            const res = await call('/api/user-data/save', {
+                method: 'POST', token: sessionJwt,
+                body: { categories: SAMPLE_DATA.categories, websites: SAMPLE_DATA.websites, version }
+            });
+            expect(res.status).toBe(200);
+        }
+        const listed = () => JSON.parse(redisStore.get(listKey)).map((item) => item.version);
+        const storedVersions = () => [...redisStore.keys()]
+            .filter((key) => key.startsWith(dataKey('')))
+            .map((key) => Number(key.slice(dataKey('').length)))
+            .sort((a, b) => a - b);
+
+        it('超过上限后列表和版本数据都只留最近 5 份', async () => {
+            for (let version = 1001; version <= 1007; version++) await saveVersion(version);
+            expect(listed()).toEqual([1007, 1006, 1005, 1004, 1003]);
+            expect(storedVersions()).toEqual([1003, 1004, 1005, 1006, 1007]);
+        });
+
+        it('列表里没有的旧版本数据（孤儿）在下次保存时一起清掉，别的用户的不动', async () => {
+            redisStore.set(dataKey(500), '{"compressed":"x"}');
+            redisStore.set(dataKey(600), '{"compressed":"x"}');
+            redisStore.set('userdata_version:someone-else:500', '{"compressed":"x"}');
+            redisStore.set(`userdata_version:${USER_ID}0:500`, '{"compressed":"x"}');
+
+            await saveVersion(1001);
+            expect(storedVersions()).toEqual([1001]);
+            expect(redisStore.has('userdata_version:someone-else:500')).toBe(true);
+            expect(redisStore.has(`userdata_version:${USER_ID}0:500`)).toBe(true);
+        });
+
+        it('比保留的最老版本新的未登记数据不删：可能是另一个请求刚写下、还没进列表', async () => {
+            await saveVersion(1001);
+            redisStore.set(dataKey(1500), '{"compressed":"x"}');
+            await saveVersion(1002);
+            expect(storedVersions()).toEqual([1001, 1002, 1500]);
+        });
+
+        it('读版本列表失败时不覆盖列表，也不留下版本数据；主数据照常保存', async () => {
+            for (let version = 1001; version <= 1003; version++) await saveVersion(version);
+
+            redisStore.failGet = listKey;
+            await saveVersion(1004);
+            redisStore.failGet = null;
+
+            expect(listed()).toEqual([1003, 1002, 1001]);
+            expect(storedVersions()).toEqual([1001, 1002, 1003]);
+            expect((await readUserData(redisStore)).version).toBe(1004);
+
+            // 恢复后继续正常记版本，之前的历史都还在
+            await saveVersion(1005);
+            expect(listed()).toEqual([1005, 1003, 1002, 1001]);
+        });
+
+        it('同一个版本号重传只记一条', async () => {
+            await saveVersion(1001);
+            await saveVersion(1002);
+            await saveVersion(1002);
+            expect(listed()).toEqual([1002, 1001]);
+            expect(storedVersions()).toEqual([1001, 1002]);
+        });
+
+        it('列不出已有版本时照常记版本，只是这次不清理', async () => {
+            redisStore.set(dataKey(500), '{"compressed":"x"}');
+            redisStore.failKeys = true;
+            await saveVersion(1001);
+            expect(listed()).toEqual([1001]);
+            expect(storedVersions()).toEqual([500, 1001]);
+
+            redisStore.failKeys = false;
+            await saveVersion(1002);
+            expect(storedVersions()).toEqual([1001, 1002]);
+        });
+
+        it('通过 /api/v1 写入也走同一套清理', async () => {
+            redisStore.set(dataKey(500), '{"compressed":"x"}');
+            const { token } = await createPat();
+            const res = await call('/api/v1/websites', {
+                method: 'POST', token,
+                body: { url: 'https://github.com/', title: 'GitHub', category: 'tools', description: '代码托管' }
+            });
+            expect(res.status).toBe(201);
+            expect(redisStore.has(dataKey(500))).toBe(false);
+            expect(listed()).toHaveLength(1);
         });
     });
 });
