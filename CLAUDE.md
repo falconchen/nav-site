@@ -195,12 +195,14 @@
 `?add=` 要在 Safari 里新开标签。浮层版用快捷指令的「显示网页」把表单盖在当前网页上，设置步骤同样在 `doc/IOS_SHORTCUT.md`，接口见 `doc/REST_API.md`。
 
 - 浮层（Safari View）和 Safari、PWA 的存储隔离，**没有登录令牌也没有本机收藏数据**，所以 `/add` 是独立页面（只加载 `utils.js`、`image-upload.js`、`add.js`），
-  不走首页那套「改本机数据再整份同步」，而是和扩展弹窗一样直接调 `/api/v1`：`/me` + `/categories` → `/websites/analyze` 预填 → `POST /websites`
+  不走首页那套「改本机数据再整份同步」，而是和扩展弹窗一样直接调 `/api/v1`：`/categories` → `/websites/analyze` 预填 → `POST /websites`
 - 快捷指令用个人令牌调 `POST /api/share/draft`，换来 `/add?url=…&t=<短时令牌>`。个人令牌只在请求头里，不进网址
 - 短时令牌（`share-tokens.js`）：KV `share:<sha256>`，30 分钟过期，保存成功后删掉。只认 `X-Share-Token` 头，
-  只能调 `v1.js` 里 `SHARE_ALLOWED` 白名单的四个接口，其余 403；**给 `/api/v1` 加接口时默认不在白名单里，别顺手加进去**
+  只能调 `v1.js` 里 `SHARE_ALLOWED` 白名单的三个接口，其余 403；**给 `/api/v1` 加接口时默认不在白名单里，别顺手加进去**
 - `add.html` 头部内联脚本在加载任何外部资源之前把 `t` 存进 sessionStorage 并从地址栏去掉（浮层里刷新还能用）；
   `/add` 路由加 `Referrer-Policy: no-referrer` 和 `X-Robots-Tag: noindex`
+- 表单的样式和行为向首页的添加弹窗看齐：不显示账号；「自动填写」只补空着的项（`getFillNeeds()`，对应首页的 `getAIFillNeeds()`），
+  都填好了再点只提示、不发请求；网址不是 http(s) 时按钮不可点。改首页那边的行为时这里要跟着改
 - 页面关不掉浮层：保存成功、已收录、取消都只提示「点左上角 ✕ 关闭」。401 / 403 显示「链接已过期」
 - 做好的快捷指令在 `shortcuts/`（`.plist` 是源文件，`.shortcut` 是 `shortcuts sign` 签名后的导入文件，里面不含个人令牌），改法见 `doc/IOS_SHORTCUT.md`
 - 不带令牌打开 `/add?url=` 会转到 `/?add=`，旧的快捷指令和首页流程不受影响

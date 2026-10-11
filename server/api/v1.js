@@ -40,7 +40,6 @@ const DEFAULT_ICON = 'fas fa-globe';
 
 // 分享令牌只能走「添加网站」这条链路，其它接口一律 403。用白名单，新加的接口默认不放行
 const SHARE_ALLOWED = new Set([
-    'GET /api/v1/me',
     'GET /api/v1/categories',
     'POST /api/v1/websites/analyze',
     'POST /api/v1/websites'

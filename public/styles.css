@@ -5026,13 +5026,9 @@ body.reordering .website-card.reorder-drag {
   box-shadow: 0 0 0 1px var(--line);
 }
 
-.add-account {
-  min-width: 0;
-  overflow: hidden;
-  font-size: 13px;
-  color: var(--ink-3);
-  text-overflow: ellipsis;
-  white-space: nowrap;
+/* .modal-header 是 flex，会盖掉 hidden 属性 */
+.add-card [hidden] {
+  display: none;
 }
 
 .add-message {

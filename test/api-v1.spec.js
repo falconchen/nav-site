@@ -599,12 +599,8 @@ describe('个人令牌 + REST API v1', () => {
             }
         });
 
-        it('能读账号和分类、保存网站，保存后令牌作废', async () => {
+        it('能读分类、保存网站，保存后令牌作废', async () => {
             const { share } = await createDraft();
-
-            const me = await call('/api/v1/me', { share });
-            expect(me.status).toBe(200);
-            expect((await me.json()).auth.via).toBe('share');
             expect((await call('/api/v1/categories', { share })).status).toBe(200);
 
             const body = { url: 'https://example.com/post?id=1', title: '示例', category: 'tools', description: '一个例子' };
@@ -615,12 +611,13 @@ describe('个人令牌 + REST API v1', () => {
             expect([...env.USER_SESSIONS.store.keys()].some((key) => key.startsWith('share:'))).toBe(false);
 
             expect((await call('/api/v1/websites', { method: 'POST', share, body })).status).toBe(401);
-            expect((await call('/api/v1/me', { share })).status).toBe(401);
+            expect((await call('/api/v1/categories', { share })).status).toBe(401);
         });
 
         it('白名单以外的接口返回 403', async () => {
             const { share } = await createDraft();
             const denied = [
+                ['/api/v1/me', 'GET'],
                 ['/api/v1/websites', 'GET'],
                 ['/api/v1/websites?url=https://chatgpt.com/', 'DELETE'],
                 ['/api/v1/websites/touch', 'POST']
@@ -640,8 +637,8 @@ describe('个人令牌 + REST API v1', () => {
         });
 
         it('伪造的令牌返回 401', async () => {
-            expect((await call('/api/v1/me', { share: 'x'.repeat(43) })).status).toBe(401);
-            expect((await call('/api/v1/me', { share: 'short' })).status).toBe(401);
+            expect((await call('/api/v1/categories', { share: 'x'.repeat(43) })).status).toBe(401);
+            expect((await call('/api/v1/categories', { share: 'short' })).status).toBe(401);
         });
     });
 });

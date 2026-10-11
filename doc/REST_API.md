@@ -193,10 +193,10 @@ iOS 快捷指令的「显示网页」浮层读不到浏览器里的登录状态�
 
 ### 短时令牌能做什么
 
-`/add` 页面把令牌从地址栏去掉、存进 sessionStorage，请求时放在 `X-Share-Token` 头里。它只能调下面四个接口，
+`/add` 页面把令牌从地址栏去掉、存进 sessionStorage，请求时放在 `X-Share-Token` 头里。它只能调下面三个接口，
 其余 `/api/v1` 接口返回 `403 SHARE_SCOPE`，`/api/v1` 以外的接口不认它：
 
-- `GET /api/v1/me`、`GET /api/v1/categories`
+- `GET /api/v1/categories`
 - `POST /api/v1/websites/analyze`、`POST /api/v1/websites`
 
 `POST /api/v1/websites` 保存成功后令牌立即作废；过期、已用过或无效返回 `401 SHARE_TOKEN_INVALID`。

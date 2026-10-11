@@ -110,8 +110,10 @@ const MESSAGE_ICONS = {
     error: 'fas fa-triangle-exclamation'
 };
 
-// 显示提示并收起表单；页面关不掉浮层，结束状态都带上「点左上角关闭」
+// 显示提示并收起表单；页面关不掉浮层，结束状态都带上「点左上角关闭」。
+// 结果页（已保存、已收录、出错）不留「添加网站」标题，只有加载中和表单显示
 function showMessage(type, text, hint = '') {
+    $('addHeader').hidden = type !== 'loading';
     const box = $('addMessage');
     box.dataset.type = type;
     box.hidden = false;
@@ -123,6 +125,7 @@ function showMessage(type, text, hint = '') {
 }
 
 function showForm() {
+    $('addHeader').hidden = false;
     $('addMessage').hidden = true;
     $('addForm').hidden = false;
 }
@@ -210,6 +213,11 @@ async function handleIconFile(file) {
 
 // ---------- 表单 ----------
 
+// 网址不是 http(s) 开头时「自动填写」不可点，和首页一致
+function syncAnalyzeButton() {
+    $('addAnalyzeBtn').disabled = !parseHttpUrl($('addUrl').value);
+}
+
 // 私密收藏不进特别关注、描述本来就遮住，另外两项一起禁用，与网页端一致
 function syncPrivate() {
     const isPrivate = $('addPrivate').checked;
@@ -228,21 +236,41 @@ function renderCategories() {
     );
 }
 
-function fillForm({ website, analysis }) {
-    $('addTitle').value = website.title || '';
-    $('addDescription').value = website.description || '';
-    $('addCategory').value = website.category || '';
-    setIcon(website.imageData);
-    if (website.imageData) startIconRehost(website.imageData);
+// 自动填写只补用户没填的项，和首页的添加表单一致（getAIFillNeeds()）
+function getFillNeeds() {
+    return {
+        title: !$('addTitle').value.trim(),
+        description: !$('addDescription').value.trim(),
+        category: !$('addCategory').value,
+        icon: !iconUrl
+    };
+}
 
-    // 分类不是 AI 有把握给出的，提醒用户确认
+function fillForm({ website, analysis }) {
+    // 拿到结果时再判断一次，识别期间用户手动填的也不覆盖
+    const needs = getFillNeeds();
+    if (needs.title && website.title) $('addTitle').value = website.title;
+    if (needs.description && website.description) $('addDescription').value = website.description;
+
     const notes = [];
-    const source = analysis?.sources?.category;
-    if (source === 'domain') {
-        notes.push(`AI 没把握，按同域名已收藏的网址归到了「${categoryName(website.category)}」，请确认`);
-    } else if (source === 'fallback') {
-        notes.push('AI 没能判断分类，请确认');
+    if (needs.category && website.category) {
+        $('addCategory').value = website.category;
+        // 分类不是 AI 有把握给出的，提醒用户确认
+        const source = analysis?.sources?.category;
+        if (source === 'domain') {
+            notes.push(`AI 没把握，按同域名已收藏的网址归到了「${categoryName(website.category)}」，请确认`);
+        } else if (source === 'fallback') {
+            notes.push('AI 没能判断分类，请确认');
+        }
     }
+
+    if (needs.icon && website.imageData) {
+        setIcon(website.imageData);
+        startIconRehost(website.imageData);
+    } else {
+        renderIcon();
+    }
+
     notes.push(...(analysis?.warnings || []).map((code) => WARNING_TEXT[code]).filter(Boolean));
     $('addNotice').textContent = notes.join('；');
     $('addNotice').hidden = notes.length === 0;
@@ -258,7 +286,7 @@ async function analyze(url) {
     const button = $('addAnalyzeBtn');
     button.disabled = true;
     button.classList.add('loading');
-    button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 识别中';
+    button.innerHTML = '<span class="ai-loading"></span> 识别中...';
 
     try {
         const result = await api('/websites/analyze', { method: 'POST', body: { url } });
@@ -280,7 +308,7 @@ async function analyze(url) {
         return true;
     } finally {
         if (serial === analyzeSerial) {
-            button.disabled = false;
+            syncAnalyzeButton();
             button.classList.remove('loading');
             button.innerHTML = '<i class="fas fa-wand-magic-sparkles"></i> 自动填写';
         }
@@ -343,8 +371,10 @@ function bindForm() {
 
     $('addAnalyzeBtn').addEventListener('click', async () => {
         const url = parseHttpUrl($('addUrl').value);
-        if (!url) {
-            showNotification('网址要以 http:// 或 https:// 开头', 'error');
+        if (!url) return;
+        // 都填好了就没什么可补的，不白跑一次抓取和 AI
+        if (!Object.values(getFillNeeds()).some(Boolean)) {
+            showNotification('名称、描述、分类和图片都已填写，AI 识别只会补全空着的项', 'info');
             return;
         }
         await analyze(url);
@@ -354,6 +384,9 @@ function bindForm() {
     for (const id of ['addTitle', 'addUrl']) {
         $(id).addEventListener('input', () => { if (!iconUrl) renderIcon(); });
     }
+    $('addUrl').addEventListener('input', () => {
+        if (!$('addAnalyzeBtn').classList.contains('loading')) syncAnalyzeButton();
+    });
 
     $('addIconTile').addEventListener('click', () => $('addIconFile').click());
     $('addIconFile').addEventListener('change', (event) => {
@@ -384,15 +417,8 @@ async function init() {
     $('addUrl').value = url;
 
     try {
-        // 账号和分类先拿到：显示存进哪个账号，令牌无效也在这一步发现
-        const [me, categoryList] = await Promise.all([api('/me'), api('/categories')]);
-        categories = categoryList.categories || [];
-
-        const account = me.user?.name || me.user?.login;
-        if (account) {
-            $('addAccount').textContent = account;
-            $('addAccount').hidden = false;
-        }
+        // 分类先拿到，令牌无效也在这一步发现
+        categories = (await api('/categories')).categories || [];
         if (categories.length === 0) {
             showError({ code: 'NO_CLOUD_DATA' });
             return;

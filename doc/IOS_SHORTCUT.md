@@ -49,7 +49,7 @@ shortcuts sign --mode anyone --input '/private/tmp/皮皮浮层收藏-unsigned.s
 
 ### 使用
 
-在 Safari 或其它 App 里点「分享」→「皮皮浮层收藏」，浮层里会显示填好的表单和当前账号，
+在 Safari 或其它 App 里点「分享」→「皮皮浮层收藏」，浮层里会显示填好的表单，
 改完点「保存」，看到「已保存」后点左上角关闭浮层。
 
 ### 注意
