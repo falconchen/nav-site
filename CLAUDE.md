@@ -202,6 +202,7 @@
 - `add.html` 头部内联脚本在加载任何外部资源之前把 `t` 存进 sessionStorage 并从地址栏去掉（浮层里刷新还能用）；
   `/add` 路由加 `Referrer-Policy: no-referrer` 和 `X-Robots-Tag: noindex`
 - 页面关不掉浮层：保存成功、已收录、取消都只提示「点左上角 ✕ 关闭」。401 / 403 显示「链接已过期」
+- 做好的快捷指令在 `shortcuts/`（`.plist` 是源文件，`.shortcut` 是 `shortcuts sign` 签名后的导入文件，里面不含个人令牌），改法见 `doc/IOS_SHORTCUT.md`
 - 不带令牌打开 `/add?url=` 会转到 `/?add=`，旧的快捷指令和首页流程不受影响
 - 表单沿用 `.website-modal` 的样式，外壳是 `.add-card`（`styles.css`「添加页」一节）
 
