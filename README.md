@@ -16,16 +16,23 @@
 
 - 网站的添加、编辑、删除、特别关注，分类的增删改和排序
 - 「自动填写」：输入网址后由 AI 识别名称、分类和描述，分类参考你自己已有的收藏；网页被反爬拦截时可改走 Jina Reader 兜底
-- 图标可以上传图片、选 Font Awesome 图标，或由「自动填写」抓取网站图标；图片压缩成 WebP 后存到图床
+- 图标可以上传图片，或由「自动填写」抓取网站图标，图片压缩成 WebP 后存到图床；没有图片时用标题首字做图标
 - 私密收藏：只在私密分区显示，默认锁定并模糊。注意这只是界面隐藏，数据本身不加密
+- 拖拽调整卡片顺序（卡片菜单 →「调整顺序」）
+- iOS 快捷指令：从系统分享菜单收藏当前网页，见 [iOS 快捷指令](docs/IOS_SHORTCUT.md)
 
 **同步与账号**
 
 - GitHub / Google 登录，同一邮箱可绑定多种登录方式
-- 退出登录前可选择清除当前浏览器的本地数据，默认勾选清除；清除范围和注意事项见 [退出登录](doc/FRONTEND_LOADING.md#退出登录与本地数据清除)
-- 数据变化 2 秒后自动上传，云端保留最近 5 个版本（30 天），可恢复任意版本
+- 退出登录前可选择清除当前浏览器的本地数据，默认勾选清除；清除范围和注意事项见 [退出登录](docs/FRONTEND_LOADING.md#退出登录与本地数据清除)
+- 数据变化 2 秒后自动上传，云端保留最近 5 个版本，可恢复任意版本
 - 支持导入 / 导出 JSON
 - 个人令牌 + REST API v1，给浏览器扩展等第三方客户端使用
+
+**其它页面**
+
+- 记事本：登录后可用，支持 Markdown、文件夹、公开发布和导出
+- 常用工具：Base64、密码生成器、UUID、URL 编码、二维码，全部在浏览器本地计算
 
 **外观**
 
@@ -48,7 +55,7 @@
 | --- | --- |
 | 运行时 | Cloudflare Workers + Hono |
 | 前端 | 原生 JavaScript、HTML、CSS（无框架、无 TypeScript） |
-| 存储 | 本地 localStorage / IndexedDB，云端 Cloudflare KV |
+| 存储 | 本地 IndexedDB / localStorage；云端 Upstash Redis（收藏、版本历史、记事本、访问统计）和 Cloudflare KV（会话、令牌、限流） |
 | AI | Cloudflare Workers AI（`@cf/meta/llama-3.3-70b-instruct-fp8-fast`） |
 | 认证 | GitHub / Google OAuth + JWT，个人访问令牌 |
 | 构建 | esbuild + html-minifier-terser |
@@ -64,8 +71,9 @@ nav-site/
 │   ├── api/           认证、用户数据、令牌、REST API v1、AI 识别、图片代理与上传
 │   └── lib/           共用逻辑：网页抓取与分析、会话校验、限流等
 ├── extension/         浏览器扩展源码
+├── shortcuts/         iOS 快捷指令（源文件和签名后的导入文件）
 ├── test/              测试
-├── doc/               配置与接口文档
+├── docs/              配置与接口文档
 ├── build-script.js    生产构建，输出到 dist/
 └── wrangler.jsonc     Workers 配置
 ```
@@ -88,7 +96,7 @@ npm run build        # 构建到 dist/
 
 推送到 `master` 后由 Cloudflare 自动构建部署。也可以手动执行 `npm run deploy`（构建后部署到 `env.production`）。
 
-开发和生产使用各自独立的 KV 命名空间，在 `wrangler.jsonc` 中配置。
+从零部署要准备的 OAuth 应用、Redis、KV 和密钥见 [部署与配置](docs/setup.md)。
 
 ### Secrets
 
@@ -99,14 +107,15 @@ npm run build        # 构建到 dist/
 | `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | GitHub OAuth 应用 |
 | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google OAuth 应用 |
 | `JWT_SECRET` | JWT 签名密钥 |
+| `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | Upstash Redis 的 REST 地址和令牌 |
 | `CF_PHOTOS_ENDPOINT` / `CF_PHOTOS_TOKEN` | 图床地址和令牌；不可用时图标降级为 base64 |
 | `JINA_API_KEY` | 可选，网页抓取被拦截时的兜底。可以填多个 key，用逗号分隔，额度用完自动换下一个 |
 
 ## 文档
 
-- [功能待办](doc/TODO.md)
-- [Wrangler 升级与验证](doc/cloudflare-worker-notes.md#wrangler-升级与验证2026-10-04)
-- [收藏加载、超时与重试](doc/FRONTEND_LOADING.md)
-- [REST API v1](doc/REST_API.md)、[测试记录](doc/REST_API_TESTING.md)
-- [登录配置](doc/AUTH_SETUP.md)、[快速配置](doc/QUICK_SETUP.md)
-- [环境变量](doc/ENV_VARIABLES_GUIDE.md)、[环境隔离](doc/ENVIRONMENT_ISOLATION_GUIDE.md)、[安全配置](doc/SECURITY_CONFIG_GUIDE.md)
+都在 [docs/](docs/README.md) 目录：
+
+- [部署与配置](docs/setup.md)、[JWT 配置](docs/JWT_CONFIG.md)、[Wrangler 升级与验证](docs/cloudflare-worker-notes.md#wrangler-升级与验证2026-10-04)
+- [REST API v1](docs/REST_API.md)、[测试记录](docs/REST_API_TESTING.md)、[iOS 快捷指令](docs/IOS_SHORTCUT.md)
+- [收藏加载、超时与重试](docs/FRONTEND_LOADING.md)
+- [功能待办](docs/TODO.md)

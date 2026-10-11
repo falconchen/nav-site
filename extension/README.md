@@ -1,6 +1,6 @@
 # 皮皮2047 收藏助手（Chrome / Firefox 扩展）
 
-把当前网页收藏到导航站，AI 自动补全名称、分类和描述。调用的是导航站的 REST API v1，接口说明见 [../doc/REST_API.md](../doc/REST_API.md)。
+把当前网页收藏到导航站，AI 自动补全名称、分类和描述。调用的是导航站的 REST API v1，接口说明见 [../docs/REST_API.md](../docs/REST_API.md)。
 
 ## 安装
 

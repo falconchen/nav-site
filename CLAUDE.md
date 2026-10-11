@@ -34,7 +34,7 @@
 - `server/api/auth.js` - GitHub OAuth 认证流程
 - `server/api/user-data.js` - 用户数据存储和版本管理系统
 - `server/api/tokens.js` - 个人访问令牌的生成、列出、吊销（只接受网页登录 JWT）
-- `server/api/v1.js` - RESTful API v1，给浏览器扩展等第三方客户端读写网址（文档见 `doc/REST_API.md`）
+- `server/api/v1.js` - RESTful API v1，给浏览器扩展等第三方客户端读写网址（文档见 `docs/REST_API.md`）
 - `server/api/share.js` - `POST /api/share/draft`，iOS 快捷指令用个人令牌换带短时令牌的 `/add` 网址
 - `server/lib/share-tokens.js` - 短时分享令牌的签发、校验、作废（KV）
 - `server/api/analyze.js` - AI 驱动的网站元数据提取（分类 + 描述生成）
@@ -187,12 +187,12 @@
 已收录只提示，否则 `openAddWebsiteWithUrl()` 弹窗并自动点「自动填写」。只认单个 `http(s)://` 网址（`parseHttpUrl()`），
 查重含私密收藏、按 `visitUrlKey()`（`isUrlCollected()`）。
 
-主要给 iOS 快捷指令用：iOS（含主屏幕 PWA）的网页不能自动读剪贴板，也进不了系统分享菜单，设置步骤见 `doc/IOS_SHORTCUT.md`。
+主要给 iOS 快捷指令用：iOS（含主屏幕 PWA）的网页不能自动读剪贴板，也进不了系统分享菜单，设置步骤见 `docs/IOS_SHORTCUT.md`。
 以前有过「识别剪贴板网址」开关（切回页面时自动读剪贴板弹添加窗口），只有 Chromium 能用、扩展新标签页里不生效，不实用，已移除，不要加回来。
 
 ### 快捷指令浮层（`/add`）
 
-`?add=` 要在 Safari 里新开标签。浮层版用快捷指令的「显示网页」把表单盖在当前网页上，设置步骤同样在 `doc/IOS_SHORTCUT.md`，接口见 `doc/REST_API.md`。
+`?add=` 要在 Safari 里新开标签。浮层版用快捷指令的「显示网页」把表单盖在当前网页上，设置步骤同样在 `docs/IOS_SHORTCUT.md`，接口见 `docs/REST_API.md`。
 
 - 浮层（Safari View）和 Safari、PWA 的存储隔离，**没有登录令牌也没有本机收藏数据**，所以 `/add` 是独立页面（只加载 `utils.js`、`image-upload.js`、`add.js`），
   不走首页那套「改本机数据再整份同步」，而是和扩展弹窗一样直接调 `/api/v1`：`/categories` → `/websites/analyze` 预填 → `POST /websites`
@@ -204,7 +204,7 @@
 - 表单的样式和行为向首页的添加弹窗看齐：不显示账号；「自动填写」只补空着的项（`getFillNeeds()`，对应首页的 `getAIFillNeeds()`），
   都填好了再点只提示、不发请求；网址不是 http(s) 时按钮不可点。改首页那边的行为时这里要跟着改
 - 页面关不掉浮层：保存成功、已收录、取消都只提示「点左上角 ✕ 关闭」。401 / 403 显示「链接已过期」
-- 做好的快捷指令在 `shortcuts/`（`.plist` 是源文件，`.shortcut` 是 `shortcuts sign` 签名后的导入文件，里面不含个人令牌），改法见 `doc/IOS_SHORTCUT.md`
+- 做好的快捷指令在 `shortcuts/`（`.plist` 是源文件，`.shortcut` 是 `shortcuts sign` 签名后的导入文件，里面不含个人令牌），改法见 `docs/IOS_SHORTCUT.md`
 - 不带令牌打开 `/add?url=` 会转到 `/?add=`，旧的快捷指令和首页流程不受影响
 - 表单沿用 `.website-modal` 的样式，外壳是 `.add-card`（`styles.css`「添加页」一节）
 
@@ -312,7 +312,7 @@ AIGC、id 仍是 `social`），让模型输出 id 会被这种语义错位带偏
 - 扩展传来的 `hints`（当前页标题、描述、正文）在抓取失败或正文太薄时顶上
 - 没有任何网页内容时不调 AI 写描述；AI 返回「无相关信息可供总结」这类拒答时丢弃（`DESCRIPTION_REFUSAL_PATTERN`），
   实测抓取被拦截时模型真会把拒答当描述返回
-- 响应里的 `analysis` 写明每个字段的来源和降级原因（`warnings`），字段含义见 `doc/REST_API.md`
+- 响应里的 `analysis` 写明每个字段的来源和降级原因（`warnings`），字段含义见 `docs/REST_API.md`
 - 本地 `npm run dev` 调 Workers AI 需要先 `npx wrangler login`，否则 AI 全部报 `Not logged in`，只能看到兜底结果
 
 ### 抓取被拦截时的兜底
@@ -353,7 +353,7 @@ v2ex 这类站点会间歇性开 Cloudflare 质询，Worker 抓取拿到 403。�
 
 ### 个人令牌与 REST API
 
-`/api/v1` 给 Chrome 扩展这类没法走 OAuth 弹窗的客户端用，接口说明见 `doc/REST_API.md`，测试方法和实测记录见 `doc/REST_API_TESTING.md`。
+`/api/v1` 给 Chrome 扩展这类没法走 OAuth 弹窗的客户端用，接口说明见 `docs/REST_API.md`，测试方法和实测记录见 `docs/REST_API_TESTING.md`。
 
 - 令牌形如 `navpat_<43 位 base64url>`，靠前缀和 JWT 区分。KV 里只存 SHA-256 摘要（`pat_<hash>`），
   明文只在生成时返回一次；每个用户的令牌列表在 `pat_list_<userId>`，最多 10 个
@@ -414,7 +414,7 @@ Safari（macOS 和 iOS）把页面放进往返缓存（bfcache）时，会连同
 
 ## 开发命令
 
-需要 Node.js >= 22.12.0，建议 22 或 24 LTS；使用 `npm ci` 按锁文件安装。Wrangler 升级及验证方式见 `doc/cloudflare-worker-notes.md`。
+需要 Node.js >= 22.12.0，建议 22 或 24 LTS；使用 `npm ci` 按锁文件安装。Wrangler 升级及验证方式见 `docs/cloudflare-worker-notes.md`。
 
 ```bash
 # 首先进入 nav-site 目录
@@ -437,8 +437,9 @@ npm run deploy      # 部署到 Cloudflare Workers 生产环境
 ### 环境配置
 
 **开发环境 vs 生产环境：**
-- 开发环境：使用 `public/` 目录，开发用 KV 命名空间
-- 生产环境：使用 `dist/` 目录，独立的 KV 命名空间
+- 开发环境：使用 `public/` 目录，`wrangler dev` 默认用本机模拟的 KV
+- 生产环境：使用 `dist/` 目录。`wrangler.jsonc` 里两个环境填的是同一个 KV 命名空间 id
+- Redis 没有本地模拟，`.dev.vars` 里填哪个实例本地就读写哪个
 - 在 `wrangler.jsonc` 的 `env.production` 中配置
 
 **必需的 Secrets：**
@@ -456,7 +457,7 @@ npm run deploy      # 部署到 Cloudflare Workers 生产环境
 设置 secrets：`wrangler secret put SECRET_NAME`
 
 **环境变量：**
-- `JWT_EXPIRATION_DAYS` - 3（开发）/ 90（生产）
+- `JWT_EXPIRATION_DAYS` - 30（开发）/ 365（生产）
 - `environment` - "development" / "production"
 
 ### Wrangler 配置
@@ -537,7 +538,7 @@ npm run deploy      # 部署到 Cloudflare Workers 生产环境
 6. 返回 HTML，通过 postMessage 发送到父窗口
 7. 前端存储 JWT，更新 UI
 
-JWT 签发与验证都固定使用 `HS256`。Hono `verify()` 的第三个算法参数必须显式传入，不能从 JWT header 推断。认证校验、登出和共享会话鉴权的回归测试见 `test/auth-jwt.spec.js`，升级记录见 `doc/JWT_CONFIG.md`。
+JWT 签发与验证都固定使用 `HS256`。Hono `verify()` 的第三个算法参数必须显式传入，不能从 JWT header 推断。认证校验、登出和共享会话鉴权的回归测试见 `test/auth-jwt.spec.js`，升级记录见 `docs/JWT_CONFIG.md`。
 
 同一邮箱可绑定多个 provider（Google / GitHub）。已绑定的 provider 再次登录时，`refreshProviderProfile()`（`server/lib/oauth-profile.js`）
 用这次返回的名字和头像刷新该 provider 的记录；顶层 `name` / `avatar_url` 只在原本来自该 provider 时才跟着换，
@@ -564,6 +565,7 @@ JWT 签发与验证都固定使用 `HS256`。Hono `verify()` 的第三个算法�
 
 ## 文件组织
 
+- 文档统一放在 `docs/`（索引是 `docs/README.md`，部署配置见 `docs/setup.md`），不要再建 `doc/`。文档里不写真实密钥，仓库是公开的
 - 构建输出到 `dist/`（已 gitignore）
 - 开发环境静态资源在 `public/`，生产环境在 `dist/`
 - 服务端代码不打包，直接在 Workers 上运行
