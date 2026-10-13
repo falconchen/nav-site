@@ -301,6 +301,8 @@ AIGC、id 仍是 `social`），让模型输出 id 会被这种语义错位带偏
 - `confidence` 为 `low` 或编号越界 → 返回空分类，前端保持下拉框不动并提示用户手选。
   错分比不分更烦，且静默错分用户未必会发现
 - 分类只喂 800 字正文，描述喂 3000 字——分类塞太多正文会被导航栏、页脚、广告冲淡指令
+- AI 没写出描述时用网页自带的 meta 描述兜底，源站可能把它切在半截链接上（V2EX 会停在 `…：[https://`），
+  用之前过一遍 `trimDanglingTail()`；AI 描述取前两句用 `splitSentences()`，半角句点后面是空白才算句末（`Node.js` 不切）
 - 没有 AI 绑定或调用失败 → 退回 `getCategoryByKeywords` 关键词规则，`categoryConfidence`
   标为 `fallback`（注意这条兜底命中率很低，多数会判成未分类）
 - 接口不鉴权，限流 10 次/分钟（`server/lib/rate-limit.js`，与图床上传共用）

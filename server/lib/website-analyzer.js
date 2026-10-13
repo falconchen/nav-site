@@ -370,6 +370,9 @@ function decodeEntities(text) {
     });
 }
 
+// 属性值按起始引号配对：content="It's ..." 里的撇号不是结尾，否则描述会停在撇号前
+const QUOTED_VALUE = `(?:"([^"]*)"|'([^']*)')`;
+
 function cleanText(text) {
     return decodeEntities(text.replace(/\s+/g, ' ')).trim();
 }
@@ -379,9 +382,17 @@ function cleanText(text) {
  */
 function extractMetaProperty(html, property) {
     const value =
-        html.match(new RegExp(`<meta[^>]*property=["']${property}["'][^>]*content=["']([^"']*)["']`, 'i')) ||
-        html.match(new RegExp(`<meta[^>]*content=["']([^"']*)["'][^>]*property=["']${property}["']`, 'i'));
-    return value && value[1] ? cleanText(value[1]) : '';
+        html.match(new RegExp(`<meta[^>]*property=["']${property}["'][^>]*content=${QUOTED_VALUE}`, 'i')) ||
+        html.match(new RegExp(`<meta[^>]*content=${QUOTED_VALUE}[^>]*property=["']${property}["']`, 'i'));
+    return value ? cleanText(value[1] ?? value[2] ?? '') : '';
+}
+
+/**
+ * 取 <meta name="..." content="..."> 的内容
+ */
+function extractMetaName(html, name) {
+    const value = html.match(new RegExp(`<meta\\s+name=["']${name}["']\\s+content=${QUOTED_VALUE}`, 'i'));
+    return value ? cleanText(value[1] ?? value[2] ?? '') : '';
 }
 
 /**
@@ -462,20 +473,8 @@ export function extractPageInfo(html, finalUrl) {
     }
 
     // 描述；不少站点只写 og:description 不写 meta description
-    let description = '';
-    const descMatch = html.match(/<meta\s+name=["']description["']\s+content=["'](.*?)["']/is);
-    if (descMatch && descMatch[1]) {
-        description = cleanText(descMatch[1]);
-    }
-    if (!description) {
-        description = extractMetaProperty(html, 'og:description');
-    }
-
-    let keywords = '';
-    const kwMatch = html.match(/<meta\s+name=["']keywords["']\s+content=["'](.*?)["']/i);
-    if (kwMatch && kwMatch[1]) {
-        keywords = cleanText(kwMatch[1]);
-    }
+    const description = extractMetaName(html, 'description') || extractMetaProperty(html, 'og:description');
+    const keywords = extractMetaName(html, 'keywords');
 
     // 第一段文本，AI 和 meta 都没有描述时兜底
     let firstParagraph = '';
@@ -707,6 +706,30 @@ export function truncateDescription(text, max = MAX_DESCRIPTION_CHARS) {
 }
 
 /**
+ * 网页自带的描述常被源站按字数硬切，V2EX 会停在「…拿到了 B：[https://」。AI 没出结果时要拿它兜底，
+ * 先去掉末尾没写完的 Markdown 链接 / 网址和因此悬空的标点。只动结尾，写完整的链接不碰
+ */
+export function trimDanglingTail(text) {
+    if (!text) return '';
+    const cut = text.search(/!?\[[^\]]*(?:\]\([^)]*)?$|https?:\/{0,2}$/);
+    // 没闭合的括号太靠前说明不是被切断的链接，整段保留
+    if (cut < text.length / 2) return text;
+    return text.slice(0, cut).replace(/[\s:：,，、;；\-–—(（【「『《]+$/, '');
+}
+
+/**
+ * 按句末标点分句并保留标点。半角 . ! ? 后面是空白或结尾才算句末，
+ * 否则 Node.js、v2.0、example.com 会被切开，后面取前两句时把正文丢掉
+ */
+export function splitSentences(text) {
+    return text
+        .replace(/\n+/g, ' ')
+        .split(/(?<=[。！？])|(?<=[.!?])(?=\s|$)/)
+        .map(p => p.trim())
+        .filter(Boolean);
+}
+
+/**
  * AI 生成简洁中文描述。出错时抛异常，模型没返回内容时返回空串
  */
 export async function summarizeDescription(env, info) {
@@ -723,13 +746,8 @@ export async function summarizeDescription(env, info) {
     });
 
     let aiDesc = (aiDescResp && aiDescResp.response || '').trim();
-    // 取前两句：按句末标点切分并保留标点
-    const parts = aiDesc
-        .replace(/\n+/g, ' ')
-        .split(/(?<=[。！？.!?])/)
-        .map(p => p.trim())
-        .filter(Boolean);
-    aiDesc = truncateDescription(parts.slice(0, 2).join(''));
+    // 取前两句
+    aiDesc = truncateDescription(splitSentences(aiDesc).slice(0, 2).join(''));
     if (aiDesc && !/[。！？.!?]$/.test(aiDesc)) {
         aiDesc += '。';
     }
@@ -947,8 +965,8 @@ export async function analyzeWebsite(env, {
             if (descriptionResult.status === 'rejected') console.error('AI 描述失败:', descriptionResult.reason);
         }
         if (aiDesc) { description = aiDesc; sources.description = 'ai'; }
-        else if (page?.description) { description = page.description; sources.description = 'page'; }
-        else if (hints.description) { description = hints.description; sources.description = 'hint'; }
+        else if (page?.description) { description = trimDanglingTail(page.description); sources.description = 'page'; }
+        else if (hints.description) { description = trimDanglingTail(hints.description); sources.description = 'hint'; }
         else if (page?.firstParagraph) { description = page.firstParagraph; sources.description = 'page'; }
         else { description = ''; sources.description = 'none'; }
     }

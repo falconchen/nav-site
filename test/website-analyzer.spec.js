@@ -5,6 +5,8 @@ import {
     fetchPageViaReader,
     parseReaderKeys,
     resetReaderKeyCooldowns,
+    splitSentences,
+    trimDanglingTail,
     truncateDescription
 } from '../server/lib/website-analyzer.js';
 
@@ -292,6 +294,28 @@ describe('页面解析', () => {
         );
         expect(info.icon).toBe('https://pipi2047.eu.org/img/apple-touch-icon.png');
     });
+
+    it('meta 内容里的另一种引号不算结尾', async () => {
+        const { extractPageInfo } = await import('../server/lib/website-analyzer.js');
+        const info = extractPageInfo(
+            `<html><head><meta name="description" content="It's a tool for &quot;domains&quot;">` +
+            `<meta name="keywords" content='say "hi", dns'>` +
+            `<meta property="og:site_name" content="Xiaoz's Lab"><meta property="og:title" content="x"></head><body></body></html>`,
+            'https://example.com/'
+        );
+        expect(info.description).toBe('It\'s a tool for "domains"');
+        expect(info.keywords).toBe('say "hi", dns');
+        expect(info.siteName).toBe("Xiaoz's Lab");
+    });
+
+    it('没有 meta description 时用 og:description，属性顺序不限', async () => {
+        const { extractPageInfo } = await import('../server/lib/website-analyzer.js');
+        const info = extractPageInfo(
+            `<html><head><meta content="标题" property="og:title"><meta content="it's og" property="og:description"></head><body></body></html>`,
+            'https://example.com/'
+        );
+        expect(info.description).toBe("it's og");
+    });
 });
 
 describe('truncateDescription', () => {
@@ -308,6 +332,63 @@ describe('truncateDescription', () => {
 
     it('找不到靠后的标点时硬截', () => {
         expect(truncateDescription('啊'.repeat(300), 200)).toBe('啊'.repeat(200));
+    });
+});
+
+describe('trimDanglingTail', () => {
+    // v2ex.com/t/1248095 的 meta description，源站自己切在半截链接上
+    const V2EX = '分享创造 - @xiaoz - 只需要输入你的域名，自动帮你检测 WHOIS 、DNS 、邮件安全、HTTPS/TLS 与网站可用性，并输出评分、等级与改进建议。测试 V2EX 拿到了 B （ 84 分）：[https://';
+    const V2EX_CLEAN = '分享创造 - @xiaoz - 只需要输入你的域名，自动帮你检测 WHOIS 、DNS 、邮件安全、HTTPS/TLS 与网站可用性，并输出评分、等级与改进建议。测试 V2EX 拿到了 B （ 84 分）';
+
+    it('去掉末尾没写完的 Markdown 链接和悬空的冒号', () => {
+        expect(trimDanglingTail(V2EX)).toBe(V2EX_CLEAN);
+        expect(trimDanglingTail(V2EX_CLEAN + '：[报告](https://example.com/re')).toBe(V2EX_CLEAN);
+        expect(trimDanglingTail(V2EX_CLEAN + '，详见 https://')).toBe(V2EX_CLEAN + '，详见');
+    });
+
+    it('完整的链接、网址和正常结尾不动', () => {
+        for (const text of [
+            '一个域名检测工具。',
+            '域名检测工具，报告见 [示例](https://example.com)',
+            '域名检测工具，报告见 https://example.com/report',
+            '[置顶] 域名检测工具，支持 HTTPS/TLS 检测'
+        ]) {
+            expect(trimDanglingTail(text)).toBe(text);
+        }
+    });
+
+    it('没闭合的括号在前半段时整段保留', () => {
+        const text = '[WIP 域名检测工具，自动检测 WHOIS、DNS 与网站可用性';
+        expect(trimDanglingTail(text)).toBe(text);
+    });
+
+    it('AI 没出结果、退回网页描述时用清理过的', async () => {
+        const html = `<html><head><title>帖子</title><meta name="description" content="${V2EX}"></head><body></body></html>`;
+        const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+            new Response(html, { headers: { 'Content-Type': 'text/html; charset=utf-8' } })
+        );
+        try {
+            const result = await analyzeWebsite({}, {
+                url: 'https://www.v2ex.com/t/1248095',
+                categories: [{ id: 'tools', name: '工具', websites: [] }]
+            });
+            expect(result.analysis.sources.description).toBe('page');
+            expect(result.description).toBe(V2EX_CLEAN);
+        } finally {
+            fetchSpy.mockRestore();
+        }
+    });
+});
+
+describe('splitSentences', () => {
+    it('专名和网址里的句点不算句末', () => {
+        expect(splitSentences('Next.js 是 React 框架，当前版本 v15.2。支持 SSR 和 SSG！部署到 vercel.com 即可。'))
+            .toEqual(['Next.js 是 React 框架，当前版本 v15.2。', '支持 SSR 和 SSG！', '部署到 vercel.com 即可。']);
+    });
+
+    it('半角句末标点后面是空白或结尾才切', () => {
+        expect(splitSentences('A fast bundler. Written in Go.\nUsed by Vite!'))
+            .toEqual(['A fast bundler.', 'Written in Go.', 'Used by Vite!']);
     });
 });
 

@@ -4,7 +4,8 @@ import {
     classifyCategory,
     loadPage,
     probeFavicon,
-    summarizeDescription
+    summarizeDescription,
+    trimDanglingTail
 } from '../lib/website-analyzer.js';
 
 const app = new Hono();
@@ -50,7 +51,8 @@ app.post('/analyze-website', async (c) => {
     }
 
     const { title } = info;
-    let { description } = info;
+    // AI 没出结果时用的是网页自带的描述，源站可能把它切在半截链接上
+    let description = trimDanglingTail(info.description);
     const icon = info.icon || await probeFavicon(info.finalUrl);
 
     // 注意：如果环境中没有配置AI，使用简单的规则判断分类
