@@ -631,6 +631,21 @@
             </div>
 
             <div class="api-token-list" id="apiTokenList"></div>
+
+            <h4 class="api-section-title">AI 工具接入（MCP）</h4>
+            <p class="api-tokens-hint">
+                在 Claude、ChatGPT 等工具里添加自定义连接器，填下面的地址，按提示登录并授权，
+                它就能查你的收藏、读写记事本。配置里能写请求头的工具也可以直接用上面的令牌。
+            </p>
+            <div class="api-token-new-row mcp-url-row">
+                <code id="mcpUrl"></code>
+                <button type="button" class="btn btn-secondary" onclick="copyMcpUrl()">
+                    <i class="fas fa-copy"></i>
+                    复制
+                </button>
+            </div>
+            <div class="api-section-subtitle">已授权的应用</div>
+            <div class="api-token-list" id="oauthGrantList"></div>
         </div>
     </div>
 

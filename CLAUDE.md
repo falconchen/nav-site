@@ -51,6 +51,11 @@
 - `server/api/visits.js` - 访问统计同步接口（只接受网页登录 JWT）
 - `server/lib/visits-store.js` - 访问统计的云端存储与合并规则（Redis）
 - `server/lib/redis.js` - Upstash Redis 的 get / set / del 薄封装，失败抛 `RedisError`
+- `server/mcp/index.js` - MCP 端点 `/mcp`，让 AI 工具读写收藏和记事本（接入说明见 `docs/MCP.md`）
+- `server/mcp/protocol.js` - MCP 协议层：无状态 JSON-RPC，兼容握手式和无握手两代协议
+- `server/mcp/tools-bookmarks.js` / `tools-notes.js` - MCP 的工具定义
+- `server/lib/bookmark-query.js` - 收藏的只读查询（分类、搜索、排序）和交给 AI 时的私密规则
+- `server/api/oauth.js` - MCP 的 OAuth 授权页接口和「已授权的应用」管理
 
 **前端 (`public/`)：**
 - `public/index.html` - 主 HTML 结构，包含内联主题脚本
@@ -72,6 +77,7 @@
 - `public/note-public.html` + `public/note-public.js` - 公开发布的记事的只读页，网址是 `/n/<公开 id>`
 - `public/add.html` + `public/add.js` - iOS 快捷指令浮层里的「添加网站」页，拿短时令牌走 `/api/v1`
 - `public/note-render.js` - 记事正文渲染（Markdown 过滤、纯文本转义）和单条下载，上面两个页面共用
+- `public/oauth-authorize.html` + `public/oauth-authorize.js` - AI 工具通过 MCP 接入时的授权确认页，网址是 `/oauth/authorize`
 
 ### 视图 tab
 
@@ -181,6 +187,66 @@
 
 修改此流程时需检查断网刷新后恢复、真正过期以及校验期间切换账号这三种情况。
 
+### MCP
+
+`/mcp` 是给 AI 工具（Claude、ChatGPT、Cursor 等）用的 MCP 服务：查收藏、添加收藏、读写记事本。
+接入步骤、工具列表、给用户看的说明在 `docs/MCP.md`，改工具或权限时要同步改它。
+
+**请求怎么走**：`server/index.js` 导出的不再是 Hono 应用本身，而是包了一层 `@cloudflare/workers-oauth-provider` 的 `OAuthProvider`：
+
+- `/mcp`：它先校验令牌，通过后把身份放进 `ctx.props`（`{ userId, via: 'oauth' | 'token', clientName | tokenName }`）再交给 `server/mcp/index.js`
+- `/oauth/token`、`/oauth/register`、`/.well-known/oauth-*`：它自己应答
+- 其余请求原样交给 Hono 应用，行为和以前一样
+- `resourceMetadata.resource` 要写成 `<origin>/mcp`，所以按请求的 origin 懒建并缓存 provider；建不出来（本地用非回环的 http 地址）时退回纯 Hono，
+  站点照常、只是没有 MCP。库把辅助对象挂在 `env.OAUTH_PROVIDER` 上且只挂一次，所以每次请求传的是 `env` 的浅拷贝
+
+**两种令牌**：OAuth 访问令牌（库签发，存在 `OAUTH_KV`，1 小时过期，刷新令牌闲置 90 天失效）和个人令牌（`navpat_`，经 `resolveExternalToken` 复用 `verifyPersonalToken()`）。
+网页登录的 JWT 不能直接调 `/mcp`。OAuth 只有一个 scope（`mcp`），没有细分权限。
+
+**授权页**（`/oauth/authorize` → 静态页 `oauth-authorize.html`，接口在 `server/api/oauth.js`）：
+
+- 页面把地址栏的授权请求原样传给 `GET /api/oauth/request`（库的 `parseAuthRequest` + `describeConsent` 校验并取出应用名、回调域名），
+  「同意」是 `POST /api/oauth/approve`（`requireSession`）→ `completeAuthorization()`，「拒绝」是 `POST /api/oauth/deny`
+- 同意请求靠 Authorization 头里的 JWT 鉴权，不用 cookie，所以没有 CSRF 面；没用库自带的 `beginConsent` / `approveConsent`（那套是给 cookie 会话 + 表单用的）
+- **每次都要用户亲手点同意，不记住、不自动放行**：动态注册谁都能来，应用名是对方自己填的。页面必须显示回调域名，回环地址要有警告
+- 防点击劫持：`/oauth/authorize` 带 `X-Frame-Options: DENY` 和 CSP `frame-ancestors 'none'`；静态文件的原始路径（`/oauth-authorize`、`.html`）
+  在 `server/index.js` 里直接 404，否则绕开这些响应头就能嵌进 iframe；脚本里发现自己被嵌入也会停下。新增类似页面时别漏了第二条
+- 授权请求有问题时，回调地址通过校验的才把错误带回客户端（`AuthorizationError.redirectTo`），否则只在页面上显示，不跳转
+- 应用名、回调域名来自对方，前端一律 `textContent` / `escapeHtml`
+
+**授权页上的登录**：先用 localStorage 的 `authToken`（这个浏览器登录过首页就一键授权）。没有时走整页跳转登录：
+`/api/auth/github|google?return_to=/oauth/authorize?…`，`sanitizeReturnTo()` 只放行以 `/oauth/authorize?` 开头的站内路径，跳回地址随 state 存 KV（平时存的是 `'valid'`）；
+回调页不 postMessage，而是把结果写进 sessionStorage `oauthLoginResult` 再跳回授权页。手机 App 的内嵌浏览器存储隔离、开不了弹窗，只能这么走。
+
+- 这样拿到的 JWT 只放 sessionStorage `oauthLoginToken`，**不写 localStorage `authToken`**，授权完调 `/api/auth/logout` 注销：
+  这次登录只为授权，不改变这个浏览器里首页的登录状态，同步流程（`pendingCloudSave`、`loggedOutChanges`、切换账号）不受影响
+- 授权页不加载 `auth.js`，收到 401 不删 `authToken`（和记事本页同一条规矩）
+- 登录回调的结果页统一由 `auth.js` 的 `authResultPage()` 生成，嵌进 `<script>` 的值都过 `scriptJson()`，不要再手拼 `'${error}'`
+
+**已授权的应用**：「个人令牌」弹窗下半部分（`api-tokens.js`），`GET /api/oauth/grants`、`DELETE /api/oauth/grants/:id`，只接受网页登录 JWT。
+同一个应用重新授权时库会替换掉旧的那条。
+
+**协议层**（`server/mcp/protocol.js`，手写，没用官方 SDK）：无状态，每个 POST 回一个 JSON，不开 SSE、不发会话 id，GET / DELETE 回 405。
+
+- 同一个端点兼容两代：`2026-07-28` 起没有握手，版本在 `params._meta` 和 `MCP-Protocol-Version` 头里，要核对 `Mcp-Method` / `Mcp-Name` 头和请求体一致
+  （不一致 400 + `-32020`，版本不支持 400 + `-32022`，方法不存在 404），结果带 `resultType: "complete"`；更早的版本走 `initialize` 握手
+- 工具执行失败返回 `isError: true` 的正常结果，不是 JSON-RPC 错误；能讲给模型听的原因抛 `ToolError`，其它异常只回「服务器内部错误」
+- 工具列表顺序固定（客户端和模型的提示词缓存都依赖它），加工具往后加
+
+**工具**（`tools-bookmarks.js`、`tools-notes.js`）：
+
+- 收藏只有查询和添加，**故意不提供删除和修改**。`add_bookmark` 调 `v1.js` 导出的 `createWebsite(c, auth, body)`，
+  和 `POST /api/v1/websites` 是同一个函数（查重、AI 补全、图标转存、排序键、版本快照），不要在 MCP 里另写一份
+- **私密规则在 `bookmark-query.js`，比 `/api/v1` 严**：私密收藏整个不返回、不计数；隐藏描述的网站不返回描述，描述也不参与搜索（否则能靠换关键词试出内容）。
+  `add_bookmark` 遇到已收藏的网址，回给模型的条目也要过同样的规则（`existingView()`）。给 MCP 加新的读取途径时都要经过这里
+- 日期参数只写日期或不带时区时按 Asia/Shanghai 算（`parseTimeParam()`），返回的收藏时间带 `+08:00`
+- 「最近关注」按 `pinnedOrder` 倒序：数据里没有关注时间，这是近似
+- 记事本工具直接调 `notes-store.js`，不经过 `/api/notes`。**所有个人令牌都能经 MCP 读写记事本**（包括扩展用的那个），这是用户明确选的；`/api/notes` 仍然只认网页登录
+- `update_note` 改写整篇必须带 `base_updated_at`（逼模型先读再改，复用 `NOTE_CONFLICT`），追加用 `mode: "append"`：
+  记事本没有回收站和版本历史，模型重写长文容易悄悄丢内容。不提供发布 / 取消公开链接，也不返回 `publicId`
+- 限流都按用户（MCP 请求来自 AI 服务商的机房，按 IP 没意义）：总调用 `mcp_call` 120 次/分钟、添加收藏 `mcp_bookmark_write` 30 次/分钟，
+  记事本写操作和网页端共用 `notes_write`
+
 ### 从链接添加网站（`?add=`）
 
 打开 `/?add=<网址>`，`handleAddUrlParam()`（`script.js`）读完立刻 `replaceState` 去掉参数，
@@ -252,7 +318,7 @@
 - 上限在 `LIMITS`：500 条记事、50 个文件夹、单条 10 万字符、公开 50 条。超限返回 4xx + `code`，不截断正文
 - 只改正文或格式才刷新 `updatedAt`，移动文件夹不算修改。删文件夹不删记事，里面的记事回到未归档
 
-**接口**（`server/api/notes.js`）：`/api/notes` 下的只接受网页登录 JWT（`requireSession`），个人令牌不能用；写接口按用户限流 60 次/分钟。
+**接口**（`server/api/notes.js`）：`/api/notes` 下的只接受网页登录 JWT（`requireSession`），个人令牌不能用（个人令牌要读写记事本只能走 MCP，见「MCP」一节）；写接口按用户限流 60 次/分钟。
 `PUT /api/notes/:id` 带 `baseUpdatedAt` 时，云端已被别处改过返回 409 `NOTE_CONFLICT`，前端让用户选择是否覆盖。
 文件夹路由要注册在 `/notes/:id` 前面。
 
@@ -366,7 +432,7 @@ v2ex 这类站点会间歇性开 Cloudflare 质询，Worker 抓取拿到 403。�
   明文只在生成时返回一次；每个用户的令牌列表在 `pat_list_<userId>`，最多 10 个
 - 最后使用时间单独存在 `pat_used_<hash>`，每小时最多写一次。不要回写到 `pat_<hash>`：
   和吊销并发时会把刚删掉的令牌写回来
-- 令牌不过期，也不能调 `/api/tokens` 生成或吊销令牌，只能访问 `/api/v1`
+- 令牌不过期，也不能调 `/api/tokens` 生成或吊销令牌，只能访问 `/api/v1` 和 `/mcp`
 - 写接口是读-改-写整份云端数据，并照常生成版本快照（描述里带令牌名）。云端没有分类数据时拒绝写入：
   否则网页端会把残缺数据当成更新下载，覆盖本地
 - 网址查重忽略协议、`www.`、`#hash` 和末尾斜杠
@@ -483,6 +549,7 @@ npm run deploy      # 部署到 Cloudflare Workers 生产环境
 - `ASSETS` - 从 public/ 或 dist/ 提供静态文件
 - `AI` - Cloudflare AI 绑定用于网站分析
 - `USER_SESSIONS` - KV 命名空间，存会话、个人令牌、限流计数、图床去重（收藏数据、记事本和访问统计在 Redis）
+- `OAUTH_KV` - KV 命名空间，MCP 的 OAuth 授权记录（客户端、授权、令牌），只由 `@cloudflare/workers-oauth-provider` 读写，绑定名是它定死的
 
 ## 架构模式
 

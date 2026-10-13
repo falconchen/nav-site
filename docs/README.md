@@ -11,6 +11,7 @@
 ## 接口与客户端
 
 - [REST_API.md](REST_API.md)：`/api/v1` 和分享草稿接口
+- [MCP.md](MCP.md)：让 Claude、ChatGPT 等 AI 工具通过 MCP 查收藏、读写记事本
 - [REST_API_TESTING.md](REST_API_TESTING.md)：接口的测试方法和实测记录
 - [IOS_SHORTCUT.md](IOS_SHORTCUT.md)：iOS 快捷指令（浮层版和 Safari 版）
 

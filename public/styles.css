@@ -3164,6 +3164,29 @@ html[data-sidebar="compact"] .category-section {
   cursor: default;
 }
 
+/* 弹窗下半部分：AI 工具接入（MCP） */
+.api-section-title {
+  margin: 26px 0 14px;
+  padding-top: 22px;
+  font-family: var(--font-serif);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+  border-top: 1px solid var(--line);
+}
+
+.api-section-subtitle {
+  margin-top: 20px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--ink-3);
+}
+
+.api-section-subtitle + .api-token-list .api-token-item:first-child {
+  border-top: 0;
+}
+
 /* ---------- 调整分区顺序 ---------- */
 
 .tab-order-list {
@@ -5085,5 +5108,162 @@ body.reordering .website-card.reorder-drag {
   .add-card .form-buttons {
     bottom: 0;
     background: color-mix(in srgb, var(--paper) 88%, transparent);
+  }
+}
+
+/* ---------- 授权页（/oauth/authorize，AI 工具通过 MCP 接入时的确认页） ---------- */
+
+.oauth-container {
+  max-width: 520px;
+}
+
+.oauth-card .modal-header {
+  justify-content: flex-start;
+  gap: 12px;
+}
+
+.oauth-seal {
+  flex-shrink: 0;
+  border-radius: 7px;
+}
+
+.oauth-lead {
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--ink);
+}
+
+.oauth-client {
+  font-family: var(--font-serif);
+  font-size: 19px;
+  overflow-wrap: anywhere;
+}
+
+.oauth-origin {
+  margin-top: 4px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--ink-3);
+}
+
+.oauth-facts {
+  margin: 20px 0 0;
+  border-top: 1px solid var(--line);
+}
+
+.oauth-facts > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.oauth-facts dt {
+  flex-shrink: 0;
+  font-size: 13px;
+  color: var(--ink-3);
+}
+
+.oauth-facts dd {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: right;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+/* 令牌会被送到这个域名，用等宽字体让相似字符分得清 */
+#oauthRedirect {
+  font-family: var(--font-mono);
+  font-size: 13.5px;
+}
+
+.oauth-warning {
+  margin-top: 16px;
+  padding: 11px 13px;
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--ink);
+  background: var(--accent-soft);
+  border-radius: var(--r-md);
+}
+
+.oauth-warning i {
+  margin-right: 4px;
+  color: var(--accent);
+}
+
+.oauth-scopes {
+  margin-top: 22px;
+}
+
+.oauth-scopes ul {
+  margin: 8px 0 0;
+  padding-left: 1.2em;
+  font-size: 14.5px;
+  line-height: 1.9;
+  color: var(--ink);
+}
+
+.oauth-login {
+  margin-top: 24px;
+}
+
+.oauth-login-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.oauth-login-buttons .btn {
+  flex: 1;
+  height: 44px;
+  font-size: 14.5px;
+  border-radius: 12px;
+}
+
+.oauth-login-buttons .btn i {
+  font-size: 15px;
+}
+
+.oauth-deny-link {
+  display: block;
+  margin: 14px auto 0;
+  padding: 6px 8px;
+  font-size: 13px;
+  color: var(--ink-3);
+  background: none;
+  border: 0;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.oauth-deny-link:hover {
+  color: var(--ink);
+}
+
+.oauth-card button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.oauth-foot {
+  margin-top: 22px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--ink-3);
+}
+
+@media (max-width: 480px) {
+  .oauth-login-buttons {
+    flex-direction: column;
+  }
+
+  /* 竖排时 flex: 1 的基准是高度，会把按钮压扁 */
+  .oauth-login-buttons .btn {
+    flex: none;
   }
 }

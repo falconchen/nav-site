@@ -16,6 +16,7 @@ import { SHARE_TOKEN_HEADER, revokeShareToken, verifyShareToken } from '../lib/s
 import { isRateLimited, getClientIp } from '../lib/rate-limit.js';
 import { analyzeWebsite } from '../lib/website-analyzer.js';
 import { rehostIcon } from '../lib/rehost-icon.js';
+import { findCategory, realCategories } from '../lib/bookmark-query.js';
 import { getUserFromRedis } from './auth.js';
 import {
     loadDataFromRedis,
@@ -26,8 +27,6 @@ import {
 
 const app = new Hono();
 
-// 旧版本前端把「置顶」「最近添加」当分类存进数据，现在已不再写入；云端旧数据里仍可能有，读取时过滤掉
-const VIRTUAL_CATEGORY_IDS = new Set(['pinned', 'recent']);
 const WRITE_RATE_LIMIT = 30;
 // 会调用 AI 的请求按用户限流，抓网页加两轮模型成本比普通写入高得多
 const AI_RATE_LIMIT = 20;
@@ -138,19 +137,6 @@ export function urlKey(value) {
     return `${url.host.replace(/^www\./, '')}${path}${url.search}`;
 }
 
-function realCategories(data) {
-    return (Array.isArray(data?.categories) ? data.categories : [])
-        .filter((cat) => cat && cat.id && !VIRTUAL_CATEGORY_IDS.has(cat.id));
-}
-
-function findCategory(data, ref) {
-    if (typeof ref !== 'string' || !ref.trim()) return null;
-    const key = ref.trim();
-    const cats = realCategories(data);
-    // 优先按 id 匹配，找不到再按名称，方便脚本直接写分类名
-    return cats.find((cat) => cat.id === key) || cats.find((cat) => cat.name === key) || null;
-}
-
 function siteView(site, categoryId) {
     const imageData = typeof site.imageData === 'string' && site.imageData.startsWith('data:')
         ? null // 旧版 base64 图标动辄几十 KB，列表里不返回
@@ -213,6 +199,7 @@ async function persist(c, userId, data, description) {
 
 // 版本快照描述里的来源
 function viaLabel(auth) {
+    if (auth.via === 'mcp') return ` MCP（${auth.label}）`;
     if (auth.via === 'token') return `令牌「${auth.tokenName}」`;
     return auth.via === 'share' ? '快捷指令' : 'API';
 }
@@ -328,34 +315,38 @@ function parseHints(raw) {
     return hints;
 }
 
-/**
- * POST /websites 和 /websites/analyze 共用：校验请求、读云端数据、查重、按需跑 AI 补全
- *
- * @returns {Promise<{response: Response} | {data, site, analysis, duplicate}>}
- */
-async function prepareWebsite(c) {
-    const auth = c.get('auth');
-
-    let body;
+// 请求体不是 JSON 对象时返回 null
+async function readJsonBody(c) {
     try {
-        body = await c.req.json();
+        const body = await c.req.json();
+        return body && typeof body === 'object' ? body : null;
     } catch {
-        return { response: c.json({ error: 'Invalid JSON body' }, 400) };
+        return null;
     }
+}
+
+const fail = (status, body) => ({ error: { status, body } });
+
+/**
+ * 添加和预览共用：校验请求、读云端数据、查重、按需跑 AI 补全
+ *
+ * @returns {Promise<{error: {status, body}} | {data, site, analysis, duplicate}>}
+ */
+async function prepareWebsite(c, auth, body) {
     if (!body || typeof body !== 'object') {
-        return { response: c.json({ error: 'Invalid JSON body' }, 400) };
+        return fail(400, { error: 'Invalid JSON body' });
     }
 
     const url = parseHttpUrl(body.url);
     if (!url) {
-        return { response: c.json({ error: 'Field "url" must be an http(s) URL' }, 400) };
+        return fail(400, { error: 'Field "url" must be an http(s) URL' });
     }
 
     // 前端把 icon 拼进 class 属性，只放行 Font Awesome 类名这类安全字符
     let icon = DEFAULT_ICON;
     if (body.icon !== undefined) {
         if (typeof body.icon !== 'string' || !/^[a-z0-9 -]{1,60}$/i.test(body.icon)) {
-            return { response: c.json({ error: 'Field "icon" must be a Font Awesome class name' }, 400) };
+            return fail(400, { error: 'Field "icon" must be a Font Awesome class name' });
         }
         icon = body.icon;
     }
@@ -364,13 +355,13 @@ async function prepareWebsite(c) {
     if (body.imageData !== undefined && body.imageData !== null && body.imageData !== '') {
         imageData = normalizeImageData(body.imageData);
         if (!imageData) {
-            return { response: c.json({ error: 'Field "imageData" must be an http(s) URL or a base64 image data URL (≤256KB)' }, 400) };
+            return fail(400, { error: 'Field "imageData" must be an http(s) URL or a base64 image data URL (≤256KB)' });
         }
     }
 
     const data = await loadUserData(c, auth.userId);
     if (!data) {
-        return { response: c.json(NO_CLOUD_DATA, 409) };
+        return fail(409, NO_CLOUD_DATA);
     }
 
     // 传了分类但找不到是调用方写错了，报错而不是静默兜底
@@ -378,12 +369,10 @@ async function prepareWebsite(c) {
     if (body.category !== undefined && body.category !== null && body.category !== '') {
         category = findCategory(data, body.category);
         if (!category) {
-            return {
-                response: c.json({
-                    error: 'Field "category" must be an existing category id or name',
-                    categories: realCategories(data).map((cat) => ({ id: cat.id, name: cat.name }))
-                }, 400)
-            };
+            return fail(400, {
+                error: 'Field "category" must be an existing category id or name',
+                categories: realCategories(data).map((cat) => ({ id: cat.id, name: cat.name }))
+            });
         }
     }
 
@@ -403,7 +392,7 @@ async function prepareWebsite(c) {
     // 分类或描述缺一个就要跑 AI，按用户限流
     const needsAi = !provided.category || !provided.description;
     if (needsAi && await isRateLimited(c, { scope: 'api_v1_ai', limit: AI_RATE_LIMIT, key: auth.userId })) {
-        return { response: c.json({ error: 'Too many analyze requests, please try again later' }, 429) };
+        return fail(429, { error: 'Too many analyze requests, please try again later' });
     }
 
     const cats = realCategories(data);
@@ -440,19 +429,37 @@ async function prepareWebsite(c) {
 
 const CATEGORY_SOURCE_LABELS = { domain: '同域名', fallback: '未能判断' };
 
-app.post('/v1/websites', limitWrites, async (c) => {
-    const auth = c.get('auth');
-    const prepared = await prepareWebsite(c);
-    if (prepared.response) return prepared.response;
+/**
+ * 添加一个网站：查重、AI 补全、图标转存、写入并生成版本快照。路由和 MCP 的 add_bookmark 共用。
+ * 限流里只有 AI 那一道在这里面，写入次数的限流由调用方各自做（路由按 IP，MCP 按用户）。
+ *
+ * @param {Object} c Hono context，用到 env 和请求头
+ * @param {Object} auth { userId, via, ... }，决定版本快照描述里的来源
+ * @param {Object} body 和 POST /api/v1/websites 的请求体一样
+ * @returns {Promise<{status: number, body: Object}>} 新增和重复时 body 里多一个 categoryName，路由回给客户端前去掉
+ */
+export async function createWebsite(c, auth, body) {
+    const prepared = await prepareWebsite(c, auth, body);
+    if (prepared.error) return prepared.error;
+
+    const nameOf = (id) => realCategories(prepared.data).find((cat) => cat.id === id)?.name || id;
 
     if (prepared.duplicate) {
-        return c.json({ error: 'Website already exists', code: 'DUPLICATE', website: prepared.duplicate }, 409);
+        return {
+            status: 409,
+            body: {
+                error: 'Website already exists',
+                code: 'DUPLICATE',
+                website: prepared.duplicate,
+                categoryName: nameOf(prepared.duplicate.category)
+            }
+        };
     }
 
     const { data, site: { category: categoryId, ...fields }, analysis } = prepared;
     if (!categoryId) {
         // 只有用户一个真实分类都没有时才会到这里，loadUserData 已经挡掉了
-        return c.json(NO_CLOUD_DATA, 409);
+        return { status: 409, body: NO_CLOUD_DATA };
     }
 
     // 图标转存到图床，只在真正保存时做：analyze 只是预览，用户可能取消。失败保留原地址
@@ -481,12 +488,12 @@ app.post('/v1/websites', limitWrites, async (c) => {
     websites[categoryId] = [...(websites[categoryId] || []), site];
 
     const via = viaLabel(auth);
-    const categoryName = realCategories(data).find((cat) => cat.id === categoryId)?.name || categoryId;
+    const categoryName = nameOf(categoryId);
     const sourceLabel = CATEGORY_SOURCE_LABELS[analysis.sources.category];
     const note = sourceLabel ? `（自动归类：${categoryName}，${sourceLabel}）` : '';
     const saved = await persist(c, auth.userId, { ...data, websites }, `通过${via}添加：${site.title}${note}`);
     if (!saved) {
-        return c.json({ error: 'Failed to save data' }, 500);
+        return { status: 500, body: { error: 'Failed to save data' } };
     }
 
     // 分享令牌用一次就作废；删除失败也不影响这次保存，令牌 30 分钟后自己过期
@@ -496,13 +503,21 @@ app.post('/v1/websites', limitWrites, async (c) => {
         });
     }
 
-    return c.json({ success: true, website: siteView(site, categoryId), analysis, version: saved.version }, 201);
+    return {
+        status: 201,
+        body: { success: true, website: siteView(site, categoryId), analysis, version: saved.version, categoryName }
+    };
+}
+
+app.post('/v1/websites', limitWrites, async (c) => {
+    const { status, body: { categoryName, ...body } } = await createWebsite(c, c.get('auth'), await readJsonBody(c));
+    return c.json(body, status);
 });
 
 // 只分析、不保存：扩展弹窗打开时先预填，用户确认后再 POST /websites
 app.post('/v1/websites/analyze', async (c) => {
-    const prepared = await prepareWebsite(c);
-    if (prepared.response) return prepared.response;
+    const prepared = await prepareWebsite(c, c.get('auth'), await readJsonBody(c));
+    if (prepared.error) return c.json(prepared.error.body, prepared.error.status);
 
     if (prepared.duplicate) {
         return c.json({ success: true, duplicate: prepared.duplicate });

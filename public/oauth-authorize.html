@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>授权访问 · 皮皮2047</title>
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="referrer" content="no-referrer">
+    <meta name="color-scheme" content="light dark">
+    <meta name="theme-color" content="#f4f2ed" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#121110" media="(prefers-color-scheme: dark)">
+    <script>
+    (function() {
+      try {
+        var theme = localStorage.getItem('theme');
+        if (theme !== 'dark' && theme !== 'light') {
+          theme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        document.documentElement.setAttribute('data-theme', theme);
+        var accent = localStorage.getItem('accent');
+        if (accent) {
+          document.documentElement.setAttribute('data-accent', accent);
+        }
+      } catch(e) {}
+    })();
+    </script>
+    <link rel="icon" href="/img/seal.svg" type="image/svg+xml">
+    <link rel="icon" href="/img/favicon-32.png" sizes="32x32" type="image/png">
+    <link rel="stylesheet" href="https://cdnjs.snrat.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha384-iw3OoTErCYJJB9mCa8LNS2hbsQ7M3C0EpIsO/H5+EGAkPGc6rk+V8i04oW/K5xq0" crossorigin="anonymous">
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body class="doc-page add-page oauth-page">
+    <main class="add-container oauth-container">
+        <div class="add-card website-modal oauth-card">
+            <div class="modal-header">
+                <img class="oauth-seal" src="/img/seal.svg" alt="" width="32" height="32">
+                <h1 class="modal-title">授权访问</h1>
+            </div>
+
+            <!-- 加载中、授权请求无效、已完成等，都显示在这一块 -->
+            <div class="add-message" id="oauthMessage" role="status">
+                <i class="fas fa-spinner fa-spin" id="oauthMessageIcon"></i>
+                <p id="oauthMessageText">正在核对授权请求…</p>
+                <p class="add-message-hint" id="oauthMessageHint" hidden></p>
+            </div>
+
+            <div id="oauthConsent" hidden>
+                <p class="oauth-lead"><strong class="oauth-client" id="oauthClient"></strong> 想访问你的皮皮2047</p>
+                <p class="oauth-origin" id="oauthOrigin"></p>
+
+                <dl class="oauth-facts">
+                    <div>
+                        <dt>授权后跳转到</dt>
+                        <dd id="oauthRedirect"></dd>
+                    </div>
+                    <div id="oauthAccountRow" hidden>
+                        <dt>授权账号</dt>
+                        <dd id="oauthAccount"></dd>
+                    </div>
+                </dl>
+
+                <p class="oauth-warning" id="oauthLoopback" hidden>
+                    <i class="fas fa-triangle-exclamation"></i>
+                    这会把访问权限交给你这台设备上的一个程序。只有你刚在那个程序里发起连接时才继续。
+                </p>
+
+                <div class="oauth-scopes">
+                    <div class="form-label">同意后它可以</div>
+                    <ul>
+                        <li>查看你的网址收藏和分类（私密收藏除外）</li>
+                        <li>把新的网址加进收藏</li>
+                        <li>查看、新建、修改、删除记事本里的记事和文件夹</li>
+                    </ul>
+                </div>
+
+                <p class="add-notice" id="oauthNotice" hidden></p>
+
+                <!-- 已登录：直接决定 -->
+                <div class="form-buttons" id="oauthDecision" hidden>
+                    <button type="button" class="btn btn-secondary" id="oauthDenyBtn">拒绝</button>
+                    <button type="button" class="btn btn-primary" id="oauthApproveBtn">同意授权</button>
+                </div>
+
+                <!-- 没登录：先登录，登录完回到这一页再决定 -->
+                <div class="oauth-login" id="oauthLogin" hidden>
+                    <div class="form-label">先登录，再决定是否授权</div>
+                    <div class="oauth-login-buttons">
+                        <button type="button" class="btn btn-secondary" data-provider="github">
+                            <i class="fab fa-github"></i> 用 GitHub 登录
+                        </button>
+                        <button type="button" class="btn btn-secondary" data-provider="google">
+                            <i class="fab fa-google"></i> 用 Google 登录
+                        </button>
+                    </div>
+                    <button type="button" class="oauth-deny-link" id="oauthDenyLink">不授权，返回应用</button>
+                </div>
+
+                <p class="oauth-foot">以后可以在皮皮2047的账户菜单「个人令牌」里撤销这次授权。</p>
+            </div>
+        </div>
+    </main>
+
+    <script src="/oauth-authorize.js"></script>
+</body>
+</html>

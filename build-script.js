@@ -38,6 +38,7 @@ async function buildProject() {
                 'public/view-tabs.js',
                 'public/tools.js',
                 'public/add.js',
+                'public/oauth-authorize.js',
                 'public/note-render.js',
                 'public/notes.js',
                 'public/note-public.js'

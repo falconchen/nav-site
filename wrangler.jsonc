@@ -30,6 +30,11 @@
       "binding": "USER_SESSIONS",
       "id": "208b00870543476cb91dbe4ed1c2673e", // 开发环境专用
       "preview_id": "208b00870543476cb91dbe4ed1c2673e"
+    },
+    {
+      // MCP 的 OAuth 授权记录（客户端、授权、令牌），由 @cloudflare/workers-oauth-provider 读写
+      "binding": "OAUTH_KV",
+      "id": "4b15d5514bf046b5b47fc1f186b0ded3"
     }
   ],
 
@@ -54,6 +59,10 @@
 				{
 					"binding": "USER_SESSIONS",
 					"id": "208b00870543476cb91dbe4ed1c2673e" // 生产环境专用
+				},
+				{
+					"binding": "OAUTH_KV",
+					"id": "4b15d5514bf046b5b47fc1f186b0ded3"
 				}
 			],
 

@@ -1,6 +1,6 @@
 # 部署与配置
 
-从零部署一份导航站要准备的东西：两个 OAuth 应用、一个 Upstash Redis、一个 Cloudflare KV 命名空间，再把密钥交给 Wrangler。
+从零部署一份导航站要准备的东西：两个 OAuth 应用、一个 Upstash Redis、两个 Cloudflare KV 命名空间，再把密钥交给 Wrangler。
 本文合并了原来的五份文档（登录配置、快速配置、环境变量、环境隔离、安全配置）。
 
 > 文档和代码里**不要写真实的密钥**，示例一律用占位符。这个仓库是公开的。
@@ -26,10 +26,14 @@ GitHub 一个应用只能填一个回调地址，本地和线上要各建一个�
 ```bash
 npx wrangler login
 npx wrangler kv namespace create USER_SESSIONS
+npx wrangler kv namespace create nav-site-oauth
 ```
 
-把输出的 id 填进 `wrangler.jsonc` 的 `kv_namespaces`（绑定名固定是 `USER_SESSIONS`）。KV 存登录会话、OAuth state、个人令牌、
-分享令牌、限流计数和图床去重映射。
+把输出的 id 填进 `wrangler.jsonc` 的 `kv_namespaces`：
+
+- 绑定名 `USER_SESSIONS`：登录会话、OAuth state、个人令牌、分享令牌、限流计数和图床去重映射
+- 绑定名 `OAUTH_KV`：AI 工具通过 MCP 接入时的授权记录（见 [MCP.md](MCP.md)）。绑定名是 `@cloudflare/workers-oauth-provider` 定死的，
+  命名空间叫什么都行。和上面那个分开放，这个库会按前缀列举、清理自己的 key
 
 ## 4. 密钥和变量
 

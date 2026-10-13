@@ -8,6 +8,67 @@ import { refreshProviderProfile } from '../lib/oauth-profile.js';
 
 const app = new Hono();
 
+// ============ 登录结果怎么交回页面 ============
+
+// 整页跳转登录只给 MCP 的授权页用，登录完只能回到那一页
+const RETURN_TO_PREFIX = '/oauth/authorize?';
+const MAX_RETURN_TO_LENGTH = 4000;
+// 授权页从这里取登录结果，见 public/oauth-authorize.js
+const LOGIN_RESULT_KEY = 'oauthLoginResult';
+
+/**
+ * 校验登录后的跳回地址：只放行本站授权页，其它一律当没传（走弹窗登录）
+ */
+export function sanitizeReturnTo(value) {
+    if (typeof value !== 'string' || value.length > MAX_RETURN_TO_LENGTH) return null;
+    if (!value.startsWith(RETURN_TO_PREFIX) || /[\\\u0000-\u001f]/.test(value)) return null;
+    return value;
+}
+
+// 嵌进 <script> 的 JSON：转义 < 免得内容里的 </script> 提前结束脚本
+function scriptJson(value) {
+    return JSON.stringify(value).replace(/</g, '\\u003c');
+}
+
+/**
+ * 登录回调的收尾页面。
+ * 弹窗登录：把结果 postMessage 给打开弹窗的页面，然后关掉自己。
+ * 整页跳转登录（有 returnTo）：结果写进 sessionStorage 再跳回授权页。不写 localStorage 的 authToken，
+ * 这次登录只为完成授权，不改变这个浏览器里首页的登录状态。
+ */
+function authResultPage(c, message, returnTo) {
+    if (returnTo) {
+        return c.html(`
+        <script>
+            sessionStorage.setItem(${scriptJson(LOGIN_RESULT_KEY)}, ${scriptJson(JSON.stringify(message))});
+            location.replace(${scriptJson(returnTo)});
+        </script>
+    `);
+    }
+    return c.html(`
+        <script>
+            window.opener.postMessage(${scriptJson(message)}, window.location.origin);
+            window.close();
+        </script>
+    `);
+}
+
+const authErrorPage = (c, error, returnTo) => authResultPage(c, { type: 'AUTH_ERROR', error: String(error) }, returnTo);
+
+/**
+ * 取出并作废登录时存的 state。KV 里存的值平时是 'valid'，整页跳转登录时是跳回地址
+ * @returns {Promise<{valid: boolean, returnTo: string|null}>}
+ */
+async function consumeLoginState(c, provider, state) {
+    if (!c.env.USER_SESSIONS) return { valid: true, returnTo: null };
+    if (!state) return { valid: false, returnTo: null };
+    const key = `${provider}_state_${state}`;
+    const stored = await c.env.USER_SESSIONS.get(key);
+    if (!stored) return { valid: false, returnTo: null };
+    await c.env.USER_SESSIONS.delete(key);
+    return { valid: true, returnTo: sanitizeReturnTo(stored) };
+}
+
 // ============ GitHub OAuth ============
 
 // GitHub OAuth登录端点
@@ -33,7 +94,7 @@ app.get('/auth/github', async (c) => {
 
     try {
         if (c.env.USER_SESSIONS) {
-            await c.env.USER_SESSIONS.put(`github_state_${state}`, 'valid', {
+            await c.env.USER_SESSIONS.put(`github_state_${state}`, sanitizeReturnTo(c.req.query('return_to')) || 'valid', {
                 expirationTtl: 600
             });
         } else {
@@ -54,35 +115,19 @@ app.get('/auth/github/callback', async (c) => {
     const state = c.req.query('state');
     const error = c.req.query('error');
 
+    // 先取 state：用户在 GitHub 那边点了拒绝时，也要知道该回弹窗还是跳回授权页
+    const { valid, returnTo } = await consumeLoginState(c, 'github', state);
+
     if (error) {
-        return c.html(`
-            <script>
-                window.opener.postMessage({ type: 'AUTH_ERROR', error: '${error}' }, window.location.origin);
-                window.close();
-            </script>
-        `);
+        return authErrorPage(c, error, returnTo);
     }
 
     if (!code || !state) {
-        return c.html(`
-            <script>
-                window.opener.postMessage({ type: 'AUTH_ERROR', error: 'missing_code_or_state' }, window.location.origin);
-                window.close();
-            </script>
-        `);
+        return authErrorPage(c, 'missing_code_or_state', returnTo);
     }
 
-    if (c.env.USER_SESSIONS) {
-        const storedState = await c.env.USER_SESSIONS.get(`github_state_${state}`);
-        if (!storedState) {
-            return c.html(`
-                <script>
-                    window.opener.postMessage({ type: 'AUTH_ERROR', error: 'invalid_state' }, window.location.origin);
-                    window.close();
-                </script>
-            `);
-        }
-        await c.env.USER_SESSIONS.delete(`github_state_${state}`);
+    if (!valid) {
+        return authErrorPage(c, 'invalid_state', returnTo);
     }
 
     try {
@@ -147,15 +192,10 @@ app.get('/auth/github/callback', async (c) => {
 
         const user = await handleOAuthLogin(c, primaryEmail, providerInfo);
 
-        return generateAuthResponse(c, user);
+        return generateAuthResponse(c, user, returnTo);
     } catch (error) {
         console.error('GitHub OAuth error:', error);
-        return c.html(`
-            <script>
-                window.opener.postMessage({ type: 'AUTH_ERROR', error: '${error.message}' }, window.location.origin);
-                window.close();
-            </script>
-        `);
+        return authErrorPage(c, error.message, returnTo);
     }
 });
 
@@ -189,7 +229,7 @@ app.get('/auth/google', async (c) => {
     try {
         if (c.env.USER_SESSIONS) {
             console.log('Storing Google state in KV:', state);
-            await c.env.USER_SESSIONS.put(`google_state_${state}`, 'valid', {
+            await c.env.USER_SESSIONS.put(`google_state_${state}`, sanitizeReturnTo(c.req.query('return_to')) || 'valid', {
                 expirationTtl: 600
             });
             console.log('Google state stored successfully');
@@ -212,35 +252,19 @@ app.get('/auth/google/callback', async (c) => {
     const state = c.req.query('state');
     const error = c.req.query('error');
 
+    // 先取 state：用户在 Google 那边点了拒绝时，也要知道该回弹窗还是跳回授权页
+    const { valid, returnTo } = await consumeLoginState(c, 'google', state);
+
     if (error) {
-        return c.html(`
-            <script>
-                window.opener.postMessage({ type: 'AUTH_ERROR', error: '${error}' }, window.location.origin);
-                window.close();
-            </script>
-        `);
+        return authErrorPage(c, error, returnTo);
     }
 
     if (!code || !state) {
-        return c.html(`
-            <script>
-                window.opener.postMessage({ type: 'AUTH_ERROR', error: 'missing_code_or_state' }, window.location.origin);
-                window.close();
-            </script>
-        `);
+        return authErrorPage(c, 'missing_code_or_state', returnTo);
     }
 
-    if (c.env.USER_SESSIONS) {
-        const storedState = await c.env.USER_SESSIONS.get(`google_state_${state}`);
-        if (!storedState) {
-            return c.html(`
-                <script>
-                    window.opener.postMessage({ type: 'AUTH_ERROR', error: 'invalid_state' }, window.location.origin);
-                    window.close();
-                </script>
-            `);
-        }
-        await c.env.USER_SESSIONS.delete(`google_state_${state}`);
+    if (!valid) {
+        return authErrorPage(c, 'invalid_state', returnTo);
     }
 
     try {
@@ -290,15 +314,10 @@ app.get('/auth/google/callback', async (c) => {
 
         const user = await handleOAuthLogin(c, userData.email, providerInfo);
 
-        return generateAuthResponse(c, user);
+        return generateAuthResponse(c, user, returnTo);
     } catch (error) {
         console.error('Google OAuth error:', error);
-        return c.html(`
-            <script>
-                window.opener.postMessage({ type: 'AUTH_ERROR', error: '${error.message}' }, window.location.origin);
-                window.close();
-            </script>
-        `);
+        return authErrorPage(c, error.message, returnTo);
     }
 });
 
@@ -435,7 +454,7 @@ async function findUserByEmail(c, email) {
     }
 }
 
-async function generateAuthResponse(c, user) {
+async function generateAuthResponse(c, user, returnTo = null) {
     const jwtExpirationDays = parseInt(c.env.JWT_EXPIRATION_DAYS) || 7;
     const jwtExpirationSeconds = jwtExpirationDays * 24 * 60 * 60;
 
@@ -486,16 +505,7 @@ async function generateAuthResponse(c, user) {
         createdAt: user.createdAt
     };
 
-    return c.html(`
-        <script>
-            window.opener.postMessage({
-                type: 'AUTH_SUCCESS',
-                token: '${token}',
-                user: ${JSON.stringify(frontendUser)}
-            }, window.location.origin);
-            window.close();
-        </script>
-    `);
+    return authResultPage(c, { type: 'AUTH_SUCCESS', token, user: frontendUser }, returnTo);
 }
 
 // 验证token端点
