@@ -13,8 +13,8 @@ export const MODERN_VERSIONS = ['2026-07-28'];
 export const LEGACY_VERSIONS = ['2025-11-25', '2025-06-18', '2025-03-26'];
 const SUPPORTED_VERSIONS = [...MODERN_VERSIONS, ...LEGACY_VERSIONS];
 
-// 每次改 MCP 的功能都要升 version，客户端（比如 ChatGPT 的插件页）会把它显示出来，用来确认刷新到了新版本。
-// 规则见 CLAUDE.md「MCP」一节
+// 每次改 MCP 的功能都要升 version，规则见 CLAUDE.md「MCP」一节。握手和每条结果里都会带上它，排查「客户端连的是不是新版本」时用。
+// 注意 ChatGPT 插件页上的「版本」不是这个值，那是它自己的插件清单里的
 export const SERVER_INFO = { name: 'pipi2047', title: '皮皮2047', version: '1.1.0' };
 
 const META_VERSION = 'io.modelcontextprotocol/protocolVersion';
