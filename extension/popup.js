@@ -216,6 +216,7 @@ async function takeLinkTarget() {
 }
 
 async function init() {
+    $('extVersion').textContent = `v${ext.runtime.getManifest().version}`;
     $('openOptions').addEventListener('click', openOptions);
     $('viewForm').addEventListener('submit', save);
     $('removeBtn').addEventListener('click', remove);

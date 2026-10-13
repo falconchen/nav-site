@@ -143,6 +143,16 @@ textarea {
     color: var(--ink-3);
 }
 
+/* 扩展版本号，方便确认装的是不是最新版 */
+.bar-title .bar-version {
+    margin-left: 8px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 400;
+    letter-spacing: 0;
+    color: var(--ink-3);
+}
+
 .icon-btn {
     display: grid;
     place-items: center;
