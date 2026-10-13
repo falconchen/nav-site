@@ -1,13 +1,12 @@
 /**
- * 右键菜单一键收藏：只传 url 和 hints，由服务端 AI 补全
+ * 右键菜单收藏：打开和点工具栏图标一样的收藏弹窗，由用户确认名称、分类、描述后再保存
  *
- * 保存要跑 AI，要等好几秒。进度和结果画在网页右上角（lib/toast.js），工具栏图标同时挂角标；
- * 网页不让注入脚本时才退回系统通知，macOS 上 Chrome 的系统通知经常被关掉，不能只靠它。
+ * 以前是「一键收藏」：点了直接保存，名称、分类、描述全凭 AI，用户没有确认和修改的机会，存错了还得回导航站改。
+ * 现在不再有不经确认的保存。弹窗打不开时在网页右上角提示（lib/toast.js），网页不让注入脚本时退回系统通知。
  */
 
 import { ext } from './lib/ext.js';
-import { createClient, describeError, loadSettings } from './lib/api.js';
-import { getPageHints, isSavableUrl } from './lib/page.js';
+import { loadSettings } from './lib/api.js';
 import { renderToast } from './lib/toast.js';
 
 const MENU_PAGE = 'save-page';
@@ -16,8 +15,8 @@ const MENU_LINK = 'save-link';
 ext.runtime.onInstalled.addListener(async ({ reason }) => {
     // 更新扩展时也会触发，菜单还在，先清空再建，避免重复 id 报错
     await ext.contextMenus.removeAll();
-    ext.contextMenus.create({ id: MENU_PAGE, title: '一键收藏到皮皮2047', contexts: ['page'] });
-    ext.contextMenus.create({ id: MENU_LINK, title: '一键收藏此链接到皮皮2047', contexts: ['link'] });
+    ext.contextMenus.create({ id: MENU_PAGE, title: '收藏到皮皮2047', contexts: ['page'] });
+    ext.contextMenus.create({ id: MENU_LINK, title: '收藏此链接到皮皮2047', contexts: ['link'] });
 
     if (reason === 'install') {
         const { serverUrl, token } = await loadSettings();
@@ -34,106 +33,66 @@ function notify(title, message) {
     });
 }
 
-const BADGE = {
-    loading: { text: '…', color: '#c4412a' },
-    success: { text: '✓', color: '#2f7a55' },
-    error: { text: '!', color: '#b3261e' }
-};
-const BADGE_CLEAR_DELAY_MS = 5000;
-
-async function setBadge(tabId, state) {
+// 弹窗没打开时在工具栏图标上挂个角标，留到用户切走或刷新标签页
+async function setErrorBadge(tabId) {
     if (!tabId) return;
     try {
-        const { text, color } = BADGE[state];
-        await ext.action.setBadgeBackgroundColor({ tabId, color });
-        await ext.action.setBadgeText({ tabId, text });
-        // 成功的角标过一会儿清掉；失败的留着，等用户切走或刷新标签页
-        if (state === 'success') {
-            setTimeout(() => ext.action.setBadgeText({ tabId, text: '' }).catch(() => {}), BADGE_CLEAR_DELAY_MS);
-        }
+        await ext.action.setBadgeBackgroundColor({ tabId, color: '#b3261e' });
+        await ext.action.setBadgeText({ tabId, text: '!' });
     } catch {
         // 标签页已经关了
     }
 }
 
 /**
- * 在发起收藏的标签页上报告进度和结果
+ * 在发起收藏的标签页上报告错误
  */
-function createReporter(tabId) {
-    let toastWorks = Boolean(tabId);
-
-    return async function report(state, title, message = '') {
-        setBadge(tabId, state);
-        if (toastWorks) {
-            try {
-                await ext.scripting.executeScript({
-                    target: { tabId },
-                    func: renderToast,
-                    args: [state, title, message]
-                });
-                return;
-            } catch (error) {
-                // chrome://、应用商店等页面不允许注入，或者标签页已经关了
-                console.warn('无法在页面上显示提示，改用系统通知：', error);
-                toastWorks = false;
-            }
+async function reportError(tabId, title, message) {
+    setErrorBadge(tabId);
+    if (tabId) {
+        try {
+            await ext.scripting.executeScript({
+                target: { tabId },
+                func: renderToast,
+                args: ['error', title, message]
+            });
+            return;
+        } catch (error) {
+            // chrome://、应用商店等页面不允许注入，或者标签页已经关了
+            console.warn('无法在页面上显示提示，改用系统通知：', error);
         }
-        if (state !== 'loading') notify(title, message);
-    };
+    }
+    notify(title, message);
 }
 
-async function quickSave(url, hints, report) {
-    const settings = await loadSettings();
-    if (!settings.serverUrl || !settings.token) {
-        await report('error', '还没有设置导航站', '请在打开的设置页里填写导航站地址和个人令牌');
-        ext.runtime.openOptionsPage();
-        return;
-    }
+// 「收藏此链接」要收藏的不是当前标签页：先记在这里，弹窗打开后来取（take-link-target）。
+// 只在点菜单到弹窗打开的这一小会儿有效，过期的不给，免得之后点工具栏图标打开弹窗时收藏成上次的链接
+let pendingLink = null;
+const PENDING_LINK_TTL_MS = 5000;
 
-    const client = createClient(settings);
+ext.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+    if (message?.type !== 'take-link-target') return;
+    const fresh = pendingLink && Date.now() - pendingLink.at < PENDING_LINK_TTL_MS;
+    sendResponse({ url: fresh ? pendingLink.url : '' });
+    pendingLink = null;
+});
+
+ext.contextMenus.onClicked.addListener((info, tab) => {
+    if (info.menuItemId !== MENU_PAGE && info.menuItemId !== MENU_LINK) return;
+
+    pendingLink = info.menuItemId === MENU_LINK ? { url: info.linkUrl || '', at: Date.now() } : null;
+
+    // Firefox 要求 openPopup() 在用户操作的处理函数里同步调用，前面不能有 await
+    let opening;
     try {
-        const [{ website, analysis }, { categories }] = await Promise.all([
-            client.save({ url, hints }),
-            client.categories()
-        ]);
-        const name = categories.find((cat) => cat.id === website.category)?.name || website.category;
-        const unsure = ['domain', 'fallback'].includes(analysis.sources.category);
-        await report(
-            'success',
-            `已收藏到「${name}」`,
-            unsure ? `${website.title}\nAI 没能确定分类，可以在导航站调整` : website.title
-        );
+        opening = ext.action.openPopup();
     } catch (error) {
-        if (error.code === 'DUPLICATE') {
-            // 刷新收藏时间，回到「最近添加」最前面；失败也照样提示已收藏
-            const touched = await client.touch(url).then(() => true, () => false);
-            await report('success', touched ? '已经收藏过了，已移到最近添加' : '已经收藏过了', error.body.website?.title || url);
-            return;
-        }
-        await report('error', '收藏失败', describeError(error));
+        opening = Promise.reject(error);
     }
-}
-
-ext.contextMenus.onClicked.addListener(async (info, tab) => {
-    const report = createReporter(tab?.id);
-
-    if (info.menuItemId === MENU_PAGE) {
-        if (!tab || !isSavableUrl(tab.url)) {
-            await report('error', '收藏失败', '只能收藏 http/https 网页');
-            return;
-        }
-        await report('loading', '正在收藏…', '正在自动填写名称、分类和描述，大约需要几秒');
-        await quickSave(tab.url, await getPageHints(tab), report);
-        return;
-    }
-
-    if (info.menuItemId === MENU_LINK) {
-        if (!isSavableUrl(info.linkUrl)) {
-            await report('error', '收藏失败', '只能收藏 http/https 链接');
-            return;
-        }
-        await report('loading', '正在收藏链接…', '正在自动填写名称、分类和描述，大约需要几秒');
-        // 链接指向的页面没打开，拿不到 hints，全靠服务端抓取
-        await quickSave(info.linkUrl, {}, report);
-    }
+    Promise.resolve(opening).catch((error) => {
+        // 旧版 Chrome（127 之前）不让普通扩展调 openPopup()，窗口没有焦点、已经开着别的弹窗时也会失败
+        console.warn('打不开收藏弹窗：', error);
+        pendingLink = null;
+        reportError(tab?.id, '没能打开收藏窗口', '请点工具栏上的扩展图标收藏');
+    });
 });

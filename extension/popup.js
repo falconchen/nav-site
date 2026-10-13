@@ -22,7 +22,8 @@ const WARNING_TEXT = {
 const DONE_CLOSE_DELAY_MS = 1200;
 
 let client;
-let tab;
+// 要收藏的网址：一般是当前标签页，从右键菜单「收藏此链接」打开时是那个链接
+let targetUrl = '';
 let categories = [];
 let suggestion = null;
 let serverUrl = '';
@@ -86,7 +87,7 @@ function renderDuplicate(site) {
 // 重复收藏时把收藏时间刷新成现在，方便在「最近添加」里找到。失败不影响弹窗
 async function touchDuplicate() {
     try {
-        await client.touch(tab.url);
+        await client.touch(targetUrl);
         $('dupTouched').hidden = false;
     } catch {
         // 忽略
@@ -104,7 +105,7 @@ function renderForm({ website, analysis }) {
     $('private').checked = false;
     $('hideDescription').checked = false;
     syncPrivate();
-    setIcon($('iconPreview'), website.imageData, website.title, tab.url);
+    setIcon($('iconPreview'), website.imageData, website.title, targetUrl);
 
     // 分类不是 AI 有把握给出的，提醒用户确认
     const notice = $('categoryNotice');
@@ -133,7 +134,7 @@ function startIconUpload(src) {
         .then((url) => {
             if (suggestion?.website.imageData !== src) return;
             suggestion.website.imageData = url;
-            setIcon($('iconPreview'), url, $('title').value, tab.url);
+            setIcon($('iconPreview'), url, $('title').value, targetUrl);
         })
         .catch((error) => console.warn('图标转存图床失败，保存时由服务端再试：', error));
 }
@@ -150,7 +151,7 @@ async function save(event) {
             await Promise.race([iconUpload, new Promise((resolve) => setTimeout(resolve, ICON_UPLOAD_WAIT_MS))]);
         }
         const { website } = await client.save({
-            url: tab.url,
+            url: targetUrl,
             title: $('title').value.trim(),
             category: $('category').value,
             description: $('description').value.trim(),
@@ -196,11 +197,21 @@ async function remove() {
 
     button.disabled = true;
     try {
-        await client.remove(tab.url);
+        await client.remove(targetUrl);
         showMessage('已从导航站移除');
         setTimeout(() => window.close(), DONE_CLOSE_DELAY_MS);
     } catch (error) {
         showError(error);
+    }
+}
+
+// 从右键菜单「收藏此链接」打开时，后台记着要收藏的链接（见 background.js）；点工具栏图标打开时没有
+async function takeLinkTarget() {
+    try {
+        const reply = await ext.runtime.sendMessage({ type: 'take-link-target' });
+        return reply?.url || '';
+    } catch {
+        return '';
     }
 }
 
@@ -212,7 +223,7 @@ async function init() {
     // 没有图片时预览的首字跟着标题变
     $('title').addEventListener('input', () => {
         if (suggestion && !suggestion.website.imageData) {
-            setIcon($('iconPreview'), '', $('title').value, tab.url);
+            setIcon($('iconPreview'), '', $('title').value, targetUrl);
         }
     });
 
@@ -224,17 +235,26 @@ async function init() {
     client = createClient(settings);
     serverUrl = settings.serverUrl;
 
-    [tab] = await ext.tabs.query({ active: true, currentWindow: true });
-    if (!tab || !isSavableUrl(tab.url)) {
-        showMessage('只能收藏 http/https 网页。');
+    const [tab] = await ext.tabs.query({ active: true, currentWindow: true });
+    const linkUrl = await takeLinkTarget();
+    targetUrl = linkUrl || tab?.url || '';
+    if (!isSavableUrl(targetUrl)) {
+        showMessage(linkUrl ? '只能收藏 http/https 链接。' : '只能收藏 http/https 网页。');
         return;
+    }
+    if (linkUrl) {
+        $('linkTarget').textContent = linkUrl.replace(/^https?:\/\//i, '');
+        $('linkTarget').title = linkUrl;
+        $('linkTarget').hidden = false;
+        $('loadingText').textContent = '正在读取链接…';
     }
 
     try {
-        const hints = await getPageHints(tab);
+        // 链接指向的页面没打开，拿不到页面内容，全靠服务端抓取
+        const hints = linkUrl ? {} : await getPageHints(tab);
         const [categoryList, result] = await Promise.all([
             client.categories(),
-            client.analyze({ url: tab.url, hints })
+            client.analyze({ url: targetUrl, hints })
         ]);
         categories = categoryList.categories;
 

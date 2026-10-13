@@ -56,7 +56,7 @@ export function collectHints() {
 
     // 图标照服务端 extractIcon() 的规则从页面声明里挑：先 apple-touch-icon，再 rel="icon"，同类里取声明尺寸最大的。
     // 标签页的 favIconUrl 是浏览器给标签栏挑的小图（V2EX 是 32px 带边框那张），和网页端「自动填写」拿到的不是同一张。
-    // SVG 排在位图后面：右键一键收藏靠服务端转存，那边不收 SVG
+    // SVG 排在位图后面：弹窗没把图标传成时靠服务端转存，那边不收 SVG
     let best = null;
     for (const link of document.querySelectorAll('link[rel][href]')) {
         const rel = (link.getAttribute('rel') || '').toLowerCase().split(/\s+/);

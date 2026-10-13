@@ -164,6 +164,19 @@ textarea {
 
 /* ---------- 视图 ---------- */
 
+.link-target {
+    margin: 0;
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--line);
+    background: var(--paper-sunk);
+    color: var(--ink-2);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .view {
     padding: 16px;
 }

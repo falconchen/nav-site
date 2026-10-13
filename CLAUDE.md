@@ -115,7 +115,7 @@
     拖拽排序后整个分区重新编号。没有这个键的（没拖过的旧数据、扩展新加的）回退到 `editedTime` 和 `addedTime` 里较大的，
     再没有就排最后、按权重。编辑描述不改变位置
   - 描述照常渲染（跟着卡片一起模糊），卡片清晰时悬浮提示也照常显示描述，没有「点击显示描述」：那是「隐藏描述」的功能，两者互斥。点击不记访问次数
-  - `/api/v1` 的 `POST /websites` 接受 `private`，扩展弹窗有「私密收藏」勾选框；右键一键收藏不设私密
+  - `/api/v1` 的 `POST /websites` 接受 `private`，扩展弹窗有「私密收藏」勾选框
   - 第二种私密方式「隐藏描述」（`website.hideDescription`，卡片类 `.desc-hidden-card`）：网站照常出现在所有分区、照常可搜，
     只有描述渲染成占位符，点击才显示。和私密互斥，私密优先；右键「取消私密」时会把它设为 true，免得描述突然明文露出。
     被遮住的描述统一登记在 `secretDescriptions`（WeakMap），卡片一律经 `appendCards()` 渲染才会登记；
@@ -371,11 +371,14 @@ v2ex 这类站点会间歇性开 Cloudflare 质询，Worker 抓取拿到 403。�
   否则网页端会把残缺数据当成更新下载，覆盖本地
 - 网址查重忽略协议、`www.`、`#hash` 和末尾斜杠
 - 扩展弹窗拿到分析结果后立刻转存图标（`extension/lib/icon-upload.js`：经 `/api/proxy-image` 取回、压成 ≤256px WebP、传 `/api/upload-image`），预览换成图床地址；同一图标地址记在 `storage.session` 里不重复传，用户取消会在图床留一个几 KB 的文件。保存时最多等它 5 秒。
-  弹窗没传成、或者是右键一键收藏时，由服务端兜底：扩展只把图标地址作为 `hints.icon` 传上来，`POST /websites` 保存前由 `rehostIcon()` 转存图床（Worker 没有 canvas，按原格式传、不压成 WebP，SVG 不收），失败保留原地址并记 `icon_rehost_failed`，不影响保存；`/websites/analyze` 只是预览，不上传，免得用户取消后在图床留垃圾
+  弹窗没传成时由服务端兜底：扩展只把图标地址作为 `hints.icon` 传上来，`POST /websites` 保存前由 `rehostIcon()` 转存图床（Worker 没有 canvas，按原格式传、不压成 WebP，SVG 不收），失败保留原地址并记 `icon_rehost_failed`，不影响保存；`/websites/analyze` 只是预览，不上传，免得用户取消后在图床留垃圾
 - `hints.icon` 由 `extension/lib/page.js` 的 `collectHints()` 从页面声明里挑，规则照服务端 `extractIcon()`：先 `apple-touch-icon`，
   再 `rel="icon"`，同类取声明尺寸最大的，SVG 排在位图后面；页面没声明或不让注入脚本时才用标签页的 `favIconUrl`。
   不要改回直接用 `favIconUrl`：那是浏览器给标签栏挑的小图（V2EX 是 32px 带边框那张），和网页端「自动填写」拿到的不是同一张
-- 扩展遇到已收藏的网址（弹窗和右键一键收藏都算）会调 `POST /websites/touch` 把 `addedTime` 刷新成现在，
+- 扩展的右键菜单（「收藏到皮皮2047」「收藏此链接到皮皮2047」）只是打开收藏弹窗（`action.openPopup()`），和点工具栏图标走同一个流程。
+  以前是不经确认直接保存的「一键收藏」，名称、分类、描述全凭 AI、用户没机会改，已去掉，不要加回来。
+  「收藏此链接」的链接地址记在 `background.js` 的内存里，弹窗打开后发消息来取；Firefox 要求 `openPopup()` 在点击处理函数里同步调用，前面不能有 `await`
+- 扩展遇到已收藏的网址会调 `POST /websites/touch` 把 `addedTime` 刷新成现在，
   让它回到「最近添加」最前面；已经是最新添加的就不写，避免反复打开弹窗冲掉版本历史
 - 卡片渲染（`createCardHTML`）对标题、网址、描述、图标做了 HTML 转义，扩展写入的网页标题不可信
 
