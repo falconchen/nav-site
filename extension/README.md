@@ -65,7 +65,7 @@ npm run build:firefox   # 在 nav-site/ 下执行，生成 extension-firefox/（
 | `manifest.json` | Manifest V3 |
 | `lib/ext.js` | 扩展 API 入口，抹平 Chrome / Firefox 的命名空间差异 |
 | `lib/api.js` | API 客户端、设置读写、错误文案 |
-| `lib/page.js` | 从当前标签页取 hints（标题、meta 描述、正文前 3000 字） |
+| `lib/page.js` | 从当前标签页取 hints（标题、meta 描述、正文前 3000 字、页面声明的图标） |
 | `popup.*` | 工具栏弹窗 |
 | `options.*` | 设置页 |
 | `background.js` | 右键菜单一键收藏 |
