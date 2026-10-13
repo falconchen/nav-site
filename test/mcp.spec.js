@@ -226,6 +226,7 @@ describe('MCP', () => {
             expect(known.result.protocolVersion).toBe('2025-06-18');
             expect(known.result.capabilities).toEqual({ tools: {} });
             expect(known.result.serverInfo.name).toBe('pipi2047');
+            expect(known.result.serverInfo.version).toMatch(/^\d+\.\d+\.\d+$/);
             expect(known.result.instructions).toContain('Asia/Shanghai');
 
             const unknown = await (await rpc('initialize', { protocolVersion: '1999-01-01' })).json();
