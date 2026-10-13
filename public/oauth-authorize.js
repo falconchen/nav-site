@@ -175,9 +175,12 @@ function handleRequestError(data) {
         location.replace(data.redirectTo);
         return;
     }
-    const text = data.code === 'CLIENT_UNVERIFIED'
-        ? '没能核实这个应用的身份'
-        : data.code === 'OAUTH_UNAVAILABLE' ? '这个地址上没有启用授权' : '这个授权请求无效';
+    if (data.code === 'CLIENT_UNVERIFIED') {
+        // 多半是对方的服务器不让我们拉它的元数据文档（ChatGPT 就是），重试没用，要换注册方式
+        showMessage('error', '没能核实这个应用的身份', '如果应用的连接设置里能选客户端注册方式，请改成「动态客户端注册（DCR）」后重新连接。');
+        return;
+    }
+    const text = data.code === 'OAUTH_UNAVAILABLE' ? '这个地址上没有启用授权' : '这个授权请求无效';
     showMessage('error', text, '请回到应用里重新发起连接。');
 }
 

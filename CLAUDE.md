@@ -226,6 +226,12 @@
 **已授权的应用**：「个人令牌」弹窗下半部分（`api-tokens.js`），`GET /api/oauth/grants`、`DELETE /api/oauth/grants/:id`，只接受网页登录 JWT。
 同一个应用重新授权时库会替换掉旧的那条。
 
+**客户端怎么登记**：动态注册（DCR，`/oauth/register`）和元数据文档（CIMD，`client_id` 是一个网址，库去拉这个文档）都开着。
+Claude 走 CIMD 没问题，授权页显示核实过的域名。**ChatGPT 的 CIMD 用不了**：chatgpt.com 对 Workers 发出的请求返回 403，
+库抛 `CimdFetchError`，授权页显示「没能核实这个应用的身份」，要在 ChatGPT 的高级 OAuth 设置里把注册方法改成 DCR（`docs/MCP.md` 里有步骤）。
+排查这类问题用 `npx wrangler tail --env production`，库会打一行 `CIMD fetch failed for <网址>: <原因>`。
+不要为了让 ChatGPT 省这一步去伪装请求来源；真要一刀切就把 `clientIdMetadataDocumentEnabled` 关掉，代价是 Claude 也退回自称的应用名。
+
 **协议层**（`server/mcp/protocol.js`，手写，没用官方 SDK）：无状态，每个 POST 回一个 JSON，不开 SSE、不发会话 id，GET / DELETE 回 405。
 
 - 同一个端点兼容两代：`2026-07-28` 起没有握手，版本在 `params._meta` 和 `MCP-Protocol-Version` 头里，要核对 `Mcp-Method` / `Mcp-Name` 头和请求体一致
