@@ -2,15 +2,29 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { collectHints } from '../extension/lib/page.js';
 
 // collectHints() 是注入到网页里跑的，这里用最小的假 document 代替
-function fakeDocument(links, { description = '页面描述', text = '正文  内容' } = {}) {
+function el(tag, children = [], { hidden = false } = {}) {
+    const node = { nodeType: 1, tagName: tag.toUpperCase(), checkVisibility: () => !hidden, firstChild: null };
+    const nodes = children.map(child => (typeof child === 'string' ? { nodeType: 3, nodeValue: child } : child));
+    nodes.forEach((child, index) => { child.nextSibling = nodes[index + 1] || null; });
+    node.firstChild = nodes[0] || null;
+    return node;
+}
+
+function fakeDocument(links, { description = '页面描述', text = '正文  内容', body, keywords, siteName, heading } = {}) {
     const linkNodes = links.map(attrs => ({
         href: attrs.href,
         getAttribute: name => (name in attrs ? attrs[name] : null)
     }));
+    const meta = value => (value ? { getAttribute: () => value } : null);
     return {
         title: '页面标题',
-        body: { innerText: text },
-        querySelector: () => (description ? { getAttribute: () => description } : null),
+        body: body || el('body', [text]),
+        querySelector: selector => {
+            if (selector === 'h1') return heading ? { textContent: heading } : null;
+            if (selector.includes('name="keywords"')) return meta(keywords);
+            if (selector.includes('og:site_name')) return meta(siteName);
+            return meta(description);
+        },
         querySelectorAll: () => linkNodes
     };
 }
@@ -69,5 +83,55 @@ describe('扩展 collectHints 挑图标', () => {
     it('页面没声明图标或只有 data: 图标时不带 icon，留给标签页图标兜底', () => {
         expect('icon' in hintsFor([])).toBe(false);
         expect('icon' in hintsFor([{ rel: 'icon', href: 'data:image/png;base64,AAAA' }])).toBe(false);
+    });
+});
+
+describe('扩展 collectHints 取正文', () => {
+    afterEach(() => {
+        delete globalThis.document;
+    });
+
+    const ARTICLE = '这是一段足够长的正文。'.repeat(30);
+
+    it('跳过导航、页眉、页脚、侧栏，以及脚本和看不见的元素', () => {
+        const hints = hintsFor([], {
+            body: el('body', [
+                el('header', [el('a', ['首页']), el('a', ['注册'])]),
+                el('nav', ['菜单一 菜单二']),
+                el('script', ['var tracking = 1;']),
+                el('div', ['弹窗里的字'], { hidden: true }),
+                el('main', [el('h1', ['文章标题']), el('p', [ARTICLE])]),
+                el('aside', ['相关推荐']),
+                el('footer', ['版权所有'])
+            ])
+        });
+        expect(hints.content).toBe(`文章标题 ${ARTICLE}`);
+    });
+
+    it('去掉导航后剩得太少时退回整页文字', () => {
+        const hints = hintsFor([], {
+            body: el('body', [
+                el('header', [el('div', ['整页都包在 header 里的站点'])]),
+                el('script', ['var tracking = 1;']),
+                el('footer', ['版权所有'])
+            ])
+        });
+        expect(hints.content).toBe('整页都包在 header 里的站点 版权所有');
+    });
+
+    it('相邻元素的文字用空格隔开，最多 3000 字', () => {
+        const hints = hintsFor([], {
+            body: el('body', [el('div', [el('span', ['甲']), el('span', ['乙\n  丙'])]), el('p', ['丁'.repeat(4000)])])
+        });
+        expect(hints.content.startsWith('甲 乙 丙 丁丁')).toBe(true);
+        expect(hints.content).toHaveLength(3000);
+    });
+
+    it('补传关键词、站点名、主标题，没有的不带', () => {
+        expect(hintsFor([], { keywords: ' dns, whois ', siteName: 'V2EX', heading: '  做了一个\n网络工具 ' }))
+            .toMatchObject({ keywords: 'dns, whois', siteName: 'V2EX', heading: '做了一个 网络工具' });
+
+        const bare = hintsFor([]);
+        expect('keywords' in bare || 'siteName' in bare || 'heading' in bare).toBe(false);
     });
 });

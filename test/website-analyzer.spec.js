@@ -266,6 +266,84 @@ describe('analyzeWebsite 兜底链', () => {
     });
 });
 
+describe('扩展内容够用时不抓网页', () => {
+    let fetchSpy;
+    const CONTENT = '扩展看到的正文。'.repeat(40);
+
+    beforeEach(() => {
+        fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(htmlResponse(PAGE_HTML));
+    });
+
+    afterEach(() => {
+        fetchSpy.mockRestore();
+    });
+
+    it('标题、描述、图标都来自扩展，不发任何抓取请求', async () => {
+        const aiRun = stubAi();
+
+        const result = await analyze({ AI: { run: aiRun } }, {
+            hints: { title: '标签页标题', description: '扩展拿到的描述', content: CONTENT, icon: 'https://github.com/icon.png' }
+        });
+
+        expect(fetchSpy).not.toHaveBeenCalled();
+        expect(result).toMatchObject({ title: '标签页标题', description: 'AI 写的描述。', icon: 'https://github.com/icon.png' });
+        expect(result.analysis.sources).toMatchObject({ title: 'hint', description: 'ai', icon: 'hint' });
+        expect(result.analysis.warnings).toEqual([]);
+
+        const descCall = aiRun.mock.calls.find(([, options]) => !options.response_format);
+        expect(descCall[1].messages[1].content).toContain('扩展拿到的描述');
+        expect(descCall[1].messages[1].content).toContain('扩展看到的正文');
+    });
+
+    it('扩展补传的关键词、站点名、主标题进分类提示词', async () => {
+        const aiRun = stubAi();
+
+        await analyze({ AI: { run: aiRun } }, {
+            hints: { title: '标签页标题', content: CONTENT, keywords: 'dns, whois', siteName: 'V2EX', heading: '帖子主标题' }
+        });
+
+        const prompt = aiRun.mock.calls.find(([, options]) => options.response_format)[1].messages[1].content;
+        expect(prompt).toContain('站点名：V2EX');
+        expect(prompt).toContain('主标题：帖子主标题');
+        expect(prompt).toContain('关键词：dns, whois');
+    });
+
+    it('AI 没写出描述时用扩展拿到的 meta 描述', async () => {
+        const result = await analyze({ AI: { run: stubAi({ description: new Error('capacity') }) } }, {
+            hints: { title: '标签页标题', description: '扩展拿到的描述，源站把它切在了半截链接上：[https://', content: CONTENT, icon: 'https://github.com/icon.png' }
+        });
+
+        expect(fetchSpy).not.toHaveBeenCalled();
+        expect(result.description).toBe('扩展拿到的描述，源站把它切在了半截链接上');
+        expect(result.analysis.sources.description).toBe('hint');
+    });
+
+    it('扩展没带图标时只探测 /favicon.ico', async () => {
+        fetchSpy.mockResolvedValue(new Response(null, { headers: { 'Content-Type': 'image/x-icon' } }));
+
+        const result = await analyze({ AI: { run: stubAi() } }, { hints: { title: '标签页标题', content: CONTENT } });
+
+        expect(fetchSpy).toHaveBeenCalledTimes(1);
+        expect(fetchSpy.mock.calls[0][0]).toBe('https://github.com/favicon.ico');
+        expect(result.icon).toBe('https://github.com/favicon.ico');
+    });
+
+    it('正文不够 200 字时照旧抓网页', async () => {
+        const result = await analyze({ AI: { run: stubAi() } }, { hints: { title: '标签页标题', content: '太短的正文' } });
+
+        expect(fetchSpy).toHaveBeenCalled();
+        expect(result.analysis.sources.title).toBe('hint');
+        expect(result.icon).toBe('https://github.com/favicon.png');
+    });
+
+    it('正文够但没有标题时照旧抓网页拿标题', async () => {
+        const result = await analyze({ AI: { run: stubAi() } }, { hints: { content: CONTENT } });
+
+        expect(fetchSpy).toHaveBeenCalled();
+        expect(result.analysis.sources.title).toBe('page');
+    });
+});
+
 describe('AI 描述慢了补发一次', () => {
     let fetchSpy;
 
@@ -623,14 +701,16 @@ describe('Jina Reader 兜底', () => {
         expect(result.analysis.warnings).toContain('fetch_blocked');
     });
 
-    it('扩展已经传来足够的正文时不花 Jina 的额度', async () => {
+    it('扩展已经传来足够的正文时不抓网页，也不花 Jina 的额度', async () => {
         stubFetch(() => new Response('Forbidden', { status: 403 }));
 
-        await analyze({ AI: { run: stubAi() }, JINA_API_KEY: 'jina_test' }, {
-            hints: { title: '标签页标题', content: '扩展看到的正文。'.repeat(40) }
+        const result = await analyze({ AI: { run: stubAi() }, JINA_API_KEY: 'jina_test' }, {
+            hints: { title: '标签页标题', content: '扩展看到的正文。'.repeat(40), icon: 'https://github.com/icon.png' }
         });
 
         expect(readerCalls()).toHaveLength(0);
+        expect(fetchSpy).not.toHaveBeenCalled();
+        expect(result.analysis.warnings).toEqual([]);
     });
 
     it('Jina 那边也被目标站拦截时当作抓取失败', async () => {

@@ -313,7 +313,10 @@ AIGC、id 仍是 `social`），让模型输出 id 会被这种语义错位带偏
 - 两轮 AI 并行跑，各 10 秒超时。写描述过了 5 秒还没回来就补发一次（`withHedge()`），谁先回来用谁，总时限不变：
   Workers AI 偶尔一次要 9 秒多（中位约 2 秒），不补发就会撞上时限、退回网页自带的描述。补发之前就报错的不补发；
   抓网页 6 秒超时、只读前 1MB，反爬质询页（状态码 200 但标题是 “Just a moment…” 之类）当作被拦截
-- 扩展传来的 `hints`（当前页标题、描述、正文）在抓取失败或正文太薄时顶上
+- 扩展传来的 `hints` 带了标题且正文够 200 字（`hintsSuffice`）时**不抓网页**，直接拿它跑分类和描述：它看到的是已登录、已过反爬、
+  渲染完的页面，比服务端抓到的准，还省掉最长 6 秒的抓取，结果不再取决于对方拦不拦服务器。不够时照旧抓，抓取失败或正文太薄再用 hints 顶上。
+  扩展的 `collectHints()` 取正文照 `extractPageInfo()` 的规则（跳过 `nav` / `header` / `footer` / `aside` 和看不见的元素，
+  去掉后不足 200 字退回整页文字），并补传 `keywords`、`siteName`、`heading` 给分类用；两边规则改一边要同步另一边
 - 没有任何网页内容时不调 AI 写描述；AI 返回「无相关信息可供总结」这类拒答时丢弃（`DESCRIPTION_REFUSAL_PATTERN`），
   实测抓取被拦截时模型真会把拒答当描述返回
 - 响应里的 `analysis` 写明每个字段的来源和降级原因（`warnings`），字段含义见 `docs/REST_API.md`
@@ -325,7 +328,7 @@ v2ex 这类站点会间歇性开 Cloudflare 质询，Worker 抓取拿到 403。�
 
 1. 先自己抓（`fetchPage`），失败或拿到质询页时，配了 `JINA_API_KEY` 就改走 Jina Reader（`fetchPageViaReader`）。
    Jina 按输出 token 计费，所以只在失败时调用，且用 JSON 格式（Markdown 正文）：同一页要 HTML 格式贵十几倍。
-   Jina 那边也被拦（`httpStatus` ≥ 400 或质询页）时当作失败；`/api/v1` 带了足够的 `hints.content` 时不调 Jina。
+   Jina 那边也被拦（`httpStatus` ≥ 400 或质询页）时当作失败；`/api/v1` 带了足够的 `hints` 时根本不抓网页，也就不调 Jina。
    `JINA_API_KEY` 可以放多个 key（逗号、空格或换行分隔，`parseReaderKeys()`）：每次从随机一个开始，
    遇到 key 本身的问题（401 无效、402 额度用完、429 限流）换下一个，并在当前 isolate 里冷却（30 分钟 / 1 分钟）、排到最后；
    超时、网络错误、Jina 服务端错误换 key 没用，直接放弃。所有 key 共用 10 秒总时限，日志只写第几个 key

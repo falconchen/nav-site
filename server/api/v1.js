@@ -293,7 +293,15 @@ app.get('/v1/websites', async (c) => {
     return c.json({ success: true, websites: result });
 });
 
-const HINT_LIMITS = { title: MAX_TITLE_LENGTH, description: MAX_DESCRIPTION_LENGTH, content: 3000 };
+const HINT_LIMITS = {
+    title: MAX_TITLE_LENGTH,
+    description: MAX_DESCRIPTION_LENGTH,
+    content: 3000,
+    // 这三项只给 AI 分类做参考
+    keywords: 300,
+    siteName: 100,
+    heading: 120
+};
 
 function trimString(value, max) {
     return typeof value === 'string' ? value.trim().slice(0, max) : '';

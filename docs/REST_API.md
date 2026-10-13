@@ -75,7 +75,10 @@ Authorization: Bearer navpat_xxxxxxxx
     "title": "标签页标题",
     "description": "页面 meta 描述",
     "content": "页面正文摘要",
-    "icon": "https://example.com/favicon.png"
+    "icon": "https://example.com/favicon.png",
+    "keywords": "页面 meta 关键词",
+    "siteName": "og:site_name",
+    "heading": "页面第一个 h1"
   }
 }
 ```
@@ -91,7 +94,7 @@ Authorization: Bearer navpat_xxxxxxxx
 | `pinned` | 可选，是否加入特别关注（网页端旧称置顶、特别收藏） |
 | `private` | 可选，是否放进私密收藏。为 `true` 时忽略 `pinned`。只是界面上的隐藏标记，数据仍是明文 |
 | `hideDescription` | 可选，隐藏描述：网站照常显示、可搜索，只有描述默认遮住，适合在描述里记账号信息。`private` 为 `true` 时忽略。同样只是界面标记 |
-| `hints` | 可选，扩展从当前页拿到的信息。扩展看到的是已登录、已过反爬的页面，服务端抓不到时靠它兜底。超长会被截断（标题 200、描述 1000、正文 3000 字），不合法的字段直接忽略 |
+| `hints` | 可选，扩展从当前页拿到的信息。扩展看到的是已登录、已过反爬、渲染完的页面：带了标题且正文够 200 字时服务端不再自己抓网页，直接用它；不够时照旧抓取，抓不到再靠它兜底。`keywords`、`siteName`、`heading` 只给 AI 分类做参考。超长会被截断（标题 200、描述 1000、正文 3000、关键词 300、站点名 100、主标题 120 字），不合法的字段直接忽略 |
 
 - `201`：返回 `{ website, analysis, version }`
 - `409 DUPLICATE`：网址已存在，返回已有条目。查重在抓网页和调 AI 之前，不会白花一次调用
@@ -109,7 +112,7 @@ Authorization: Bearer navpat_xxxxxxxx
 | 描述 | 请求里的 `description` → AI 摘要 → 网页 meta 描述 → `hints.description` → 第一段正文 → 空 |
 | 图标 | 请求里的 `imageData` → `hints.icon` → 网页里的图标 → `/favicon.ico` → 不设（前端显示首字图标） |
 
-- 标题、分类、描述都给了就不抓网页；分类和描述都给了就不调 AI
+- 标题、分类、描述都给了就不抓网页；`hints` 带了标题且 `hints.content` 够 200 字时也不抓（这时网页相关的降级原因都不会出现，页面没声明图标时仍会探测 `/favicon.ico`）；分类和描述都给了就不调 AI
 - 抓网页超时 6 秒，两轮 AI 并行、各 10 秒超时，最坏约 16 秒。写描述过了 5 秒还没回来会补发一次请求，谁先回来用谁，总时限不变
 - AI 分类用的候选和样例由服务端从你的云端数据构造（每个分类按权重取前 12 个站点），调用方不用传
 - `POST /websites` 保存前会把图标（远程地址或 base64）转存到图床，存图床地址；已经在图床上的不重复传。按原格式上传（不压缩），SVG 不收；抓不到（5 秒超时、内网地址、超过 1MB）时保留原值并给出 `icon_rehost_failed`。`/websites/analyze` 只预览，返回的仍是原地址
@@ -133,9 +136,9 @@ Authorization: Bearer navpat_xxxxxxxx
 | `fetch_timeout` | 抓网页超时 |
 | `fetch_blocked` | 被拦截：401/403/429/503，或返回的是反爬质询页 |
 | `fetch_failed` | 网络错误或其它 HTTP 错误 |
-| `fetched_via_reader` | 自己抓取失败，改由 Jina Reader 抓到了内容（`sources` 里仍记为 `page`）。请求带了足够的 `hints.content` 时不走 Jina |
+| `fetched_via_reader` | 自己抓取失败，改由 Jina Reader 抓到了内容（`sources` 里仍记为 `page`）。请求带了足够的 `hints` 时根本不抓网页，也就不走 Jina |
 | `not_html` | 网址指向的是图片、PDF 等文件 |
-| `content_thin` | 网页正文太少（SPA 空壳、登录墙），改用了 `hints.content` |
+| `content_thin` | 网页正文太少（SPA 空壳、登录墙），改用了 `hints.content`（它本身也不足 200 字，否则不会去抓网页） |
 | `ai_unavailable` | 没有 AI 绑定 |
 | `ai_category_failed` | AI 分类报错或超时 |
 | `ai_category_low_confidence` | AI 没把握，没采用 |
@@ -225,6 +228,10 @@ function collectHints() {
   };
 }
 ```
+
+这是最简写法。带了标题和够 200 字的正文后服务端就不再自己抓网页，正文取得好不好直接决定分类和描述的质量：
+`innerText` 的前 3000 字常被导航菜单占掉，仓库里的扩展（`extension/lib/page.js`）会跳过 `nav` / `header` / `footer` / `aside`
+和看不见的元素，并补传 `keywords`、`siteName`、`heading`。
 
 一键保存，只传 url 和 hints：
 

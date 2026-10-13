@@ -323,13 +323,11 @@ export async function fetchPageViaReader(url, env = {}, { timeoutMs = READER_TIM
 /**
  * 抓网页并提取信息：先自己抓，失败或拿到质询页时再走 Jina Reader
  *
- * @param {Object} [options]
- * @param {boolean} [options.skipReader] 调用方另有正文来源（扩展的 hints）时不花 Jina 的额度
  * @returns {Promise<{page: Object|null, failure?: Object, viaReader?: boolean}>}
  *   page 为 extractPageInfo() 的结果加 finalUrl；都失败时 failure 是自己抓取的失败信息
  *   （{failure, status}，质询页记为 blocked）
  */
-export async function loadPage(url, env = {}, { fetchMs, readerMs, skipReader = false } = {}) {
+export async function loadPage(url, env = {}, { fetchMs, readerMs } = {}) {
     const fetched = await fetchPage(url, env, { timeoutMs: fetchMs });
     let failure;
     if (fetched.ok) {
@@ -343,7 +341,7 @@ export async function loadPage(url, env = {}, { fetchMs, readerMs, skipReader = 
     }
 
     // 不是网页的（图片、PDF）换谁抓都一样
-    if (!skipReader && failure.failure !== 'not_html') {
+    if (failure.failure !== 'not_html') {
         const page = await fetchPageViaReader(url, env, { timeoutMs: readerMs });
         if (page) return { page, viaReader: true };
     }
@@ -873,7 +871,7 @@ export function buildCategoriesWithSamples(categories, sitesByCategory) {
  * @param {Object} options
  * @param {string} options.url 已规范化的 http(s) 网址
  * @param {Object} [options.provided] 调用方已给的字段 { title, description, category, imageData }，给了就不再推断
- * @param {Object} [options.hints] 扩展从当前页拿到的 { title, description, content, icon }
+ * @param {Object} [options.hints] 扩展从当前页拿到的 { title, description, content, icon, keywords, siteName, heading }
  * @param {Array} options.categories 真实分类 [{id, name, order}]（不含虚拟分类）
  * @param {Object} options.sitesByCategory 云端 websites 对象
  * @param {Object} [options.timeouts] { fetchMs, readerMs, aiMs, hedgeMs }，测试用
@@ -891,15 +889,18 @@ export async function analyzeWebsite(env, {
     const needTitle = !provided.title;
     const needDescription = !provided.description;
     const needCategory = !provided.category;
-    const needIcon = !provided.imageData;
 
-    // 1. 抓网页。标题、描述、分类都给了就不抓，只缺图标不值得多等一次抓取
+    // 1. 抓网页。标题、描述、分类都给了就不抓，只缺图标不值得多等一次抓取。
+    //    扩展传来的标题和正文够用时也不抓：它看到的是已登录、已过反爬、渲染完的页面，比服务端抓到的准，
+    //    还省掉一次最长 6 秒的等待，结果也不再取决于对方拦不拦服务器
+    const hintsSuffice = (hints.content || '').length >= THIN_CONTENT_CHARS && !!(provided.title || hints.title);
     let page = null;
-    if (needTitle || needDescription || needCategory) {
+    if (hintsSuffice) {
+        console.log('扩展带了足够的页面内容，不抓网页:', url);
+    } else if (needTitle || needDescription || needCategory) {
         const loaded = await loadPage(url, env, {
             fetchMs: timeouts.fetchMs,
-            readerMs: timeouts.readerMs,
-            skipReader: (hints.content || '').length >= THIN_CONTENT_CHARS
+            readerMs: timeouts.readerMs
         });
         page = loaded.page;
         if (loaded.viaReader) warnings.push('fetched_via_reader');
@@ -918,9 +919,9 @@ export async function analyzeWebsite(env, {
         host: new URL(url).host,
         title: provided.title || hints.title || page?.title || page?.siteName || '',
         description: page?.description || hints.description || '',
-        keywords: page?.keywords || '',
-        siteName: page?.siteName || '',
-        heading: page?.heading || '',
+        keywords: page?.keywords || hints.keywords || '',
+        siteName: page?.siteName || hints.siteName || '',
+        heading: page?.heading || hints.heading || '',
         content
     };
 
@@ -1011,8 +1012,9 @@ export async function analyzeWebsite(env, {
     } else if (page?.icon) {
         icon = page.icon;
         sources.icon = 'page';
-    } else if (page && needIcon) {
-        icon = await probeFavicon(page.finalUrl);
+    } else if (page || hintsSuffice) {
+        // 没抓网页时（扩展内容够用）也试一下 /favicon.ico
+        icon = await probeFavicon(page?.finalUrl || url);
         sources.icon = icon ? 'page' : 'none';
     } else {
         icon = '';

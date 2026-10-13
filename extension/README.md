@@ -65,7 +65,7 @@ npm run build:firefox   # 在 nav-site/ 下执行，生成 extension-firefox/（
 | `manifest.json` | Manifest V3 |
 | `lib/ext.js` | 扩展 API 入口，抹平 Chrome / Firefox 的命名空间差异 |
 | `lib/api.js` | API 客户端、设置读写、错误文案 |
-| `lib/page.js` | 从当前标签页取 hints（标题、meta 描述、正文前 3000 字、页面声明的图标） |
+| `lib/page.js` | 从当前标签页取 hints（标题、meta 描述、去掉导航后的正文前 3000 字、页面声明的图标、关键词、站点名、主标题） |
 | `popup.*` | 工具栏弹窗 |
 | `options.*` | 设置页 |
 | `background.js` | 右键菜单一键收藏 |
@@ -83,8 +83,9 @@ npm run build:firefox   # 在 nav-site/ 下执行，生成 extension-firefox/（
 - **首页**：`chrome_settings_overrides.homepage` 只接受写死的 http/https 地址，不能指向扩展页面、不能按设置变，
   所以写死默认地址，和 `lib/api.js` 的 `DEFAULT_SERVER_URL` 保持一致。这个字段只在 Windows 和 macOS 上生效
 - **令牌**：存在 `chrome.storage.local`，不走 `storage.sync`，不会同步到其它设备
-- **页面内容**：浏览器看到的是已登录、已过反爬的页面，作为 `hints` 发给服务端。服务端自己抓不到网页时靠它兜底，
-  实测还能缩短识别耗时（npm 页面 7.1 秒 → 3.5 秒）
+- **页面内容**：浏览器看到的是已登录、已过反爬、渲染完的页面，作为 `hints` 发给服务端。正文够 200 字时服务端不再自己抓网页，
+  直接拿它跑 AI 分类和写描述，所以正文照服务端的规则取：跳过 `nav` / `header` / `footer` / `aside` 和看不见的元素，
+  去掉后不足 200 字就退回整页文字。正文不够时（页面还没渲染完、不让注入脚本）服务端照旧自己抓
 - **超时**：识别和保存 30 秒（服务端最坏约 16 秒），其它请求 15 秒
 - `chrome://`、应用商店等页面不允许注入脚本，只用标签页标题
 
