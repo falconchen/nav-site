@@ -249,7 +249,9 @@ describe('MCP', () => {
             expect(result.tools.map((item) => item.name)).toEqual([
                 'list_categories', 'search_bookmarks', 'add_bookmark',
                 'list_note_folders', 'list_notes', 'get_note', 'create_note', 'update_note', 'delete_note',
-                'create_note_folder', 'rename_note_folder', 'delete_note_folder'
+                'create_note_folder', 'rename_note_folder', 'delete_note_folder',
+                // 后加的工具排在最后，前面的顺序不变
+                'update_bookmarks'
             ]);
             for (const item of result.tools) {
                 expect(item.inputSchema.type).toBe('object');
@@ -306,7 +308,7 @@ describe('MCP', () => {
             expect(listed.status).toBe(200);
             const { result } = await listed.json();
             expect(result.resultType).toBe('complete');
-            expect(result.tools).toHaveLength(12);
+            expect(result.tools).toHaveLength(13);
             expect(result.ttlMs).toBeGreaterThan(0);
             expect(result.cacheScope).toBe('public');
 
@@ -525,6 +527,147 @@ describe('MCP', () => {
             const bucket = Math.floor(Date.now() / 60000);
             await env.USER_SESSIONS.put(`rl_mcp_bookmark_write_${USER_A}_${bucket}`, '30');
             const result = await tool('add_bookmark', FULL);
+            expect(result.isError).toBe(true);
+            expect(await readUserData(USER_A)).toEqual(SAMPLE_DATA);
+        });
+    });
+
+    describe('收藏：修改', () => {
+        const versions = () => JSON.parse(redisStore.get(`userdata_versions:${USER_A}`) || '[]');
+        const one = async (update) => (await tool('update_bookmarks', { updates: [update] })).results[0];
+
+        it('移到另一个分类，排在新分类最前，添加时间不变', async () => {
+            const result = await one({ url: 'https://chatgpt.com/', category: '实用工具' });
+            expect(result).toEqual({
+                url: 'https://chatgpt.com/',
+                status: 'updated',
+                changed: ['category'],
+                title: 'ChatGPT',
+                category: '实用工具',
+                pinned: true
+            });
+
+            const data = await readUserData(USER_A);
+            expect(data.websites.social.map((site) => site.title)).toEqual(['Midjourney', '秘密项目']);
+            const moved = data.websites.tools.find((site) => site.title === 'ChatGPT');
+            expect(moved.weight).toBe(110);
+            expect(moved.addedTime).toBe(at('2026-10-10T09:00:00+08:00'));
+            expect(moved.pinnedOrder).toBe(100);
+            expect(moved.editedTime).toBeGreaterThan(moved.addedTime);
+
+            expect((await tool('search_bookmarks', { category: 'AIGC' })).items.map((item) => item.title)).toEqual(['Midjourney']);
+        });
+
+        it('改标题和描述，没提到的字段保持原样', async () => {
+            const result = await one({ url: 'https://regex101.com', title: '  正则测试  ', description: '' });
+            expect(result.changed).toEqual(['title', 'description']);
+            expect(result.title).toBe('正则测试');
+
+            const site = (await readUserData(USER_A)).websites.tools.find((item) => item.url === 'https://regex101.com/');
+            expect(site.title).toBe('正则测试');
+            expect(site.description).toBe('');
+            expect(site.weight).toBe(100);
+            expect(site.pinned).toBeUndefined();
+        });
+
+        it('设为特别关注排到关注列表最前，取消后不在列表里', async () => {
+            expect((await one({ url: 'https://regex101.com/', pinned: true })).changed).toEqual(['pinned']);
+            expect((await tool('search_bookmarks', { pinned: true })).items.map((item) => item.title))
+                .toEqual(['Regex101', 'Midjourney', 'ChatGPT']);
+
+            await one({ url: 'https://www.midjourney.com/', pinned: false });
+            expect((await tool('search_bookmarks', { pinned: true })).items.map((item) => item.title))
+                .toEqual(['Regex101', 'ChatGPT']);
+            const data = await readUserData(USER_A);
+            expect(data.websites.social.find((site) => site.title === 'Midjourney')).not.toHaveProperty('pinnedOrder');
+        });
+
+        it('一批改多个只保存一次、只占一个历史版本', async () => {
+            const result = await tool('update_bookmarks', {
+                updates: [
+                    { url: 'https://chatgpt.com/', category: '实用工具' },
+                    { url: 'https://www.midjourney.com/', category: '实用工具', title: 'MJ' },
+                    { url: 'https://regex101.com/', pinned: true }
+                ]
+            });
+            expect(result.updated).toBe(3);
+            expect(result.failed).toBe(0);
+
+            expect(versions()).toHaveLength(1);
+            expect(JSON.stringify(versions())).toContain('MCP（令牌「Claude Code」）修改 3 个网址');
+
+            const data = await readUserData(USER_A);
+            expect(data.websites.tools.map((site) => site.title).sort()).toEqual(['ChatGPT', 'MJ', 'Regex101', '路由器后台'].sort());
+        });
+
+        it('每一项各自成败：能改的照改，改不了的说明原因', async () => {
+            const result = await tool('update_bookmarks', {
+                updates: [
+                    { url: 'https://regex101.com/', title: '正则' },
+                    { url: 'https://chatgpt.com/', category: '不存在的分类' },
+                    { url: 'https://nowhere.example/', title: 'x' },
+                    { url: 'not a url', title: 'x' },
+                    { url: 'https://www.midjourney.com/', title: '   ' }
+                ]
+            });
+            expect(result.updated).toBe(1);
+            expect(result.failed).toBe(4);
+            expect(result.results.map((item) => item.status)).toEqual(['updated', 'failed', 'failed', 'failed', 'failed']);
+            expect(result.results[1].reason).toContain('分类不存在');
+            expect(result.categories).toBe('AIGC、实用工具');
+
+            const data = await readUserData(USER_A);
+            expect(data.websites.tools.find((site) => site.url === 'https://regex101.com/').title).toBe('正则');
+            expect(data.websites.social.find((site) => site.title === 'ChatGPT')).toBeTruthy();
+            expect(JSON.stringify(versions())).toContain('修改：正则');
+        });
+
+        it('没有实际变化时不写入', async () => {
+            const result = await tool('update_bookmarks', {
+                updates: [
+                    { url: 'https://chatgpt.com/', category: 'AIGC', title: 'ChatGPT', pinned: true },
+                    { url: 'https://regex101.com/' }
+                ]
+            });
+            expect(result).toMatchObject({ updated: 0, unchanged: 2, failed: 0 });
+            expect(versions()).toEqual([]);
+            expect(await readUserData(USER_A)).toEqual(SAMPLE_DATA);
+        });
+
+        it('私密收藏当作不存在，改不了', async () => {
+            const result = await one({ url: 'https://secret.example/', title: '被 AI 改了', category: '实用工具' });
+            expect(result.status).toBe('failed');
+            expect(JSON.stringify(result)).not.toContain('秘密项目');
+            expect(await readUserData(USER_A)).toEqual(SAMPLE_DATA);
+        });
+
+        it('被隐藏的描述不能覆盖，其它字段照常能改', async () => {
+            const blocked = await one({ url: 'https://router.example/', description: '新描述' });
+            expect(blocked.status).toBe('failed');
+            expect(blocked.reason).toContain('隐藏');
+
+            const moved = await one({ url: 'https://router.example/', category: 'AIGC', title: '路由器' });
+            expect(moved.changed).toEqual(['title', 'category']);
+            const site = (await readUserData(USER_A)).websites.social.find((item) => item.title === '路由器');
+            expect(site.description).toBe('账号 admin 口令 hunter2');
+            expect(site.hideDescription).toBe(true);
+            expect(JSON.stringify(moved)).not.toContain('hunter2');
+        });
+
+        it('列表为空或超过上限时报错，按用户限流', async () => {
+            expect((await tool('update_bookmarks', { updates: [] })).isError).toBe(true);
+            expect((await tool('update_bookmarks', {})).isError).toBe(true);
+            const tooMany = Array.from({ length: 51 }, () => ({ url: 'https://chatgpt.com/', title: 'x' }));
+            expect((await tool('update_bookmarks', { updates: tooMany })).isError).toBe(true);
+
+            const bucket = Math.floor(Date.now() / 60000);
+            await env.USER_SESSIONS.put(`rl_mcp_bookmark_write_${USER_A}_${bucket}`, '30');
+            expect((await tool('update_bookmarks', { updates: [{ url: 'https://chatgpt.com/', title: 'x' }] })).isError).toBe(true);
+            expect(await readUserData(USER_A)).toEqual(SAMPLE_DATA);
+        });
+
+        it('改不了别人的收藏', async () => {
+            const result = await tool('update_bookmarks', { updates: [{ url: 'https://chatgpt.com/', title: 'x' }] }, patB);
             expect(result.isError).toBe(true);
             expect(await readUserData(USER_A)).toEqual(SAMPLE_DATA);
         });

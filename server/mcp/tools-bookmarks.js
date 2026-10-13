@@ -1,11 +1,12 @@
 /**
- * MCP 的收藏工具：查分类、搜索、添加
+ * MCP 的收藏工具：查分类、搜索、添加、修改
  *
- * 只读 + 添加，不提供删除和修改。私密收藏、被隐藏的描述不交给 AI，规则在 bookmark-query.js。
+ * 不提供删除。私密收藏、被隐藏的描述不交给 AI，规则在 bookmark-query.js；修改时私密收藏当作不存在，
+ * 被隐藏的描述不让覆盖。
  */
 
 import { loadDataFromRedis } from '../api/user-data.js';
-import { createWebsite } from '../api/v1.js';
+import { MAX_UPDATES_PER_CALL, createWebsite, updateWebsites } from '../api/v1.js';
 import { isRateLimited } from '../lib/rate-limit.js';
 import {
     SEARCH_DEFAULT_LIMIT,
@@ -192,4 +193,93 @@ const add = {
     }
 };
 
+const UPDATE_FAILURES = {
+    INVALID_ITEM: '这一项的格式不对',
+    INVALID_URL: '网址不合法',
+    NOT_FOUND: '收藏里没有这个网址（网址要和 search_bookmarks 返回的一致）',
+    INVALID_TITLE: '标题不能为空',
+    INVALID_DESCRIPTION: '描述必须是文本',
+    INVALID_PINNED: 'pinned 只能是 true 或 false',
+    DESCRIPTION_HIDDEN: '这个网址的描述被用户隐藏了，不能在这里修改；其它字段可以改',
+    CATEGORY_NOT_FOUND: '分类不存在'
+};
+
+const update = {
+    name: 'update_bookmarks',
+    title: '修改收藏',
+    description: [
+        '修改已收藏网址的分类、标题、描述或「特别关注」状态，用来整理收藏：比如把网址移到另一个分类、改个更清楚的标题。',
+        `一次可以改多个（最多 ${MAX_UPDATES_PER_CALL} 个），每一项用 url 指明是哪个网址，只填要改的字段，没填的保持不变。`,
+        '要改多个网址时放进同一次调用，不要一个一个调、更不要并行调用：每次调用都会整份保存一次并占掉一个历史版本（只保留最近 5 个）。',
+        '分类必须是已有的（见 list_categories），这里不能新建分类。每一项各自成败，结果里逐项说明。不能删除收藏，也不能改网址本身。'
+    ].join(''),
+    inputSchema: {
+        type: 'object',
+        properties: {
+            updates: {
+                type: 'array',
+                minItems: 1,
+                maxItems: MAX_UPDATES_PER_CALL,
+                description: '要修改的网址列表。',
+                items: {
+                    type: 'object',
+                    properties: {
+                        url: { type: 'string', description: '要修改的收藏的网址，用 search_bookmarks 返回的 url。' },
+                        category: { type: 'string', description: '移到这个分类，填分类名或 id。' },
+                        title: { type: 'string', description: '新标题。' },
+                        description: { type: 'string', description: '新描述，填空字符串表示清空。' },
+                        pinned: { type: 'boolean', description: 'true 设为「特别关注」，false 取消。' }
+                    },
+                    required: ['url'],
+                    additionalProperties: false
+                }
+            }
+        },
+        required: ['updates'],
+        additionalProperties: false
+    },
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
+    async handler(args, { c, userId, auth }) {
+        if (!Array.isArray(args.updates) || args.updates.length === 0) {
+            throw new ToolError('updates 要填一个列表，每一项至少有 url 和一个要改的字段。');
+        }
+        if (args.updates.length > MAX_UPDATES_PER_CALL) {
+            throw new ToolError(`一次最多改 ${MAX_UPDATES_PER_CALL} 个网址，请分几次调用。`);
+        }
+        if (await isRateLimited(c, { scope: 'mcp_bookmark_write', limit: WRITE_RATE_LIMIT, key: userId })) {
+            throw new ToolError('修改得太频繁了，请过一分钟再试。');
+        }
+
+        const { status, body } = await updateWebsites(c, auth, args.updates, { forAi: true });
+        if (body.code === 'NO_CLOUD_DATA') {
+            throw new ToolError('云端还没有收藏数据，请先在网页端登录并同步一次。');
+        }
+        if (status !== 200) {
+            throw new ToolError(status === 400 ? `参数不对：${body.error}` : '保存失败，这次的修改都没有生效，请稍后再试。');
+        }
+
+        const results = body.results.map((item) => {
+            if (!item.ok) return { url: item.url, status: 'failed', reason: UPDATE_FAILURES[item.code] || item.error };
+            if (item.changed.length === 0) return { url: item.url, status: 'unchanged' };
+            return {
+                url: item.url,
+                status: 'updated',
+                changed: item.changed,
+                title: item.website.title,
+                category: item.categoryName,
+                pinned: item.website.pinned
+            };
+        });
+        const count = (value) => results.filter((item) => item.status === value).length;
+        const summary = { updated: count('updated'), unchanged: count('unchanged'), failed: count('failed'), results };
+        // 有分类填错的，顺手把可选的分类告诉模型，省一次 list_categories
+        if (body.results.some((item) => item.code === 'CATEGORY_NOT_FOUND')) {
+            summary.categories = categoryNames(await loadBookmarks({ c, userId }));
+        }
+        return summary;
+    }
+};
+
 export const bookmarkTools = [listCategories, search, add];
+// 后加的工具单独导出，排在全部工具的最后：工具列表的前缀不变，客户端和提示词的缓存还能用
+export const bookmarkEditTools = [update];

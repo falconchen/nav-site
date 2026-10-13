@@ -189,7 +189,7 @@
 
 ### MCP
 
-`/mcp` 是给 AI 工具（Claude、ChatGPT、Cursor 等）用的 MCP 服务：查收藏、添加收藏、读写记事本。
+`/mcp` 是给 AI 工具（Claude、ChatGPT、Cursor 等）用的 MCP 服务：查收藏、添加和修改收藏、读写记事本。
 接入步骤、工具列表、给用户看的说明在 `docs/MCP.md`，改工具或权限时要同步改它。
 
 **请求怎么走**：`server/index.js` 导出的不再是 Hono 应用本身，而是包了一层 `@cloudflare/workers-oauth-provider` 的 `OAuthProvider`：
@@ -237,12 +237,17 @@ Claude 走 CIMD 没问题，授权页显示核实过的域名。**ChatGPT 的 CI
 - 同一个端点兼容两代：`2026-07-28` 起没有握手，版本在 `params._meta` 和 `MCP-Protocol-Version` 头里，要核对 `Mcp-Method` / `Mcp-Name` 头和请求体一致
   （不一致 400 + `-32020`，版本不支持 400 + `-32022`，方法不存在 404），结果带 `resultType: "complete"`；更早的版本走 `initialize` 握手
 - 工具执行失败返回 `isError: true` 的正常结果，不是 JSON-RPC 错误；能讲给模型听的原因抛 `ToolError`，其它异常只回「服务器内部错误」
-- 工具列表顺序固定（客户端和模型的提示词缓存都依赖它），加工具往后加
+- 工具列表顺序固定（客户端和模型的提示词缓存都依赖它），加工具往整个列表的最后加，不是往同类工具后面插
+  （所以 `update_bookmarks` 排在记事本工具后面，见 `bookmarkEditTools`）
 
 **工具**（`tools-bookmarks.js`、`tools-notes.js`）：
 
-- 收藏只有查询和添加，**故意不提供删除和修改**。`add_bookmark` 调 `v1.js` 导出的 `createWebsite(c, auth, body)`，
+- 收藏可以查询、添加、修改，**故意不提供删除**。`add_bookmark` 调 `v1.js` 导出的 `createWebsite(c, auth, body)`，
   和 `POST /api/v1/websites` 是同一个函数（查重、AI 补全、图标转存、排序键、版本快照），不要在 MCP 里另写一份
+- `update_bookmarks` 调 `v1.js` 的 `updateWebsites(c, auth, updates, { forAi: true })`，改分类、标题、描述、特别关注（`/api/v1` 没有对应的路由）。
+  **必须是批量接口**：一次调用只读写一次、只生成一个版本快照，逐条保存的话整理十几个网址就把只留 5 份的历史冲没了；不要拆成单条的工具。
+  每一项各自成败，全都没变化时不写入。排序规则照网页端：换分类取新分类最大权重 +10，新设关注取全局最大权重 +10 并给新的 `pinnedOrder`，
+  取消关注删掉 `pinnedOrder`，`addedTime` 不动。`forAi` 时私密收藏当作不存在、被隐藏的描述不让覆盖（模型看不到原文，覆盖等于盲删）
 - **私密规则在 `bookmark-query.js`，比 `/api/v1` 严**：私密收藏整个不返回、不计数；隐藏描述的网站不返回描述，描述也不参与搜索（否则能靠换关键词试出内容）。
   `add_bookmark` 遇到已收藏的网址，回给模型的条目也要过同样的规则（`existingView()`）。给 MCP 加新的读取途径时都要经过这里
 - 日期参数只写日期或不带时区时按 Asia/Shanghai 算（`parseTimeParam()`），返回的收藏时间带 `+08:00`
@@ -250,7 +255,7 @@ Claude 走 CIMD 没问题，授权页显示核实过的域名。**ChatGPT 的 CI
 - 记事本工具直接调 `notes-store.js`，不经过 `/api/notes`。**所有个人令牌都能经 MCP 读写记事本**（包括扩展用的那个），这是用户明确选的；`/api/notes` 仍然只认网页登录
 - `update_note` 改写整篇必须带 `base_updated_at`（逼模型先读再改，复用 `NOTE_CONFLICT`），追加用 `mode: "append"`：
   记事本没有回收站和版本历史，模型重写长文容易悄悄丢内容。不提供发布 / 取消公开链接，也不返回 `publicId`
-- 限流都按用户（MCP 请求来自 AI 服务商的机房，按 IP 没意义）：总调用 `mcp_call` 120 次/分钟、添加收藏 `mcp_bookmark_write` 30 次/分钟，
+- 限流都按用户（MCP 请求来自 AI 服务商的机房，按 IP 没意义）：总调用 `mcp_call` 120 次/分钟、添加和修改收藏 `mcp_bookmark_write` 30 次/分钟（按调用算，不按条数），
   记事本写操作和网页端共用 `notes_write`
 
 ### 从链接添加网站（`?add=`）

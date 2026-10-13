@@ -514,6 +514,136 @@ app.post('/v1/websites', limitWrites, async (c) => {
     return c.json(body, status);
 });
 
+export const MAX_UPDATES_PER_CALL = 50;
+
+/**
+ * 批量修改已有网站的分类、标题、描述、特别关注。MCP 的 update_bookmarks 用，/api/v1 目前没有对应的路由。
+ *
+ * 一次调用只读写一次云端数据、只生成一个版本快照：历史只留 5 份，逐条保存的话整理十几个网址就把历史冲没了。
+ * 每一项各自成败，能改的照改，改不了的在结果里说明原因；全都没有实际变化时不写入。
+ * 排序规则和网页端一致：换分类的排到新分类最前，新设为特别关注的排到关注列表最前，添加时间不变。
+ *
+ * @param {Object} c Hono context
+ * @param {Object} auth { userId, via, ... }
+ * @param {Array} updates [{ url, category?, title?, description?, pinned? }]
+ * @param {Object} [options]
+ * @param {boolean} [options.forAi] 调用方是 AI：私密收藏当作不存在，被隐藏的描述不让覆盖（它看不到原文）
+ * @returns {Promise<{status: number, body: Object}>} 成功时 body.results 和 updates 一一对应：
+ *   { url, ok: true, changed: [...], website, categoryName } 或 { url, ok: false, code, error }
+ */
+export async function updateWebsites(c, auth, updates, { forAi = false } = {}) {
+    if (!Array.isArray(updates) || updates.length === 0 || updates.length > MAX_UPDATES_PER_CALL) {
+        return { status: 400, body: { error: `Field "updates" must be an array of 1 to ${MAX_UPDATES_PER_CALL} items` } };
+    }
+
+    const data = await loadUserData(c, auth.userId);
+    if (!data) return { status: 409, body: NO_CLOUD_DATA };
+
+    // 在副本上改，最后一次写回
+    const websites = Object.fromEntries(
+        Object.entries(data.websites || {}).map(([id, sites]) => [id, [...(sites || [])]])
+    );
+    const nameOf = (id) => realCategories(data).find((cat) => cat.id === id)?.name || id;
+    const now = Date.now();
+    // 实际改动过的网址 → 标题。同一个网址在一批里出现两次只算一个
+    const touched = new Map();
+
+    const applyOne = (update) => {
+        const failed = (code, error) => ({ url: typeof update?.url === 'string' ? update.url : '', ok: false, code, error });
+        if (!update || typeof update !== 'object') return failed('INVALID_ITEM', 'Each update must be an object');
+
+        const key = urlKey(update.url);
+        if (!key) return failed('INVALID_URL', 'Field "url" must be an http(s) URL');
+
+        let categoryId = null;
+        let index = -1;
+        for (const [id, sites] of Object.entries(websites)) {
+            index = sites.findIndex((item) => urlKey(item?.url) === key);
+            if (index >= 0) { categoryId = id; break; }
+        }
+        const site = index >= 0 ? websites[categoryId][index] : null;
+        if (!site || (forAi && site.private)) return failed('NOT_FOUND', 'Website not found');
+
+        const next = { ...site };
+        const changed = [];
+
+        if (update.title !== undefined) {
+            const title = trimString(update.title, MAX_TITLE_LENGTH);
+            if (!title) return failed('INVALID_TITLE', 'Field "title" must be a non-empty string');
+            if (title !== site.title) { next.title = title; changed.push('title'); }
+        }
+
+        if (update.description !== undefined) {
+            if (typeof update.description !== 'string') return failed('INVALID_DESCRIPTION', 'Field "description" must be a string');
+            if (forAi && site.hideDescription) {
+                return failed('DESCRIPTION_HIDDEN', 'The description of this website is hidden and cannot be changed here');
+            }
+            const description = trimString(update.description, MAX_DESCRIPTION_LENGTH);
+            if (description !== (site.description || '')) { next.description = description; changed.push('description'); }
+        }
+
+        if (update.pinned !== undefined) {
+            if (typeof update.pinned !== 'boolean') return failed('INVALID_PINNED', 'Field "pinned" must be a boolean');
+            if (update.pinned !== !!site.pinned) {
+                next.pinned = update.pinned;
+                if (update.pinned) {
+                    // 同 createWebsite：全局最大权重 +10，关注顺序排最前
+                    next.weight = Math.max(100, ...Object.values(websites).map(maxWeight)) + 10;
+                    const pinnedKeys = Object.values(websites).flat()
+                        .filter((item) => item?.pinned)
+                        .map((item) => item.pinnedOrder ?? item.weight ?? 100);
+                    next.pinnedOrder = Math.max(90, ...pinnedKeys) + 10;
+                } else {
+                    delete next.pinnedOrder;
+                }
+                changed.push('pinned');
+            }
+        }
+
+        let targetId = categoryId;
+        if (update.category !== undefined && update.category !== null && update.category !== '') {
+            const category = findCategory(data, update.category);
+            if (!category) return failed('CATEGORY_NOT_FOUND', 'Field "category" must be an existing category id or name');
+            if (category.id !== categoryId) {
+                targetId = category.id;
+                // 刚设为关注的已经拿到全局最大权重，本来就在最前
+                if (!changed.includes('pinned') || !next.pinned) {
+                    const target = websites[targetId] || [];
+                    next.weight = maxWeight(target) + (target.length ? 10 : 0);
+                }
+                changed.push('category');
+            }
+        }
+
+        if (changed.length > 0) {
+            next.editedTime = now;
+            if (targetId === categoryId) {
+                websites[categoryId][index] = next;
+            } else {
+                websites[categoryId].splice(index, 1);
+                websites[targetId] = [...(websites[targetId] || []), next];
+            }
+            touched.set(key, next.title);
+        }
+        return { url: next.url, ok: true, changed, website: siteView(next, targetId), categoryName: nameOf(targetId) };
+    };
+
+    const results = updates.map(applyOne);
+    if (touched.size === 0) {
+        return { status: 200, body: { success: true, updated: 0, results } };
+    }
+
+    const via = viaLabel(auth);
+    const description = touched.size === 1
+        ? `通过${via}修改：${[...touched.values()][0]}`
+        : `通过${via}修改 ${touched.size} 个网址`;
+    const saved = await persist(c, auth.userId, { ...data, websites }, description);
+    if (!saved) {
+        return { status: 500, body: { error: 'Failed to save data' } };
+    }
+    return { status: 200, body: { success: true, updated: touched.size, results, version: saved.version } };
+}
+
 // 只分析、不保存：扩展弹窗打开时先预填，用户确认后再 POST /websites
 app.post('/v1/websites/analyze', async (c) => {
     const prepared = await prepareWebsite(c, c.get('auth'), await readJsonBody(c));
