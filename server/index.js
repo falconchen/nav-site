@@ -24,6 +24,7 @@ import shareApi from './api/share.js';
 import oauthApi, { AUTHORIZE_PATH, MCP_SCOPE } from './api/oauth.js';
 import mcpApp, { MCP_PATH } from './mcp/index.js';
 import { isPersonalToken, verifyPersonalToken } from './lib/personal-tokens.js';
+import { withSecurityHeaders } from './lib/security-headers.js';
 
 // 创建 Hono 应用
 const app = new Hono();
@@ -199,10 +200,13 @@ function getOAuthProvider(origin) {
 
 // 导出默认处理函数
 export default {
-	fetch(request, env, ctx) {
+	// 安全响应头加在最外层：/mcp、/oauth/token 这些由库直接应答的响应不经过 Hono 应用
+	async fetch(request, env, ctx) {
 		const provider = getOAuthProvider(new URL(request.url).origin);
-		if (!provider) return app.fetch(request, env, ctx);
 		// 库会把自己的辅助对象挂到 env.OAUTH_PROVIDER 上且只挂一次；传一份浅拷贝，免得不同 origin 的请求互相串
-		return provider.fetch(request, { ...env }, ctx);
+		const response = provider
+			? await provider.fetch(request, { ...env }, ctx)
+			: await app.fetch(request, env, ctx);
+		return withSecurityHeaders(response);
 	},
 };

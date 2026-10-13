@@ -51,6 +51,9 @@
 - `server/api/visits.js` - 访问统计同步接口（只接受网页登录 JWT）
 - `server/lib/visits-store.js` - 访问统计的云端存储与合并规则（Redis）
 - `server/lib/redis.js` - Upstash Redis 的 get / set / del 薄封装，失败抛 `RedisError`
+- `server/lib/security-headers.js` - 全站安全响应头（`X-Content-Type-Options`、`Referrer-Policy`、`Permissions-Policy`），在 `server/index.js` 最外层的 `fetch` 里套上，
+  路由自己设过的不覆盖。**不要全站加 `X-Frame-Options` / `frame-ancestors`**：扩展的新标签页用 iframe 嵌入导航站；
+  `Permissions-Policy` 里不要限制 `clipboard-write`。完整的 CSP 要先去掉首页的内联事件和内联脚本才有意义
 - `server/mcp/index.js` - MCP 端点 `/mcp`，让 AI 工具读写收藏和记事本（接入说明见 `docs/MCP.md`）
 - `server/mcp/protocol.js` - MCP 协议层：无状态 JSON-RPC，兼容握手式和无握手两代协议
 - `server/mcp/tools-bookmarks.js` / `tools-notes.js` - MCP 的工具定义
