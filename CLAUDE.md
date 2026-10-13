@@ -597,6 +597,8 @@ npm run deploy      # 部署到 Cloudflare Workers 生产环境
 - `og-cover.png`（1200×630）供微信、Telegram、X 等的分享卡片，`index.html` 里的 og / twitter 标签指向线上域名
 - `seal.svg` 是印章 favicon，「皮」字轮廓取自 Noto Serif SC（OFL 协议，可嵌入）；不要换成系统宋体的轮廓，那个不能再分发
 - `apple-touch-icon.png`、`icon-192/512.png` 是满版印章（系统自己裁圆角），`favicon-32.png` 是带圆角的小图标
+- `mcp-icon.png`（512×512）是在 ChatGPT 里添加自定义 MCP 时上传的图标，那边只收 PNG 且不超过 10 KB：
+  它是 `icon-512.png` 用 `optipng -o7 -strip all` 无损转成调色板的版本，像素相同；`icon-512.png` 重新生成后要跟着重做
 - 这些图用无头 Chrome 渲染 HTML 模板生成；改品牌色或文案时要重新生成
 
 **浏览器扩展**用同一套视觉：`extension/popup.css`（弹窗和设置页共用）、`options.css`、`newtab.css`、
