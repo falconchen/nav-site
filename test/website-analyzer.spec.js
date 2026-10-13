@@ -7,7 +7,8 @@ import {
     resetReaderKeyCooldowns,
     splitSentences,
     trimDanglingTail,
-    truncateDescription
+    truncateDescription,
+    withHedge
 } from '../server/lib/website-analyzer.js';
 
 const PAGE_HTML = `
@@ -262,6 +263,96 @@ describe('analyzeWebsite 兜底链', () => {
         pending.forEach(release => release());
 
         await expect(promise).resolves.toMatchObject({ category: 'dev', description: '描述。' });
+    });
+});
+
+describe('AI 描述慢了补发一次', () => {
+    let fetchSpy;
+
+    beforeEach(() => {
+        fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(htmlResponse(PAGE_HTML));
+    });
+
+    afterEach(() => {
+        fetchSpy.mockRestore();
+    });
+
+    // 分类立刻返回；描述的每次调用交给 describeCall(第几次)
+    function aiWithDescription(describeCall) {
+        let descriptionCalls = 0;
+        const run = vi.fn((_model, options) => {
+            if (options.response_format) {
+                return Promise.resolve({ response: JSON.stringify({ category_index: 2, confidence: 'high' }) });
+            }
+            return describeCall(++descriptionCalls);
+        });
+        return { run, descriptionCalls: () => descriptionCalls };
+    }
+
+    it('第一次迟迟不回时补发，用补发的结果', async () => {
+        const ai = aiWithDescription(call => call === 1
+            ? new Promise(() => {})
+            : Promise.resolve({ response: '补发写的描述。' }));
+
+        const result = await analyze({ AI: ai }, { timeouts: { fetchMs: 50, aiMs: 1000, hedgeMs: 20 } });
+
+        expect(result.description).toBe('补发写的描述。');
+        expect(result.analysis.sources.description).toBe('ai');
+        expect(result.analysis.warnings).toEqual([]);
+        expect(ai.descriptionCalls()).toBe(2);
+    });
+
+    it('补发之后第一次先回来就用第一次的', async () => {
+        const ai = aiWithDescription(call => new Promise(resolve => {
+            setTimeout(() => resolve({ response: call === 1 ? '第一次的描述。' : '补发的描述。' }), call === 1 ? 40 : 200);
+        }));
+
+        const result = await analyze({ AI: ai }, { timeouts: { fetchMs: 50, aiMs: 1000, hedgeMs: 20 } });
+
+        expect(result.description).toBe('第一次的描述。');
+        expect(ai.descriptionCalls()).toBe(2);
+    });
+
+    it('按时回来的不补发', async () => {
+        const ai = aiWithDescription(() => Promise.resolve({ response: '按时写的描述。' }));
+
+        const result = await analyze({ AI: ai }, { timeouts: { fetchMs: 50, aiMs: 1000, hedgeMs: 20 } });
+        await new Promise(resolve => setTimeout(resolve, 60));
+
+        expect(result.description).toBe('按时写的描述。');
+        expect(ai.descriptionCalls()).toBe(1);
+    });
+
+    it('补发之前就报错的不补发，直接兜底', async () => {
+        const ai = aiWithDescription(() => Promise.reject(new Error('capacity')));
+
+        const result = await analyze({ AI: ai }, { timeouts: { fetchMs: 50, aiMs: 1000, hedgeMs: 20 } });
+        await new Promise(resolve => setTimeout(resolve, 60));
+
+        expect(result.description).toBe('页面自带的 meta 描述');
+        expect(result.analysis.warnings).toEqual(['ai_description_failed']);
+        expect(ai.descriptionCalls()).toBe(1);
+    });
+
+    it('两次都没在时限内回来时照旧兜底', async () => {
+        const ai = aiWithDescription(() => new Promise(() => {}));
+
+        const result = await analyze({ AI: ai }, { timeouts: { fetchMs: 50, aiMs: 80, hedgeMs: 20 } });
+
+        expect(result.description).toBe('页面自带的 meta 描述');
+        expect(result.analysis.warnings).toEqual(['ai_description_failed']);
+        expect(ai.descriptionCalls()).toBe(2);
+    });
+
+    it('补发后两次都报错，抛出最后一个错误', async () => {
+        let calls = 0;
+        const fn = () => new Promise((_, reject) => {
+            const n = ++calls;
+            setTimeout(() => reject(new Error(`第 ${n} 次失败`)), 40);
+        });
+
+        await expect(withHedge(fn, 10)).rejects.toThrow('第 2 次失败');
+        expect(calls).toBe(2);
     });
 });
 

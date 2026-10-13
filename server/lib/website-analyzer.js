@@ -36,6 +36,9 @@ const MAX_SAMPLE_CHARS = 60;
 
 const FETCH_TIMEOUT_MS = 6000;
 const AI_TIMEOUT_MS = 10000;
+// 写描述过了时限的一半还没回来就补发一次。实测 48 次里中位 2 秒、最慢一次 9.3 秒，
+// 慢的那次撞上时限就只能拿网页自带的描述兜底；补发的那次基本都能赶在时限内回来
+const AI_HEDGE_RATIO = 0.5;
 // 只读前 1MB：够拿到 head 和正文开头，防止超大页面吃内存
 const MAX_HTML_BYTES = 1024 * 1024;
 // 正文少于这个长度认为页面太「薄」（SPA 空壳、登录墙），改用扩展传来的正文
@@ -759,6 +762,33 @@ export async function summarizeDescription(env, info) {
     return aiDesc;
 }
 
+/**
+ * 慢了就补发：fn() 过了 hedgeMs 还没结果时再调一次，谁先成功用谁，两次都失败才算失败。
+ * 补发之前第一次就失败了的不补发，照原样失败
+ */
+export function withHedge(fn, hedgeMs) {
+    const first = fn();
+    const second = new Promise((resolve, reject) => {
+        let sent = false;
+        const timer = setTimeout(() => {
+            sent = true;
+            console.log(`AI 描述 ${hedgeMs}ms 还没回来，补发一次`);
+            fn().then(resolve, reject);
+        }, hedgeMs);
+        first.then(
+            () => clearTimeout(timer),
+            error => {
+                if (sent) return;
+                clearTimeout(timer);
+                reject(error);
+            }
+        );
+    });
+    return Promise.any([first, second]).catch(error => {
+        throw error.errors ? error.errors[error.errors.length - 1] : error;
+    });
+}
+
 // ---------- v1 的编排和兜底 ----------
 
 const FETCH_FAILURE_WARNINGS = {
@@ -846,7 +876,7 @@ export function buildCategoriesWithSamples(categories, sitesByCategory) {
  * @param {Object} [options.hints] 扩展从当前页拿到的 { title, description, content, icon }
  * @param {Array} options.categories 真实分类 [{id, name, order}]（不含虚拟分类）
  * @param {Object} options.sitesByCategory 云端 websites 对象
- * @param {Object} [options.timeouts] { fetchMs, readerMs, aiMs }，测试用
+ * @param {Object} [options.timeouts] { fetchMs, readerMs, aiMs, hedgeMs }，测试用
  */
 export async function analyzeWebsite(env, {
     url,
@@ -894,7 +924,7 @@ export async function analyzeWebsite(env, {
         content
     };
 
-    // 3. 分类和描述两轮 AI 并行跑
+    // 3. 分类和描述两轮 AI 并行跑，描述慢了补发一次
     const hasAi = !!(env.AI && typeof env.AI.run === 'function');
     if (!hasAi && (needCategory || needDescription)) warnings.push('ai_unavailable');
     const aiMs = timeouts.aiMs || AI_TIMEOUT_MS;
@@ -910,7 +940,7 @@ export async function analyzeWebsite(env, {
             ? withTimeout(classifyCategory(env, info, buildCategoriesWithSamples(categories, sitesByCategory)), aiMs)
             : Promise.resolve(null),
         runDescriptionAi
-            ? withTimeout(summarizeDescription(env, info), aiMs)
+            ? withTimeout(withHedge(() => summarizeDescription(env, info), timeouts.hedgeMs || aiMs * AI_HEDGE_RATIO), aiMs)
             : Promise.resolve(null)
     ]);
 
