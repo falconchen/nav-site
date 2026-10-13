@@ -78,8 +78,12 @@ npm run build:firefox   # 在 nav-site/ 下执行，生成 extension-firefox/（
 - **新标签页**：`chrome_url_overrides` 只能指向扩展自己的页面，所以由 `newtab.html` 读设置后决定显示什么。
   用全屏 iframe 嵌入导航站，地址栏保持为空、焦点在地址栏，和自带新标签页一样（跳转过去的话地址栏会被导航站网址占住）。
   嵌在扩展页里的网站默认是第三方上下文、localStorage 被分区，读不到本地数据和登录状态；
-  扩展有该站点的主机权限时 iframe 用顶层分区（Chrome 文档写明，Firefox 140 实测同样），所以没有权限
-  （自定义地址被拒、Firefox 里在附加组件管理器撤销了权限）时退回 `location.replace` 跳转
+  扩展有该站点的主机权限时 iframe 用顶层分区（Chrome 文档写明，Firefox 140 实测同样），所以没有权限时不能嵌入。
+  没有权限的情况：自定义地址被拒、在浏览器里撤销了权限，以及 **Firefox 版从 2.6.0 之前升上来的**——
+  Firefox 更新扩展时不会授予新增的主机权限（[Bugzilla 1893232](https://bugzilla.mozilla.org/show_bug.cgi?id=1893232)），也不提示。
+  这时新标签页先显示一个授权提示（`#grant`）：点「允许并显示」当场申请权限并嵌入（申请权限必须由点击触发，不能在打开页面时自动申请）；
+  选「以后直接打开」才记到 `storage.local` 的 `newTabEmbedDeclined`，之后 `location.replace` 跳转、地址栏会显示网址。
+  以后在设置页保存或在浏览器里给了权限，这个记号会清掉。以前是没有权限就悄悄跳转，升级上来的 Firefox 用户会一直看到地址栏里留着网址
 - **首页**：`chrome_settings_overrides.homepage` 只接受写死的 http/https 地址，不能指向扩展页面、不能按设置变，
   所以写死默认地址，和 `lib/api.js` 的 `DEFAULT_SERVER_URL` 保持一致。这个字段只在 Windows 和 macOS 上生效
 - **令牌**：存在 `chrome.storage.local`，不走 `storage.sync`，不会同步到其它设备

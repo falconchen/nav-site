@@ -6,7 +6,7 @@
 
 import { ext } from './ext.js';
 
-const SETTINGS_KEYS = ['serverUrl', 'token', 'newTab'];
+const SETTINGS_KEYS = ['serverUrl', 'token', 'newTab', 'newTabEmbedDeclined'];
 
 // manifest.json 里的首页（chrome_settings_overrides.homepage）写死的也是这个地址，改的话两处一起改
 export const DEFAULT_SERVER_URL = 'https://pipi2047.eu.org';
@@ -17,7 +17,9 @@ export async function loadSettings() {
         serverUrl: normalizeServerUrl(settings.serverUrl || DEFAULT_SERVER_URL),
         token: settings.token || '',
         // 新标签页默认打开导航站，没存过就是开
-        newTab: settings.newTab !== false
+        newTab: settings.newTab !== false,
+        // 新标签页问过要不要授权嵌入、用户选了「以后直接打开」，见 newtab.js
+        newTabEmbedDeclined: settings.newTabEmbedDeclined === true
     };
 }
 
@@ -36,6 +38,10 @@ export async function hasServerPermission(serverUrl) {
 
 export async function saveNewTabEnabled(enabled) {
     await ext.storage.local.set({ newTab: Boolean(enabled) });
+}
+
+export async function saveNewTabEmbedDeclined(declined) {
+    await ext.storage.local.set({ newTabEmbedDeclined: Boolean(declined) });
 }
 
 export async function saveSettings({ serverUrl, token }) {

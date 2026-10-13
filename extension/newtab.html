@@ -7,6 +7,12 @@
     <script type="module" src="newtab.js"></script>
 </head>
 <body>
+    <main id="grant" hidden>
+        <p>要在新标签页里显示导航站，需要允许扩展访问 <strong id="grantOrigin"></strong>。</p>
+        <p class="hint">允许后地址栏保持为空，可以直接输入网址或搜索。扩展更新时浏览器不会自动给这项权限，所以要点一下。</p>
+        <p><button type="button" id="grantBtn">允许并显示</button></p>
+        <p><a href="#" id="grantSkip">不用了，以后直接打开导航站</a></p>
+    </main>
     <main id="fallback" hidden>
         <p>没能打开默认的新标签页。</p>
         <p><a href="options.html" target="_blank">打开扩展设置</a></p>

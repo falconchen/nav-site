@@ -31,6 +31,61 @@ a {
     text-underline-offset: 3px;
 }
 
+/* 没有主机权限时的授权提示，颜色抄自 popup.css 的 token（墨色主按钮） */
+#grant {
+    max-width: 420px;
+    margin: 0 auto;
+    padding-top: 32vh;
+}
+
+#grant strong {
+    color: #1c1b19;
+    font-weight: 600;
+}
+
+#grant .hint {
+    font-size: 13px;
+}
+
+#grant button {
+    height: 38px;
+    margin: 8px 0 4px;
+    padding: 0 20px;
+    border: 1px solid #1c1b19;
+    border-radius: 10px;
+    background: #1c1b19;
+    color: #ffffff;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+#grant button:hover {
+    border-color: #3a3834;
+    background: #3a3834;
+}
+
+#grant a {
+    font-size: 13px;
+}
+
+@media (prefers-color-scheme: dark) {
+    #grant strong {
+        color: #edeae3;
+    }
+
+    #grant button {
+        border-color: #edeae3;
+        background: #edeae3;
+        color: #1c1b19;
+    }
+
+    #grant button:hover {
+        border-color: #ffffff;
+        background: #ffffff;
+    }
+}
+
 /* 导航站整页嵌进来，页面本身不滚动，滚动交给 iframe */
 html:has(#site),
 html:has(#site) body {
