@@ -27,6 +27,10 @@ const UPLOADABLE_MIME = new Set([
     'image/vnd.microsoft.icon'
 ]);
 
+function isSvg(file) {
+    return /svg/i.test(file.type || '') || /\.svg$/i.test(file.name || '');
+}
+
 // 原始文件能不能不经转换直接上传
 function canUploadDirectly(file) {
     return UPLOADABLE_MIME.has((file.type || '').split(';')[0].trim().toLowerCase());
@@ -35,27 +39,29 @@ function canUploadDirectly(file) {
 /**
  * 把图片文件读成位图
  *
- * 优先用 createImageBitmap；Safari 对 SVG blob 的支持不稳，
- * 失败时回退到 <img> + object URL。
+ * 位图优先用 createImageBitmap，失败时回退到 <img> + object URL。
+ * SVG 直接走 <img>：createImageBitmap 会先按固有尺寸光栅化，再放大就糊了；
+ * <img> 在 drawImage 时才按目标尺寸绘制。Safari 对 SVG blob 的 createImageBitmap 支持也不稳。
  *
  * @param {File|Blob} file
  * @returns {Promise<{source: CanvasImageSource, width: number, height: number, close: Function}>}
  */
 async function loadImageSource(file) {
-    try {
-        const bitmap = await createImageBitmap(file);
-        // SVG 没有固有尺寸时浏览器可能给 0
-        if (bitmap.width > 0 && bitmap.height > 0) {
-            return {
-                source: bitmap,
-                width: bitmap.width,
-                height: bitmap.height,
-                close: () => bitmap.close()
-            };
+    if (!isSvg(file)) {
+        try {
+            const bitmap = await createImageBitmap(file);
+            if (bitmap.width > 0 && bitmap.height > 0) {
+                return {
+                    source: bitmap,
+                    width: bitmap.width,
+                    height: bitmap.height,
+                    close: () => bitmap.close()
+                };
+            }
+            bitmap.close();
+        } catch (error) {
+            console.warn('createImageBitmap 失败，回退到 Image 加载:', error);
         }
-        bitmap.close();
-    } catch (error) {
-        console.warn('createImageBitmap 失败，回退到 Image 加载:', error);
     }
 
     // 回退路径
@@ -113,7 +119,12 @@ async function compressImageToWebp(file, options = {}) {
     }
 
     try {
-        const scale = Math.min(1, maxSize / Math.max(image.width, image.height));
+        // 位图只缩不放；SVG 是矢量，按最大尺寸画。GitHub 的 favicon.svg 写着 width="32"，
+        // 照固有尺寸画出来就是 32px 的位图，卡片在高分屏上显示会糊
+        const vector = isSvg(file);
+        const scale = vector
+            ? maxSize / Math.max(image.width, image.height)
+            : Math.min(1, maxSize / Math.max(image.width, image.height));
         const width = Math.max(1, Math.round(image.width * scale));
         const height = Math.max(1, Math.round(image.height * scale));
 

@@ -56,7 +56,9 @@ export function collectHints() {
 
     // 图标照服务端 extractIcon() 的规则从页面声明里挑：先 apple-touch-icon，再 rel="icon"，同类里取声明尺寸最大的。
     // 标签页的 favIconUrl 是浏览器给标签栏挑的小图（V2EX 是 32px 带边框那张），和网页端「自动填写」拿到的不是同一张。
-    // SVG 排在位图后面：弹窗没把图标传成时靠服务端转存，那边不收 SVG
+    // SVG 排在声明了 ≥128px 的位图后面、其它位图前面：弹窗能把 SVG 按 256px 画成 WebP，
+    // 没写尺寸的位图多半是 32px 的 favicon（GitHub 就是 favicon.png + favicon.svg），放大了糊。
+    // 弹窗没传成时服务端转存不收 SVG，保留原地址，显示照样清晰
     let best = null;
     for (const link of document.querySelectorAll('link[rel][href]')) {
         const rel = (link.getAttribute('rel') || '').toLowerCase().split(/\s+/);
@@ -65,7 +67,7 @@ export function collectHints() {
         if (!/^https?:\/\//i.test(link.href || '')) continue;
         const svg = /svg/i.test(link.getAttribute('type') || '') || /\.svg(?:[?#]|$)/i.test(link.href);
         const size = Math.max(0, ...(link.getAttribute('sizes') || '').split(/\s+/).map(token => parseInt(token, 10) || 0));
-        const rank = (apple ? 2e6 : 0) + (svg ? 0 : 1e6) + Math.min(size, 99999);
+        const rank = (apple ? 2e6 : 0) + (svg ? 5e5 : size >= 128 ? 1e6 : 0) + Math.min(size, 99999);
         // 同分取先出现的
         if (!best || rank > best.rank) best = { rank, href: link.href };
     }

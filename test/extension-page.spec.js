@@ -69,9 +69,20 @@ describe('扩展 collectHints 挑图标', () => {
         expect(hints.icon).toBe('https://example.com/touch-180.png');
     });
 
-    it('都没写尺寸时取先出现的，SVG 排在位图后面', () => {
+    it('SVG 排在 ≥128px 的位图后面、没写尺寸或小尺寸的位图前面', () => {
+        // GitHub：favicon.png 是 32px，取 SVG
+        expect(hintsFor([
+            { rel: 'alternate icon', type: 'image/png', href: 'https://github.githubassets.com/favicons/favicon.png' },
+            { rel: 'icon', type: 'image/svg+xml', href: 'https://github.githubassets.com/favicons/favicon.svg' }
+        ]).icon).toBe('https://github.githubassets.com/favicons/favicon.svg');
+
         expect(hintsFor([
             { rel: 'icon', type: 'image/svg+xml', href: 'https://example.com/icon.svg' },
+            { rel: 'icon', sizes: '32x32', href: 'https://example.com/icon-32.png' },
+            { rel: 'icon', sizes: '192x192', href: 'https://example.com/icon-192.png' }
+        ]).icon).toBe('https://example.com/icon-192.png');
+
+        expect(hintsFor([
             { rel: 'icon', href: 'https://example.com/favicon.ico' },
             { rel: 'alternate icon', href: 'https://example.com/other.png' }
         ]).icon).toBe('https://example.com/favicon.ico');

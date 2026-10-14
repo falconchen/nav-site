@@ -68,7 +68,11 @@ async function toWebp(blob) {
         // SVG 没写尺寸时 naturalWidth 可能是 0，按最大尺寸画
         const naturalWidth = img.naturalWidth || ICON_MAX_SIZE;
         const naturalHeight = img.naturalHeight || ICON_MAX_SIZE;
-        const scale = Math.min(1, ICON_MAX_SIZE / Math.max(naturalWidth, naturalHeight));
+        // 位图只缩不放；SVG 是矢量，按最大尺寸画。GitHub 的 favicon.svg 写着 width="32"，照固有尺寸画就糊了
+        const vector = /svg/i.test(blob.type);
+        const scale = vector
+            ? ICON_MAX_SIZE / Math.max(naturalWidth, naturalHeight)
+            : Math.min(1, ICON_MAX_SIZE / Math.max(naturalWidth, naturalHeight));
         const canvas = document.createElement('canvas');
         canvas.width = Math.max(1, Math.round(naturalWidth * scale));
         canvas.height = Math.max(1, Math.round(naturalHeight * scale));

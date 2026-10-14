@@ -443,6 +443,7 @@ v2ex 这类站点会间歇性开 Cloudflare 质询，Worker 抓取拿到 403。�
 - 图床地址和 token 都在服务端（`CF_PHOTOS_ENDPOINT` / `CF_PHOTOS_TOKEN`），换图床不用改代码。
 - cf-photos 没有开 CORS，图床 token 也不能下发到前端，所以必须由 Worker 中转。上传端点不鉴权，靠 5MB 上限、MIME 白名单、按 IP 每分钟 20 次限流兜底。
 - 服务端 MIME 白名单**不含 SVG**（图床原样存储，SVG 可内嵌脚本）。前端的压缩步骤会把 SVG 光栅化成 WebP，所以 GitHub 这类只提供 SVG favicon 的站点也能正常入库。
+  SVG 一律按 256px 画（不按它写的 `width`），且要经 `<img>` 解码而不是 `createImageBitmap`，否则会先按固有尺寸（GitHub 是 32px）光栅化，卡片上是糊的。
 
 ### 个人令牌与 REST API
 
@@ -459,7 +460,7 @@ v2ex 这类站点会间歇性开 Cloudflare 质询，Worker 抓取拿到 403。�
 - 扩展弹窗拿到分析结果后立刻转存图标（`extension/lib/icon-upload.js`：经 `/api/proxy-image` 取回、压成 ≤256px WebP、传 `/api/upload-image`），预览换成图床地址；同一图标地址记在 `storage.session` 里不重复传，用户取消会在图床留一个几 KB 的文件。保存时最多等它 5 秒。
   弹窗没传成时由服务端兜底：扩展只把图标地址作为 `hints.icon` 传上来，`POST /websites` 保存前由 `rehostIcon()` 转存图床（Worker 没有 canvas，按原格式传、不压成 WebP，SVG 不收），失败保留原地址并记 `icon_rehost_failed`，不影响保存；`/websites/analyze` 只是预览，不上传，免得用户取消后在图床留垃圾
 - `hints.icon` 由 `extension/lib/page.js` 的 `collectHints()` 从页面声明里挑，规则照服务端 `extractIcon()`：先 `apple-touch-icon`，
-  再 `rel="icon"`，同类取声明尺寸最大的，SVG 排在位图后面；页面没声明或不让注入脚本时才用标签页的 `favIconUrl`。
+  再 `rel="icon"`，同类取声明尺寸最大的，SVG 排在声明了 ≥128px 的位图后面、其它位图前面（GitHub 的 favicon.png 只有 32px）；页面没声明或不让注入脚本时才用标签页的 `favIconUrl`。
   不要改回直接用 `favIconUrl`：那是浏览器给标签栏挑的小图（V2EX 是 32px 带边框那张），和网页端「自动填写」拿到的不是同一张
 - 扩展的右键菜单（「收藏到皮皮2047」「收藏此链接到皮皮2047」）只是打开收藏弹窗（`action.openPopup()`），和点工具栏图标走同一个流程。
   以前是不经确认直接保存的「一键收藏」，名称、分类、描述全凭 AI、用户没机会改，已去掉，不要加回来。
