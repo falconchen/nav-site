@@ -1,6 +1,6 @@
 # 皮皮2047 · 私人网址簿
 
-一个自用的网址导航站，线上地址 <https://pipi2047.eu.org>。运行在 Cloudflare Workers 上，数据优先存在本地，登录后可同步到云端；配套一个 Chrome / Firefox 扩展，在任意网页上一键收藏。
+一个自用的网址导航站，线上地址 <https://pipi2047.eu.org>。运行在 Cloudflare Workers 上，数据优先存在本地，登录后可同步到云端；配套一个 Chrome / Firefox 扩展，在任意网页上收藏；还提供 MCP 服务，让 Claude、ChatGPT 等 AI 工具直接查收藏、读写记事本。
 
 ## 主要功能
 
@@ -28,6 +28,7 @@
 - 数据变化 2 秒后自动上传，云端保留最近 5 个版本，可恢复任意版本
 - 支持导入 / 导出 JSON
 - 个人令牌 + REST API v1，给浏览器扩展等第三方客户端使用
+- MCP 服务：AI 工具经 OAuth 授权或个人令牌接入，可以查询、添加、批量修改收藏（不能删除），读写记事本；私密收藏对 AI 不可见，见 [MCP 接入](docs/MCP.md)
 
 **其它页面**
 
@@ -43,11 +44,11 @@
 
 `extension/` 是「皮皮2047 收藏助手」，Chrome 和 Firefox 共用一份代码：
 
-- 弹窗收藏当前网页，AI 自动补全名称、分类和描述，可勾选私密收藏
-- 右键菜单一键收藏
-- 接管新标签页，打开导航站
+- 弹窗收藏当前网页，直接用已打开页面的内容让 AI 补全名称、分类和描述，图标取网页声明的最大图标；可勾选私密收藏或隐藏描述
+- 右键菜单「收藏到皮皮2047」「收藏此链接到皮皮2047」：打开同一个收藏弹窗，确认后再保存
+- 接管新标签页，嵌入显示导航站
 
-安装、Firefox 构建与签名发布见 [extension/README.md](extension/README.md)。
+Firefox 版自行分发：推送到 `master` 且改了 `extension/` 时，GitHub Actions 自动构建、签名并发布到 GitHub Releases，已安装的扩展靠 `update_url` 自动更新。安装与手动构建见 [extension/README.md](extension/README.md)。
 
 ## 技术栈
 
@@ -55,9 +56,9 @@
 | --- | --- |
 | 运行时 | Cloudflare Workers + Hono |
 | 前端 | 原生 JavaScript、HTML、CSS（无框架、无 TypeScript） |
-| 存储 | 本地 IndexedDB / localStorage；云端 Upstash Redis（收藏、版本历史、记事本、访问统计）和 Cloudflare KV（会话、令牌、限流） |
+| 存储 | 本地 IndexedDB / localStorage；云端 Upstash Redis（收藏、版本历史、记事本、访问统计）和 Cloudflare KV（会话、令牌、限流、MCP 授权记录） |
 | AI | Cloudflare Workers AI（`@cf/meta/llama-3.3-70b-instruct-fp8-fast`） |
-| 认证 | GitHub / Google OAuth + JWT，个人访问令牌 |
+| 认证 | GitHub / Google OAuth + JWT，个人访问令牌；MCP 用 `@cloudflare/workers-oauth-provider` 签发 OAuth 令牌 |
 | 构建 | esbuild + html-minifier-terser |
 | 测试 | Vitest 4 + `@cloudflare/vitest-plugin` |
 
@@ -68,9 +69,11 @@ nav-site/
 ├── public/            前端页面、脚本、样式和图片（开发环境直接使用）
 ├── server/
 │   ├── index.js       Hono 入口，挂载所有路由
-│   ├── api/           认证、用户数据、令牌、REST API v1、AI 识别、图片代理与上传
-│   └── lib/           共用逻辑：网页抓取与分析、会话校验、限流等
+│   ├── api/           认证、用户数据、令牌、REST API v1、MCP 授权、记事本、AI 识别、图片代理与上传
+│   ├── mcp/           MCP 端点：协议层和收藏、记事本工具
+│   └── lib/           共用逻辑：网页抓取与分析、会话校验、限流、安全响应头等
 ├── extension/         浏览器扩展源码
+├── .github/workflows/ Firefox 扩展的自动签名发布
 ├── shortcuts/         iOS 快捷指令（源文件和签名后的导入文件）
 ├── test/              测试
 ├── docs/              配置与接口文档
@@ -87,6 +90,7 @@ npm ci
 npm run dev          # http://127.0.0.1:8787
 npm test             # 运行测试
 npm test -- --run    # 单次运行全部测试
+npm run test:frontend  # 前端加载、记事本渲染与导出的 Node 测试
 npm run build        # 构建到 dist/
 ```
 
@@ -96,7 +100,7 @@ npm run build        # 构建到 dist/
 
 推送到 `master` 后由 Cloudflare 自动构建部署。也可以手动执行 `npm run deploy`（构建后部署到 `env.production`）。
 
-从零部署要准备的 OAuth 应用、Redis、KV 和密钥见 [部署与配置](docs/setup.md)。
+从零部署要准备的 OAuth 应用、Redis、KV 和密钥见 [部署与配置](docs/setup.md)。KV 需要两个命名空间：`USER_SESSIONS`（会话、令牌、限流、图床去重）和 `OAUTH_KV`（MCP 的授权记录）。
 
 ### Secrets
 
@@ -116,6 +120,6 @@ npm run build        # 构建到 dist/
 都在 [docs/](docs/README.md) 目录：
 
 - [部署与配置](docs/setup.md)、[JWT 配置](docs/JWT_CONFIG.md)、[Wrangler 升级与验证](docs/cloudflare-worker-notes.md#wrangler-升级与验证2026-10-04)
-- [REST API v1](docs/REST_API.md)、[测试记录](docs/REST_API_TESTING.md)、[iOS 快捷指令](docs/IOS_SHORTCUT.md)
-- [收藏加载、超时与重试](docs/FRONTEND_LOADING.md)
+- [REST API v1](docs/REST_API.md)、[测试记录](docs/REST_API_TESTING.md)、[MCP 接入](docs/MCP.md)、[iOS 快捷指令](docs/IOS_SHORTCUT.md)
+- [收藏加载、超时与重试](docs/FRONTEND_LOADING.md)、[记事本导出](docs/notes-export.md)、[记事本 Markdown 渲染](docs/notes-markdown.md)
 - [功能待办](docs/TODO.md)
