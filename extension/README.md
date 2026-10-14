@@ -33,6 +33,12 @@ npm run build:firefox   # 在 nav-site/ 下执行，生成 extension-firefox/（
      再把固定 Release `firefox-updates` 里的 `updates.json` 覆盖成指向这个版本（需要已登录的 `gh`）
 
   AMO 要求每次签名的版本号比上次高，改扩展时照常升 `extension/manifest.json` 的版本号就行。
+- **GitHub Actions 自动发布**（`.github/workflows/firefox-extension.yml`）：推到 master 且改了 `extension/`（README 除外）
+  或两个 Firefox 脚本时自动跑，也能在 Actions 页面手动触发。流程和上面的第 2、4 步相同：构建 → `web-ext lint` → 签名 → 发布。
+  当前版本号已经有 `firefox-v<版本>` 时只构建和校验、不签名（没升版本号的改动不会让 AMO 报错）。
+  结束后发一条 Bark 通知：已发布 / 没升版本号 / 哪一步失败，点开是 Release 或这次运行的页面。
+  要在仓库 Settings → Secrets and variables → Actions 里配 Secrets `WEB_EXT_API_KEY`、`WEB_EXT_API_SECRET`、`BARK_KEY`（Bark 设备 key，不配就不发通知），
+  自建 Bark 服务的话再配 Variable `BARK_SERVER`（默认 `https://api.day.app`）
 - **自动更新**：manifest 的 `update_url` 指向 `firefox-updates` 里的 `updates.json`，Firefox 大约每天检查一次，
   也可以在 `about:addons` 齿轮菜单里「检查更新」。首次安装从 Releases 页面下载 `firefox-v*` 里的 `.xpi` 拖进 Firefox。
   1.7.0 之前的版本没有 `update_url`，要手动装一次 1.7.0 或更新的版本。

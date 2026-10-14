@@ -1,0 +1,124 @@
+# Firefox 扩展：构建 → 校验 → AMO 签名 → 发布到 GitHub Releases，结束后发 Bark 通知
+#
+# 和本机的 npm run sign:firefox + npm run release:firefox 是同一套脚本。
+# 当前版本已经发布过（没升 extension/manifest.json 的版本号）时只构建和校验，不签名：AMO 拒收重复的版本号。
+#
+# 需要的仓库 Secrets：
+# - WEB_EXT_API_KEY / WEB_EXT_API_SECRET：AMO 的 API 密钥（JWT issuer / secret）
+# - BARK_KEY：Bark 的设备 key（不配就不发通知）
+# 可选的仓库 Variables：
+# - BARK_SERVER：自建 Bark 服务的地址，默认 https://api.day.app
+
+name: Firefox 扩展
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'extension/**'
+      - '!extension/README.md'
+      - 'build-firefox-extension.js'
+      - 'release-firefox-extension.js'
+      - '.github/workflows/firefox-extension.yml'
+  workflow_dispatch:
+
+# 同一时间只跑一个，免得两次推送同时签同一个版本
+concurrency:
+  group: firefox-extension
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: 读取版本号
+        id: meta
+        run: |
+          version=$(node -p "require('./extension/manifest.json').version")
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if gh release view "firefox-v$version" -R "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            echo "released=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::firefox-v$version 已经发布过，本次只构建和校验。改了扩展要先升 extension/manifest.json 的版本号"
+          else
+            echo "released=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 构建
+        run: npm run build:firefox
+
+      - name: 校验
+        run: npx -y web-ext@10 lint --self-hosted --source-dir extension-firefox
+
+      - name: AMO 签名
+        id: sign
+        if: steps.meta.outputs.released == 'false'
+        env:
+          WEB_EXT_API_KEY: ${{ secrets.WEB_EXT_API_KEY }}
+          WEB_EXT_API_SECRET: ${{ secrets.WEB_EXT_API_SECRET }}
+        run: npm run sign:firefox
+
+      - name: 发布到 GitHub Releases
+        id: release
+        if: steps.meta.outputs.released == 'false'
+        run: npm run release:firefox
+
+      - name: Bark 通知
+        if: always()
+        env:
+          BARK_KEY: ${{ secrets.BARK_KEY }}
+          BARK_SERVER: ${{ vars.BARK_SERVER }}
+          JOB_STATUS: ${{ job.status }}
+          VERSION: ${{ steps.meta.outputs.version }}
+          RELEASED: ${{ steps.meta.outputs.released }}
+          SIGN_OUTCOME: ${{ steps.sign.outcome }}
+          RELEASE_OUTCOME: ${{ steps.release.outcome }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ -z "$BARK_KEY" ]; then
+            echo "没有配置 BARK_KEY，跳过通知"
+            exit 0
+          fi
+
+          BARK_SERVER=${BARK_SERVER%/}
+          version=${VERSION:-未知版本}
+          url=$RUN_URL
+          level=active
+          if [ "$JOB_STATUS" = "cancelled" ]; then
+            title="Firefox 扩展构建已取消"
+            body="$version 的构建被取消了"
+          elif [ "$JOB_STATUS" != "success" ]; then
+            title="Firefox 扩展构建失败"
+            if [ "$SIGN_OUTCOME" = "failure" ]; then
+              body="$version 在 AMO 签名时失败"
+            elif [ "$RELEASE_OUTCOME" = "failure" ]; then
+              body="$version 已签名，但发布到 GitHub Releases 失败"
+            else
+              body="$version 构建或校验失败"
+            fi
+            level=timeSensitive
+          elif [ "$RELEASED" = "true" ]; then
+            title="Firefox 扩展未发布新版本"
+            body="$version 已经发布过，只做了构建和校验。改了扩展要先升版本号"
+          else
+            title="Firefox 扩展 $version 已发布"
+            body="已签名并发布到 GitHub Releases，已安装的扩展会自动更新"
+            url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/tag/firefox-v$version"
+          fi
+
+          jq -n --arg key "$BARK_KEY" --arg title "$title" --arg body "$body" --arg url "$url" --arg level "$level" \
+            '{device_key: $key, title: $title, body: $body, url: $url, level: $level, group: "皮皮2047"}' \
+            | curl -fsS --retry 2 -X POST "${BARK_SERVER:-https://api.day.app}"/push \
+                -H 'Content-Type: application/json; charset=utf-8' --data-binary @- \
+            || echo "::warning::Bark 通知发送失败"
