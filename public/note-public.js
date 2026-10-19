@@ -3,12 +3,39 @@
 (function () {
     const container = document.getElementById('publicNote');
     const { renderNoteContent, formatNoteTime } = NoteRender;
+    const NOT_FOUND = '这条记事不存在，或者作者已经取消发布。';
 
     function showMessage(text) {
         container.innerHTML = `<p class="notes-empty">${escapeHtml(text)}</p>`;
     }
 
+    function render(note) {
+        const { html, plain } = renderNoteContent(note.content, note.syntax);
+        document.title = `${note.title} · 皮皮2047`;
+        container.innerHTML = `
+            <p class="note-meta">${escapeHtml(formatNoteTime(note.updatedAt))}修改 · ${note.content.length.toLocaleString('zh-CN')} 字</p>
+            <article class="note-content${plain ? ' note-plain' : ''}">${html}</article>`;
+    }
+
+    // 服务端（/n/:id 路由）内联的数据：{ note } 或 { note: null }。超限、存储故障时不内联，返回 undefined
+    function readInlined() {
+        const element = document.getElementById('publicNoteData');
+        if (!element) return undefined;
+        try {
+            return JSON.parse(element.textContent);
+        } catch {
+            return undefined;
+        }
+    }
+
     async function load() {
+        const inlined = readInlined();
+        if (inlined) {
+            if (inlined.note) render(inlined.note);
+            else showMessage(NOT_FOUND);
+            return;
+        }
+
         const publicId = location.pathname.split('/')[2] || '';
         let response;
         try {
@@ -18,7 +45,7 @@
             return;
         }
         if (response.status === 404) {
-            showMessage('这条记事不存在，或者作者已经取消发布。');
+            showMessage(NOT_FOUND);
             return;
         }
         if (!response.ok) {
@@ -27,11 +54,7 @@
         }
 
         const { note } = await response.json();
-        const { html, plain } = renderNoteContent(note.content, note.syntax);
-        document.title = `${note.title} · 皮皮2047`;
-        container.innerHTML = `
-            <p class="note-meta">${escapeHtml(formatNoteTime(note.updatedAt))}修改 · ${note.content.length.toLocaleString('zh-CN')} 字</p>
-            <article class="note-content${plain ? ' note-plain' : ''}">${html}</article>`;
+        render(note);
     }
 
     load();

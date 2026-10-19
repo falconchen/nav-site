@@ -18,13 +18,14 @@ import authApi from './api/auth.js';
 import userDataApi from './api/user-data.js';
 import tokensApi from './api/tokens.js';
 import v1Api from './api/v1.js';
-import notesApi from './api/notes.js';
+import notesApi, { loadPublicNoteForPage } from './api/notes.js';
 import visitsApi from './api/visits.js';
 import shareApi from './api/share.js';
 import oauthApi, { AUTHORIZE_PATH, MCP_SCOPE } from './api/oauth.js';
 import mcpApp, { MCP_PATH } from './mcp/index.js';
 import { isPersonalToken, verifyPersonalToken } from './lib/personal-tokens.js';
 import { withSecurityHeaders } from './lib/security-headers.js';
+import { renderPublicNotePage } from './lib/note-public-page.js';
 
 // 创建 Hono 应用
 const app = new Hono();
@@ -90,15 +91,24 @@ app.route('/api', visitsApi);
 app.route('/api', shareApi);
 app.route('/api', oauthApi);
 
-// 公开发布的记事：/n/<公开 id> 都返回同一个静态页，页面自己按 id 去取内容。
+// 公开发布的记事：/n/<公开 id> 用静态页 note-public.html 做模板，服务端填好标题和分享卡片的 og 标签，
+// 记事数据内联进页面，正文仍在浏览器里渲染（server/lib/note-public-page.js）。
 // 是用户发布的内容，不让搜索引擎收录
 app.get('/n/:id', async (c) => {
-	const url = new URL(c.req.url);
-	url.pathname = '/note-public';
-	const asset = await c.env.ASSETS.fetch(new Request(url, c.req.raw));
-	const response = new Response(asset.body, asset);
-	response.headers.set('X-Robots-Tag', 'noindex, nofollow');
-	return response;
+	const pageUrl = new URL(c.req.url);
+	const assetUrl = new URL('/note-public', pageUrl);
+	// 不转发条件请求头：页面内容是动态的，拿到 304 就没有模板可改写了
+	const asset = await c.env.ASSETS.fetch(new Request(assetUrl));
+	if (!asset.ok) return asset;
+
+	const loaded = await loadPublicNoteForPage(c, c.req.param('id'));
+	const page = loaded ? renderPublicNotePage(asset, { note: loaded.note, url: pageUrl }) : asset;
+	const headers = new Headers(asset.headers);
+	for (const name of ['ETag', 'Last-Modified', 'Content-Length']) headers.delete(name);
+	// 取消发布要立刻生效
+	headers.set('Cache-Control', 'no-store');
+	headers.set('X-Robots-Tag', 'noindex, nofollow');
+	return new Response(page.body, { status: loaded && !loaded.note ? 404 : 200, headers });
 });
 
 // iOS 快捷指令浮层用的添加页：网址里带短时令牌，不让它经 Referer 泄露，也不让搜索引擎收录

@@ -2,11 +2,16 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { sign } from 'hono/jwt';
 import worker from '../server/index.js';
 import { LIMITS, deriveTitle } from '../server/lib/notes-store.js';
+import { noteExcerpt } from '../server/lib/note-public-page.js';
 
 const REDIS_URL = 'https://redis.example.test';
 const JWT_SECRET = 'test-secret';
 const USER_A = 'user_aaaa1111';
 const USER_B = 'user_bbbb2222';
+
+// note-public.html 的骨架，/n/:id 路由在它上面改写
+const PUBLIC_TEMPLATE = '<!DOCTYPE html><html><head><title>记事 · 皮皮2047</title></head>'
+    + '<body><main><div id="publicNote"><p>加载中…</p></div></main><script src="/note-public.js"></script></body></html>';
 
 function createKvStub() {
     const store = new Map();
@@ -86,7 +91,12 @@ describe('记事本', () => {
             JWT_SECRET,
             UPSTASH_REDIS_REST_URL: REDIS_URL,
             UPSTASH_REDIS_REST_TOKEN: 'redis-token',
-            USER_SESSIONS: createKvStub()
+            USER_SESSIONS: createKvStub(),
+            ASSETS: {
+                fetch: vi.fn(async () => new Response(PUBLIC_TEMPLATE, {
+                    headers: { 'Content-Type': 'text/html; charset=utf-8', ETag: '"abc"' }
+                }))
+            }
         };
         tokenA = await login(USER_A);
         tokenB = await login(USER_B);
@@ -333,6 +343,70 @@ describe('记事本', () => {
         it('乱填的公开 id 返回 404', async () => {
             expect((await call('/api/public/notes/nope')).status).toBe(404);
             expect((await call('/api/public/notes/a%2Fb')).status).toBe(404);
+        });
+
+        // 取页面里内联的数据和 og 标签
+        async function openPage(publicId) {
+            const res = await call(`/n/${publicId}`);
+            const html = await res.text();
+            const data = html.match(/<script type="application\/json" id="publicNoteData">(.*?)<\/script>/s);
+            const meta = name => html.match(new RegExp(`<meta (?:property|name)="${name}" content="([^"]*)">`))?.[1];
+            return { res, html, data: data ? JSON.parse(data[1]) : undefined, meta };
+        }
+
+        it('公开页内联记事数据，填好标题和分享卡片', async () => {
+            const content = '# 公开的 <b>\n第二行有 **粗体** 和 [链接](https://a.test)\n</script><script>alert(1)</script>';
+            const note = await create({ content, syntax: 'markdown' });
+            const { publicId } = (await (await call(`/api/notes/${note.id}/publish`, { method: 'POST', token: tokenA })).json()).note;
+
+            const { res, html, data, meta } = await openPage(publicId);
+            expect(res.status).toBe(200);
+            expect(res.headers.get('Cache-Control')).toBe('no-store');
+            expect(res.headers.get('X-Robots-Tag')).toBe('noindex, nofollow');
+            expect(res.headers.get('ETag')).toBe(null);
+            expect(env.ASSETS.fetch.mock.calls[0][0].url).toBe('https://nav.test/note-public');
+
+            expect(data.note).toEqual({ title: '公开的 <b>', content, syntax: 'markdown', updatedAt: note.updatedAt });
+            // 正文里的 </script> 不能提前结束内联的脚本
+            expect(html.match(/<\/script>/g)).toHaveLength(2);
+            expect(html).not.toContain('<b>');
+            expect(html).toContain('<title>公开的 &lt;b&gt; · 皮皮2047</title>');
+            expect(meta('og:title')).toBe('公开的 &lt;b&gt;');
+            expect(meta('og:description')).toBe('第二行有 粗体 和 链接 alert(1)');
+            expect(meta('og:url')).toBe(`https://nav.test/n/${publicId}`);
+            expect(meta('og:image')).toBe('https://nav.test/img/og-cover.png');
+            expect(html).not.toContain(USER_A);
+            expect(html).not.toContain(note.id);
+        });
+
+        it('公开页对不存在的记事返回 404，仍内联结果', async () => {
+            const { res, data, meta, html } = await openPage('nope');
+            expect(res.status).toBe(404);
+            expect(data).toEqual({ note: null });
+            expect(meta('og:title')).toBe(undefined);
+            expect(html).toContain('<title>记事 · 皮皮2047</title>');
+        });
+
+        it('公开页超限或存储故障时不内联，交给页面再调接口', async () => {
+            redisStore.failing = true;
+            let page = await openPage('whatever0001');
+            expect(page.res.status).toBe(200);
+            expect(page.data).toBe(undefined);
+            redisStore.failing = false;
+
+            const bucket = Math.floor(Date.now() / 60000);
+            await env.USER_SESSIONS.put(`rl_notes_public_203.0.113.1_${bucket}`, '60');
+            page = await openPage('whatever0001');
+            expect(page.res.status).toBe(200);
+            expect(page.data).toBe(undefined);
+            expect(page.res.headers.get('Cache-Control')).toBe('no-store');
+        });
+
+        it('分享摘要去掉标题和 Markdown 记号，截到 120 字', () => {
+            expect(noteExcerpt('\n# 标题\n\n> 引用\n- [x] 待办\n1. 第一\n![图](https://a.test/x.png)`代码`', 'markdown')).toBe('引用 待办 第一 代码');
+            expect(noteExcerpt('标题\n**原样** 保留', 'plain')).toBe('**原样** 保留');
+            expect(noteExcerpt('只有标题', 'markdown')).toBe('');
+            expect(noteExcerpt(`标题\n${'字'.repeat(130)}`, 'plain')).toBe(`${'字'.repeat(120)}…`);
         });
 
         it('公开接口按 IP 限流', async () => {

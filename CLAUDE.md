@@ -50,6 +50,7 @@
 - `server/lib/rate-limit.js` - 按 IP 的固定窗口限流（图床上传与 AI 识别共用）
 - `server/api/notes.js` - 记事本接口（只接受网页登录 JWT）和公开记事的只读接口
 - `server/lib/notes-store.js` - 记事本的存储与校验（Redis）
+- `server/lib/note-public-page.js` - 公开记事页的服务端预填（标题、og 标签、内联数据）
 - `server/api/visits.js` - 访问统计同步接口（只接受网页登录 JWT）
 - `server/lib/visits-store.js` - 访问统计的云端存储与合并规则（Redis）
 - `server/lib/redis.js` - Upstash Redis 的 get / set / del 薄封装，失败抛 `RedisError`
@@ -345,8 +346,13 @@ Claude 走 CIMD 没问题，授权页显示核实过的域名。**ChatGPT 的 CI
 文件夹路由要注册在 `/notes/:id` 前面。
 
 **公开发布**：`POST /api/notes/:id/publish` 生成随机 `publicId`（和记事 id 无关），公开页是 `/n/<publicId>`。
-- `server/index.js` 的 `/n/:id` 路由对任何 id 都返回静态页 `note-public.html`（带 `X-Robots-Tag: noindex`），页面再请求
-  `GET /api/public/notes/:publicId`（不鉴权、按 IP 限流、`no-store`）。这个接口只返回标题、正文、格式、更新时间，不带作者和内部 id
+- `server/index.js` 的 `/n/:id` 路由拿静态页 `note-public.html` 当模板，用 `HTMLRewriter` 填好 `<title>` 和分享卡片的 og / twitter 标签，
+  再把 `getPublicNote()` 的结果以 `<script type="application/json" id="publicNoteData">` 内联进页面（`server/lib/note-public-page.js`），
+  响应带 `X-Robots-Tag: noindex`、`no-store`，记事不存在时是 404 + `{ note: null }`。和公开接口共用 `notes_public` 限流计数，
+  超限或 Redis 故障时不内联，页面退回请求 `GET /api/public/notes/:publicId`（不鉴权、按 IP 限流、`no-store`）拿到具体错误。
+  两处都只给标题、正文、格式、更新时间，不带作者和内部 id
+- **正文不在服务端渲染**：Workers 里没有 DOM，跑不了 DOMPurify，仍由浏览器端 `note-render.js` 渲染。不要为了首屏在服务端另写一套 HTML 过滤。
+  内联 JSON 要转义 `<`，否则正文里的 `</script>` 会提前结束脚本
 - 公开接口读取时会核对索引里的 `publicId`，所以取消发布或删除记事后旧链接立即失效（反查表没删干净也读不到）；再次发布换新链接
 - 公开页在 `/n/` 下，资源一律用绝对路径
 

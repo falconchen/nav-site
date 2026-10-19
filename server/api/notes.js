@@ -132,6 +132,25 @@ app.delete('/notes/:id/publish', limitWrites, handle(async (c, userId) => {
     return c.json({ success: true, note });
 }));
 
+/**
+ * 公开页 /n/:id 预填数据用，和公开接口共用同一个限流计数
+ *
+ * @returns {Promise<{ note: Object|null } | null>} note 为 null 表示记事不存在；
+ *   整个返回 null 表示超限或存储故障，页面不内联数据，由浏览器再调公开接口拿到具体的错误
+ */
+export async function loadPublicNoteForPage(c, publicId) {
+    if (await isRateLimited(c, { scope: 'notes_public', limit: PUBLIC_RATE_LIMIT })) return null;
+    try {
+        return { note: await getPublicNote(c.env, publicId) };
+    } catch (error) {
+        if (error instanceof RedisError) {
+            console.error('公开页读取记事失败:', error.message);
+            return null;
+        }
+        throw error;
+    }
+}
+
 app.get('/public/notes/:publicId', handle(async (c) => {
     // 取消发布要立刻生效，不让浏览器和中间缓存留着
     c.header('Cache-Control', 'no-store');
