@@ -704,51 +704,99 @@ app.post('/v1/websites/touch', limitWrites, async (c) => {
     return c.json({ success: true, touched: true, website: siteView(touched, categoryId), version: saved.version });
 });
 
-// 按网址删除：DELETE /api/v1/websites?url=<网址>[&category=<id|名称>]
-app.delete('/v1/websites', limitWrites, async (c) => {
-    const auth = c.get('auth');
-    const key = urlKey(c.req.query('url'));
-    if (!key) {
-        return c.json({ error: 'Query parameter "url" must be an http(s) URL' }, 400);
+/**
+ * 批量删除网站。REST 的 DELETE /websites（一次一个）和 MCP 的 delete_bookmarks 共用。
+ *
+ * 和 updateWebsites 一样一次调用只写一次、只生成一个版本快照。同一个网址在数据里有多份（不同分类）时一起删，
+ * 指定了 category 就只删那个分类里的。每一项各自成败；一个都没删掉时不写入。
+ *
+ * @param {Object} c Hono context
+ * @param {Object} auth { userId, via, ... }
+ * @param {Array} items [{ url, category? }]
+ * @param {Object} [options]
+ * @param {boolean} [options.forAi] 调用方是 AI：私密收藏当作不存在，删不掉
+ * @returns {Promise<{status: number, body: Object}>} 成功时 body.results 和 items 一一对应：
+ *   { url, ok: true, removed: [siteView], categoryNames } 或 { url, ok: false, code, error }
+ */
+export async function deleteWebsites(c, auth, items, { forAi = false } = {}) {
+    if (!Array.isArray(items) || items.length === 0 || items.length > MAX_UPDATES_PER_CALL) {
+        return { status: 400, body: { error: `Expected 1 to ${MAX_UPDATES_PER_CALL} websites to delete` } };
     }
 
     const data = await loadUserData(c, auth.userId);
-    if (!data) {
-        return c.json({ error: 'Website not found' }, 404);
-    }
+    if (!data) return { status: 409, body: NO_CLOUD_DATA };
 
-    let categoryIds = Object.keys(data.websites || {});
-    const categoryRef = c.req.query('category');
-    if (categoryRef) {
-        const cat = findCategory(data, categoryRef);
-        if (!cat) {
-            return c.json({ error: 'Category not found' }, 404);
+    const websites = Object.fromEntries(
+        Object.entries(data.websites || {}).map(([id, sites]) => [id, [...(sites || [])]])
+    );
+    const nameOf = (id) => realCategories(data).find((cat) => cat.id === id)?.name || id;
+    const titles = [];
+
+    const removeOne = (item) => {
+        const failed = (code, error) => ({ url: typeof item?.url === 'string' ? item.url : '', ok: false, code, error });
+        const key = urlKey(item?.url);
+        if (!key) return failed('INVALID_URL', 'Field "url" must be an http(s) URL');
+
+        let categoryIds = Object.keys(websites);
+        if (item.category !== undefined && item.category !== null && item.category !== '') {
+            const category = findCategory(data, item.category);
+            if (!category) return failed('CATEGORY_NOT_FOUND', 'Category not found');
+            categoryIds = [category.id];
         }
-        categoryIds = [cat.id];
-    }
 
-    const websites = { ...(data.websites || {}) };
-    const removed = [];
-    for (const id of categoryIds) {
-        const sites = websites[id] || [];
-        const kept = sites.filter((site) => urlKey(site.url) !== key);
-        if (kept.length !== sites.length) {
-            removed.push(...sites.filter((site) => urlKey(site.url) === key).map((site) => siteView(site, id)));
-            websites[id] = kept;
+        const removed = [];
+        const categoryNames = [];
+        for (const id of categoryIds) {
+            const sites = websites[id] || [];
+            const doomed = (site) => urlKey(site?.url) === key && !(forAi && site.private);
+            const hits = sites.filter(doomed);
+            if (hits.length === 0) continue;
+            websites[id] = sites.filter((site) => !doomed(site));
+            removed.push(...hits.map((site) => siteView(site, id)));
+            categoryNames.push(nameOf(id));
         }
-    }
+        if (removed.length === 0) return failed('NOT_FOUND', 'Website not found');
 
-    if (removed.length === 0) {
-        return c.json({ error: 'Website not found' }, 404);
+        titles.push(removed[0].title);
+        return { url: removed[0].url, ok: true, removed, categoryNames };
+    };
+
+    const results = items.map(removeOne);
+    if (titles.length === 0) {
+        return { status: 200, body: { success: true, deleted: 0, results } };
     }
 
     const via = viaLabel(auth);
-    const saved = await persist(c, auth.userId, { ...data, websites }, `通过${via}删除：${removed[0].title}`);
+    const description = titles.length === 1
+        ? `通过${via}删除：${titles[0]}`
+        : `通过${via}删除 ${titles.length} 个网址`;
+    const saved = await persist(c, auth.userId, { ...data, websites }, description);
     if (!saved) {
-        return c.json({ error: 'Failed to save data' }, 500);
+        return { status: 500, body: { error: 'Failed to save data' } };
+    }
+    return { status: 200, body: { success: true, deleted: titles.length, results, version: saved.version } };
+}
+
+// 按网址删除：DELETE /api/v1/websites?url=<网址>[&category=<id|名称>]
+app.delete('/v1/websites', limitWrites, async (c) => {
+    const url = c.req.query('url');
+    if (!urlKey(url)) {
+        return c.json({ error: 'Query parameter "url" must be an http(s) URL' }, 400);
     }
 
-    return c.json({ success: true, removed, version: saved.version });
+    const { status, body } = await deleteWebsites(c, c.get('auth'), [{ url, category: c.req.query('category') }]);
+    if (status === 409) {
+        return c.json({ error: 'Website not found' }, 404);
+    }
+    if (status !== 200) {
+        return c.json(body, status);
+    }
+
+    const [result] = body.results;
+    if (!result.ok) {
+        return c.json({ error: result.code === 'CATEGORY_NOT_FOUND' ? 'Category not found' : 'Website not found' }, 404);
+    }
+    return c.json({ success: true, removed: result.removed, version: body.version });
 });
 
 export default app;

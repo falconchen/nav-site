@@ -252,7 +252,7 @@ describe('MCP', () => {
                 'list_note_folders', 'list_notes', 'get_note', 'create_note', 'update_note', 'delete_note',
                 'create_note_folder', 'rename_note_folder', 'delete_note_folder',
                 // 后加的工具排在最后，前面的顺序不变
-                'update_bookmarks'
+                'update_bookmarks', 'delete_bookmarks'
             ]);
             for (const item of result.tools) {
                 expect(item.inputSchema.type).toBe('object');
@@ -309,7 +309,7 @@ describe('MCP', () => {
             expect(listed.status).toBe(200);
             const { result } = await listed.json();
             expect(result.resultType).toBe('complete');
-            expect(result.tools).toHaveLength(13);
+            expect(result.tools).toHaveLength(14);
             expect(result.ttlMs).toBeGreaterThan(0);
             expect(result.cacheScope).toBe('public');
 
@@ -670,6 +670,72 @@ describe('MCP', () => {
         it('改不了别人的收藏', async () => {
             const result = await tool('update_bookmarks', { updates: [{ url: 'https://chatgpt.com/', title: 'x' }] }, patB);
             expect(result.isError).toBe(true);
+            expect(await readUserData(USER_A)).toEqual(SAMPLE_DATA);
+        });
+    });
+
+    describe('收藏：删除', () => {
+        const versions = () => JSON.parse(redisStore.get(`userdata_versions:${USER_A}`) || '[]');
+        const allTitles = (data) => Object.values(data.websites).flat().map((site) => site.title).sort();
+
+        it('删掉后搜不到，版本历史里注明来源', async () => {
+            const result = await tool('delete_bookmarks', { urls: ['https://regex101.com'] });
+            expect(result).toEqual({
+                deleted: 1,
+                failed: 0,
+                results: [{ url: 'https://regex101.com/', status: 'deleted', title: 'Regex101', category: '实用工具' }]
+            });
+            expect((await tool('search_bookmarks', { query: 'regex' })).total).toBe(0);
+            expect(JSON.stringify(versions())).toContain('MCP（令牌「Claude Code」）删除：Regex101');
+        });
+
+        it('一批删多个只保存一次，删不掉的逐项说明', async () => {
+            const result = await tool('delete_bookmarks', {
+                urls: ['https://chatgpt.com/', 'https://www.midjourney.com', 'https://nowhere.example/', 'not a url']
+            });
+            expect(result.deleted).toBe(2);
+            expect(result.failed).toBe(2);
+            expect(result.results.map((item) => item.status)).toEqual(['deleted', 'deleted', 'failed', 'failed']);
+
+            expect(versions()).toHaveLength(1);
+            expect(JSON.stringify(versions())).toContain('删除 2 个网址');
+            expect(allTitles(await readUserData(USER_A))).toEqual(['Regex101', '秘密项目', '路由器后台'].sort());
+        });
+
+        it('一个都没删掉时不写入', async () => {
+            const result = await tool('delete_bookmarks', { urls: ['https://nowhere.example/'] });
+            expect(result).toMatchObject({ deleted: 0, failed: 1 });
+            expect(versions()).toEqual([]);
+            expect(await readUserData(USER_A)).toEqual(SAMPLE_DATA);
+        });
+
+        it('私密收藏删不掉，也不透露它的存在', async () => {
+            const result = await tool('delete_bookmarks', { urls: ['https://secret.example/'] });
+            expect(result.results[0].status).toBe('failed');
+            expect(JSON.stringify(result)).not.toContain('秘密项目');
+            expect(await readUserData(USER_A)).toEqual(SAMPLE_DATA);
+        });
+
+        it('隐藏描述的网站可以删，结果里不带描述', async () => {
+            const result = await tool('delete_bookmarks', { urls: ['https://router.example/'] });
+            expect(result.deleted).toBe(1);
+            expect(JSON.stringify(result)).not.toContain('hunter2');
+        });
+
+        it('列表为空或超过上限时报错，和添加、修改共用限流', async () => {
+            expect((await tool('delete_bookmarks', { urls: [] })).isError).toBe(true);
+            expect((await tool('delete_bookmarks', {})).isError).toBe(true);
+            const tooMany = Array.from({ length: 51 }, () => 'https://chatgpt.com/');
+            expect((await tool('delete_bookmarks', { urls: tooMany })).isError).toBe(true);
+
+            const bucket = Math.floor(Date.now() / 60000);
+            await env.USER_SESSIONS.put(`rl_mcp_bookmark_write_${USER_A}_${bucket}`, '30');
+            expect((await tool('delete_bookmarks', { urls: ['https://chatgpt.com/'] })).isError).toBe(true);
+            expect(await readUserData(USER_A)).toEqual(SAMPLE_DATA);
+        });
+
+        it('删不了别人的收藏', async () => {
+            expect((await tool('delete_bookmarks', { urls: ['https://chatgpt.com/'] }, patB)).isError).toBe(true);
             expect(await readUserData(USER_A)).toEqual(SAMPLE_DATA);
         });
     });

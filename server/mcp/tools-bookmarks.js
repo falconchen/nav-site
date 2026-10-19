@@ -1,12 +1,12 @@
 /**
- * MCP 的收藏工具：查分类、搜索、添加、修改
+ * MCP 的收藏工具：查分类、搜索、添加、修改、删除
  *
- * 不提供删除。私密收藏、被隐藏的描述不交给 AI，规则在 bookmark-query.js；修改时私密收藏当作不存在，
+ * 私密收藏、被隐藏的描述不交给 AI，规则在 bookmark-query.js；修改和删除时私密收藏当作不存在，
  * 被隐藏的描述不让覆盖。
  */
 
 import { loadDataFromRedis } from '../api/user-data.js';
-import { MAX_UPDATES_PER_CALL, createWebsite, updateWebsites } from '../api/v1.js';
+import { MAX_UPDATES_PER_CALL, createWebsite, deleteWebsites, updateWebsites } from '../api/v1.js';
 import { isRateLimited } from '../lib/rate-limit.js';
 import {
     SEARCH_DEFAULT_LIMIT,
@@ -280,6 +280,64 @@ const update = {
     }
 };
 
+const remove = {
+    name: 'delete_bookmarks',
+    title: '删除收藏',
+    description: [
+        '从收藏里删除网址。只在用户明确要求删除时调用；只是想换个分类或改标题请用 update_bookmarks。',
+        `一次可以删多个（最多 ${MAX_UPDATES_PER_CALL} 个），网址用 search_bookmarks 返回的 url。`,
+        '要删多个时放进同一次调用，不要一个一个调、更不要并行调用：每次调用都会整份保存一次并占掉一个历史版本（只保留最近 5 个）。',
+        '删掉的只能由用户在网页端「历史版本」里整份恢复，所以删除前先和用户确认要删的是哪些。每一项各自成败，结果里逐项说明。'
+    ].join(''),
+    inputSchema: {
+        type: 'object',
+        properties: {
+            urls: {
+                type: 'array',
+                minItems: 1,
+                maxItems: MAX_UPDATES_PER_CALL,
+                items: { type: 'string' },
+                description: '要删除的收藏的网址列表。'
+            }
+        },
+        required: ['urls'],
+        additionalProperties: false
+    },
+    annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false },
+    async handler(args, { c, userId, auth }) {
+        if (!Array.isArray(args.urls) || args.urls.length === 0) {
+            throw new ToolError('urls 要填一个网址列表。');
+        }
+        if (args.urls.length > MAX_UPDATES_PER_CALL) {
+            throw new ToolError(`一次最多删 ${MAX_UPDATES_PER_CALL} 个网址，请分几次调用。`);
+        }
+        if (await isRateLimited(c, { scope: 'mcp_bookmark_write', limit: WRITE_RATE_LIMIT, key: userId })) {
+            throw new ToolError('操作太频繁了，请过一分钟再试。');
+        }
+
+        const { status, body } = await deleteWebsites(c, auth, args.urls.map((url) => ({ url })), { forAi: true });
+        if (body.code === 'NO_CLOUD_DATA') {
+            throw new ToolError('云端还没有收藏数据，请先在网页端登录并同步一次。');
+        }
+        if (status !== 200) {
+            throw new ToolError(status === 400 ? `参数不对：${body.error}` : '保存失败，这次一个都没有删掉，请稍后再试。');
+        }
+
+        const results = body.results.map((item) => {
+            if (!item.ok) {
+                const reason = item.code === 'INVALID_URL' ? '网址不合法' : '收藏里没有这个网址（网址要和 search_bookmarks 返回的一致）';
+                return { url: item.url, status: 'failed', reason };
+            }
+            return { url: item.url, status: 'deleted', title: item.removed[0].title, category: item.categoryNames.join('、') };
+        });
+        return {
+            deleted: results.filter((item) => item.status === 'deleted').length,
+            failed: results.filter((item) => item.status === 'failed').length,
+            results
+        };
+    }
+};
+
 export const bookmarkTools = [listCategories, search, add];
 // 后加的工具单独导出，排在全部工具的最后：工具列表的前缀不变，客户端和提示词的缓存还能用
-export const bookmarkEditTools = [update];
+export const bookmarkEditTools = [update, remove];

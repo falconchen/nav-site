@@ -248,18 +248,21 @@ Claude 走 CIMD 没问题，授权页显示核实过的域名。**ChatGPT 的 CI
   那是 ChatGPT 自己的插件清单里的字段，「开发者」「类别」「网站」同理），在 ChatGPT 里确认新版本只能看「管理」里的工具列表。
   加工具、加参数、改工具行为升次版本（1.1.0 → 1.2.0）；
   删工具、改工具名、改掉已有参数这类会让旧用法失效的升主版本（1.2.0 → 2.0.0）；只修 bug、改说明文字升修订号（1.1.0 → 1.1.1）。
-  只动授权页、文档、测试不用升。1.1.0 是加 `update_bookmarks` 那一版
+  只动授权页、文档、测试不用升。1.1.0 是加 `update_bookmarks` 那一版，1.2.0 加了 `delete_bookmarks`
 - 工具列表顺序固定（客户端和模型的提示词缓存都依赖它），加工具往整个列表的最后加，不是往同类工具后面插
-  （所以 `update_bookmarks` 排在记事本工具后面，见 `bookmarkEditTools`）
+  （所以 `update_bookmarks`、`delete_bookmarks` 排在记事本工具后面，见 `bookmarkEditTools`）
 
 **工具**（`tools-bookmarks.js`、`tools-notes.js`）：
 
-- 收藏可以查询、添加、修改，**故意不提供删除**。`add_bookmark` 调 `v1.js` 导出的 `createWebsite(c, auth, body)`，
+- 收藏可以查询、添加、修改、删除（删除是用户后来要求加的）。`add_bookmark` 调 `v1.js` 导出的 `createWebsite(c, auth, body)`，
   和 `POST /api/v1/websites` 是同一个函数（查重、AI 补全、图标转存、排序键、版本快照），不要在 MCP 里另写一份
 - `update_bookmarks` 调 `v1.js` 的 `updateWebsites(c, auth, updates, { forAi: true })`，改分类、标题、描述、特别关注（`/api/v1` 没有对应的路由）。
   **必须是批量接口**：一次调用只读写一次、只生成一个版本快照，逐条保存的话整理十几个网址就把只留 5 份的历史冲没了；不要拆成单条的工具。
   每一项各自成败，全都没变化时不写入。排序规则照网页端：换分类取新分类最大权重 +10，新设关注取全局最大权重 +10 并给新的 `pinnedOrder`，
   取消关注删掉 `pinnedOrder`，`addedTime` 不动。`forAi` 时私密收藏当作不存在、被隐藏的描述不让覆盖（模型看不到原文，覆盖等于盲删）
+- `delete_bookmarks` 调 `v1.js` 的 `deleteWebsites(c, auth, items, { forAi: true })`，同样是批量、一次只写一次；
+  REST 的 `DELETE /api/v1/websites` 也改成调它（一次一项）。`forAi` 时私密收藏删不掉、当作不存在；隐藏描述的网站可以删，结果里不带描述。
+  删除没有回收站，只能靠版本历史整份恢复，所以工具说明要求模型删除前先和用户确认
 - **私密规则在 `bookmark-query.js`，比 `/api/v1` 严**：私密收藏整个不返回、不计数；隐藏描述的网站不返回描述，描述也不参与搜索（否则能靠换关键词试出内容）。
   `add_bookmark` 遇到已收藏的网址，回给模型的条目也要过同样的规则（`existingView()`）。给 MCP 加新的读取途径时都要经过这里
 - 日期参数只写日期或不带时区时按 Asia/Shanghai 算（`parseTimeParam()`），返回的收藏时间带 `+08:00`
