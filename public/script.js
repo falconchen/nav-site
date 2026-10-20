@@ -252,6 +252,17 @@ document.addEventListener('error', (e) => {
     cardIcon.innerHTML = letterIconHTML(title, url);
 }, true);
 
+// 分类以外的分区（特别关注、最近添加、访问最多、私密收藏、搜索结果）不按分类分组，
+// 卡片上标出所属分类。只有 collectAllWebsites() 取出的网站带 originalCategory，分类 section 里的卡片不显示。
+// 不放进 .card-url：打开、复制、编辑都读它的 textContent
+function cardCategoryHTML(categoryId) {
+    if (!categoryId) return '';
+    const category = (window.categories || []).find(item => item.id === categoryId);
+    const name = category ? category.name : '';
+    if (!name) return '';
+    return `<span class="card-category" title="分类：${escapeHtml(name)}">${escapeHtml(name)}</span>`;
+}
+
 // 根据数据创建卡片HTML
 function createCardHTML(website) {
     // 确保权重数据存在
@@ -279,7 +290,10 @@ function createCardHTML(website) {
                 </div>
                 <div>
                     <div class="card-title">${escapeHtml(website.title)}</div>
-                    <div class="card-url">${cardUrlHTML(website.url)}</div>
+                    <div class="card-meta">
+                        <div class="card-url">${cardUrlHTML(website.url)}</div>
+                        ${cardCategoryHTML(website.originalCategory)}
+                    </div>
                 </div>
             </div>
             ${hasSecretDescription(website)

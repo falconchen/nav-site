@@ -1356,6 +1356,35 @@ html[data-sidebar="compact"] .category-item.active > i {
   display: none;
 }
 
+/* 网址和分类同一行：网址占满剩下的宽度、过长省略，分类标签靠右 */
+.card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  margin-top: 2px;
+}
+
+.card-meta .card-url {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-top: 0;
+}
+
+.card-category {
+  flex: none;
+  max-width: 50%;
+  overflow: hidden;
+  padding: 0 6px;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--ink-3);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  background: var(--paper-sunk);
+  border-radius: 4px;
+}
+
 .card-description {
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -1816,6 +1845,7 @@ html[data-sidebar="compact"] .category-section {
 .private-card .card-icon,
 .private-card .card-title,
 .private-card .card-url,
+.private-card .card-category,
 .private-card .card-description {
   transition: filter 0.25s ease;
 }
@@ -1823,6 +1853,7 @@ html[data-sidebar="compact"] .category-section {
 .private-card:not(.revealed) .card-icon,
 .private-card:not(.revealed) .card-title,
 .private-card:not(.revealed) .card-url,
+.private-card:not(.revealed) .card-category,
 .private-card:not(.revealed) .card-description {
   filter: blur(6px);
   user-select: none;
@@ -3714,6 +3745,7 @@ html[data-sidebar="compact"] .category-section {
     overflow-wrap: anywhere;
   }
 
+  .card-meta,
   .card-url,
   .card-description {
     display: none !important;
