@@ -73,7 +73,7 @@
 
     // ---- 大纲 ----
     // 正文过了 DOMPurify，标题上没有 id（禁掉了），记事本页又靠 hash 路由，所以大纲不用锚点链接，
-    // 点击时直接 scrollIntoView 到对应的标题元素
+    // 点击时直接滚到对应的标题元素
     const TOC_SELECTOR = 'h1, h2, h3, h4';
     const TOC_MIN_ITEMS = 2;
 
@@ -85,6 +85,14 @@
     }
 
     const headingLevel = heading => Number(heading.tagName.slice(1));
+
+    // 标题停在吸顶页眉下面留这么多空。不用 scrollIntoView + 全站的 scroll-padding-top：
+    // 那个值算进了首页 tab 栏的高度，记事本页没有 tab 栏，标题上方会多空出一截
+    const TOC_SCROLL_GAP = 12;
+
+    function stickyHeaderBottom() {
+        return document.querySelector('.header')?.getBoundingClientRect().bottom || 0;
+    }
 
     /**
      * 给渲染好的 Markdown 正文加大纲，插在 article 前面。标题不到 2 个时不加
@@ -131,7 +139,9 @@
             const button = e.target.closest('.note-toc-item');
             if (!button) return;
             const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-            headings[Number(button.dataset.tocIndex)].scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+            const heading = headings[Number(button.dataset.tocIndex)];
+            const top = window.scrollY + heading.getBoundingClientRect().top - stickyHeaderBottom() - TOC_SCROLL_GAP;
+            window.scrollTo({ top: Math.max(0, top), behavior: reduceMotion ? 'auto' : 'smooth' });
         });
 
         // 高亮当前读到的那一节：最后一个顶端已经越过页眉的标题
@@ -143,7 +153,7 @@
                 window.removeEventListener('scroll', onScroll);
                 return;
             }
-            const offset = (parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop) || 0) + 8;
+            const offset = stickyHeaderBottom() + TOC_SCROLL_GAP + 8;
             let current = -1;
             headings.forEach((heading, index) => {
                 if (heading.getBoundingClientRect().top <= offset) current = index;
