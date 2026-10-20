@@ -104,9 +104,10 @@
 - 这些视图的 DOM 是 `<section class="category-section" id="frequent|pinned|recent|private|search">`，`isVirtualSection(id)` 判断；
   编辑、删除、切换收藏靠卡片上的 `data-original-category` 找回原分类。这些视图用 `renderVirtualViews()` 一起重渲染
 - 普通分类 section 渲染在 `#tab-all` 里；`showCategory()` 会先切到「全部网站」
-- 虚拟视图（含搜索结果）的卡片在网址右侧显示所属分类（`.card-category`，`cardCategoryHTML()`），按 `originalCategory` 查 `window.categories` 的名称，
-  分类 section 里的卡片没有 `originalCategory`，不显示。标签和 `.card-url` 一起包在 `.card-meta` 里但不在 `.card-url` 里面（它的 `textContent` 要保持是完整网址）；
-  手机宫格跟网址一起隐藏，私密卡片跟着模糊
+- 虚拟视图（含搜索结果）的卡片在描述末尾显示所属分类（`.card-category`，`cardCategoryHTML()`），按 `originalCategory` 查 `window.categories` 的名称，
+  分类 section 里的卡片没有 `originalCategory`，不显示。有标签时描述外面包两层（`.card-desc` > `.card-desc-clamp`），两行截断挪到外层，
+  `.card-description` 变成行内元素、只放描述文字（悬浮提示、编辑、搜索高亮都读它的 `textContent`），标签靠浮动压在最后一行末尾。
+  压缩模式和手机宫格跟描述一起隐藏，私密卡片跟着模糊
 - 搜索始终搜全部网站（不含私密）：有关键词时加 `body.searching`，临时显示 `#tab-search`，清空后回到原 tab。
   结果不按分类分组，按添加时间从新到旧平铺（`renderSearchResults()`，和最近添加共用 `compareByAddedTimeDesc`），
   `#search` 也是虚拟视图，跟着 `renderVirtualViews()` 重渲染；搜索中点侧边栏分类会结束搜索并跳到该分类

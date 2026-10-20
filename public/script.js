@@ -254,7 +254,7 @@ document.addEventListener('error', (e) => {
 
 // 分类以外的分区（特别关注、最近添加、访问最多、私密收藏、搜索结果）不按分类分组，
 // 卡片上标出所属分类。只有 collectAllWebsites() 取出的网站带 originalCategory，分类 section 里的卡片不显示。
-// 不放进 .card-url：打开、复制、编辑都读它的 textContent
+// 不放进 .card-description：悬浮提示、编辑、搜索高亮都读它的 textContent
 function cardCategoryHTML(categoryId) {
     if (!categoryId) return '';
     const category = (window.categories || []).find(item => item.id === categoryId);
@@ -281,6 +281,12 @@ function createCardHTML(website) {
         ? `<img src="${escapeHtml(website.imageData)}" alt="${escapeHtml(website.title)}">`
         : letterIconHTML(website.title, website.url);
 
+    const descriptionHTML = hasSecretDescription(website)
+        ? `<div class="card-description card-secret" title="点击查看描述">${SECRET_DESCRIPTION_MASK}</div>`
+        : `<div class="card-description">${escapeHtml(website.description)}</div>`;
+    // 分类标签跟在描述末尾，和描述一起包一层；分类 section 里的卡片没有标签，结构和以前一样
+    const categoryHTML = cardCategoryHTML(website.originalCategory);
+
     return `
         <div class="website-card ${pinnedClass} ${privateClass} ${descHiddenClass}" data-weight="${weight}">
             <button class="card-pin-btn" title="取消特别关注" aria-label="取消特别关注"><i class="fas fa-star"></i></button>
@@ -290,15 +296,10 @@ function createCardHTML(website) {
                 </div>
                 <div>
                     <div class="card-title">${escapeHtml(website.title)}</div>
-                    <div class="card-meta">
-                        <div class="card-url">${cardUrlHTML(website.url)}</div>
-                        ${cardCategoryHTML(website.originalCategory)}
-                    </div>
+                    <div class="card-url">${cardUrlHTML(website.url)}</div>
                 </div>
             </div>
-            ${hasSecretDescription(website)
-                ? `<div class="card-description card-secret" title="点击查看描述">${SECRET_DESCRIPTION_MASK}</div>`
-                : `<div class="card-description">${escapeHtml(website.description)}</div>`}
+            ${categoryHTML ? `<div class="card-desc"><div class="card-desc-clamp">${categoryHTML}${descriptionHTML}</div></div>` : descriptionHTML}
             <div class="card-footer">
                 <button class="card-menu-btn" aria-label="菜单">
                     <i class="fas fa-minus"></i>
