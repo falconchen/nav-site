@@ -4699,6 +4699,121 @@ button.doc-back {
   color: var(--accent);
 }
 
+/* 记事大纲（note-render.js 的 mountNoteToc()）：窄屏是正文上方可展开的一块，宽屏固定在正文右侧 */
+.note-toc {
+  margin-bottom: 24px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+}
+
+.note-toc-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 14px;
+  font: inherit;
+  font-size: 13.5px;
+  color: var(--ink-2);
+  background: none;
+  border: none;
+  border-radius: inherit;
+  cursor: pointer;
+}
+
+.note-toc-toggle:hover {
+  color: var(--ink);
+}
+
+.note-toc-count {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ink-4);
+}
+
+.note-toc-caret {
+  margin-left: auto;
+  font-size: 11px;
+  transition: transform 0.2s var(--ease);
+}
+
+.note-toc.open .note-toc-caret {
+  transform: rotate(180deg);
+}
+
+.note-toc-heading {
+  display: none;
+}
+
+.note-toc-list {
+  display: none;
+  padding: 2px 8px 10px;
+  list-style: none;
+}
+
+.note-toc.open .note-toc-list {
+  display: block;
+}
+
+.note-toc-item {
+  display: block;
+  width: 100%;
+  padding: 5px 8px 5px calc(8px + var(--toc-depth, 0) * 14px);
+  font: inherit;
+  font-size: 13.5px;
+  line-height: 1.5;
+  text-align: left;
+  color: var(--ink-2);
+  background: none;
+  border: none;
+  border-left: 2px solid transparent;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+.note-toc-item:hover {
+  color: var(--ink);
+  background: var(--paper-sunk);
+}
+
+.note-toc-item[aria-current="true"] {
+  color: var(--accent);
+  border-left-color: var(--accent);
+}
+
+/* 正文栏 820px 居中，右边空出 220px 以上才把大纲放过去 */
+@media (min-width: 1360px) {
+  .note-toc {
+    position: fixed;
+    top: calc(var(--header-h) + 64px);
+    left: calc(50% + 410px + 16px);
+    width: min(240px, calc(50vw - 410px - 40px));
+    max-height: calc(100vh - var(--header-h) - 112px);
+    margin: 0;
+    overflow-y: auto;
+    border: none;
+    overscroll-behavior: contain;
+  }
+
+  .note-toc-toggle {
+    display: none;
+  }
+
+  .note-toc-heading {
+    display: block;
+    padding: 0 10px 8px;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    color: var(--ink-3);
+  }
+
+  .note-toc-list,
+  .note-toc.open .note-toc-list {
+    display: block;
+    padding: 0;
+  }
+}
+
 /* 记事正文。全局 reset 把间距都清零了，Markdown 渲染出来的元素要在这里补回去 */
 .note-content {
   font-size: 15.5px;

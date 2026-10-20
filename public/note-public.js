@@ -2,7 +2,7 @@
 // 内容是别人写的，渲染一律走 note-render.js 的过滤
 (function () {
     const container = document.getElementById('publicNote');
-    const { renderNoteContent, formatNoteTime } = NoteRender;
+    const { renderNoteContent, mountNoteToc, formatNoteTime } = NoteRender;
     const NOT_FOUND = '这条记事不存在，或者作者已经取消发布。';
 
     function showMessage(text) {
@@ -15,6 +15,7 @@
         container.innerHTML = `
             <p class="note-meta">${escapeHtml(formatNoteTime(note.updatedAt))}修改 · ${note.content.length.toLocaleString('zh-CN')} 字</p>
             <article class="note-content${plain ? ' note-plain' : ''}">${html}</article>`;
+        if (!plain) mountNoteToc(container.querySelector('.note-content'));
     }
 
     // 服务端（/n/:id 路由）内联的数据：{ note } 或 { note: null }。超限、存储故障时不内联，返回 undefined

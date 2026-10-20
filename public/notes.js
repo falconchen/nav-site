@@ -25,7 +25,7 @@
         NETWORK: '网络连接失败，稍后再试'
     };
 
-    const { renderNoteContent, formatNoteTime, noteFileName, downloadBlob, downloadNote } = NoteRender;
+    const { renderNoteContent, mountNoteToc, formatNoteTime, noteFileName, downloadBlob, downloadNote } = NoteRender;
     const app = document.getElementById('notesApp');
 
     // 索引（不含正文）在页面里缓存一份，各视图共用
@@ -475,6 +475,7 @@
                     <button type="button" class="btn btn-secondary note-danger" data-action="delete"><i class="fas fa-trash"></i> 删除</button>
                 </div>
             </div>`;
+        if (!plain) mountNoteToc(app.querySelector('.note-content'));
     }
 
     // 查看视图的操作都要用到完整的记事，放在闭包里

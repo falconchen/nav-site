@@ -374,6 +374,10 @@ Claude 走 CIMD 没问题，授权页显示核实过的域名。**ChatGPT 的 CI
 - 正文渲染一律走 `note-render.js` 的 `renderNoteContent()`：Markdown 是 `marked` → `DOMPurify`（禁 `style` / `class` / `id`、表单类标签，
   输入框只留禁用的勾选框，链接加 `rel="noopener nofollow ugc"`）；纯文本是 `escapeHtml` + 网址变链接。库没加载上时退回纯文本，不显示没过滤的 HTML。
   **公开页渲染的是别人写的内容，不要绕过这个函数直接往 innerHTML 塞正文**
+- 大纲（TOC）：查看页和公开页的 Markdown 记事渲染后调 `mountNoteToc()`（`note-render.js`），取 h1～h4 生成，插在正文前面；
+  正文第一个元素就是标题时它是记事标题，不进大纲，剩下不到 2 个就不显示。标题上没有 id（DOMPurify 禁了 `id`），记事本页又是 hash 路由，
+  所以条目是按钮、点击 `scrollIntoView`，不要改成 `#锚点` 链接。滚动时高亮当前一节（`aria-current`），视图被重画后监听在下次滚动时自己摘掉。
+  宽屏（≥1360px）固定在正文栏右侧，窄屏是正文上方默认收起的一块。编辑预览不加大纲
 - `public/vendor/marked.min.js` 由 `npm run build:markdown` 生成：保留 marked 18.0.14 的官方 UMD 入口，附加 marked-cjk-friendly 0.1.2（均为 MIT），
   修复 `**中文。**下一句` 等中文强调边界。`npm run build` 会自动重新生成；不要手改 vendor 文件。详见 `docs/notes-markdown.md`
 - `purify.min.js`（DOMPurify 3.4.16，MPL-2.0 / Apache-2.0，包里的 `dist/purify.min.js`）原样放进来只去掉 sourceMappingURL；这两个库只在记事本两个页面加载

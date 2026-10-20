@@ -71,6 +71,96 @@
         return { html: renderPlain(text), plain: true };
     }
 
+    // ---- 大纲 ----
+    // 正文过了 DOMPurify，标题上没有 id（禁掉了），记事本页又靠 hash 路由，所以大纲不用锚点链接，
+    // 点击时直接 scrollIntoView 到对应的标题元素
+    const TOC_SELECTOR = 'h1, h2, h3, h4';
+    const TOC_MIN_ITEMS = 2;
+
+    function tocHeadings(article) {
+        const headings = Array.from(article.querySelectorAll(TOC_SELECTOR)).filter(h => h.textContent.trim());
+        // 正文第一行写成 `# 标题` 时它就是记事标题，不进大纲
+        if (headings[0] && headings[0] === article.firstElementChild) headings.shift();
+        return headings;
+    }
+
+    const headingLevel = heading => Number(heading.tagName.slice(1));
+
+    /**
+     * 给渲染好的 Markdown 正文加大纲，插在 article 前面。标题不到 2 个时不加
+     * @returns {HTMLElement|null}
+     */
+    function mountNoteToc(article) {
+        const headings = tocHeadings(article);
+        if (headings.length < TOC_MIN_ITEMS) return null;
+
+        const topLevel = Math.min(...headings.map(headingLevel));
+        const nav = document.createElement('nav');
+        nav.className = 'note-toc';
+        nav.setAttribute('aria-label', '大纲');
+        nav.innerHTML = `
+            <button type="button" class="note-toc-toggle" aria-expanded="false">
+                <i class="fas fa-list-ul"></i> 大纲 <span class="note-toc-count">${headings.length}</span>
+                <i class="fas fa-chevron-down note-toc-caret"></i>
+            </button>
+            <p class="note-toc-heading">大纲</p>
+            <ol class="note-toc-list"></ol>`;
+        const list = nav.querySelector('.note-toc-list');
+        const items = headings.map((heading, index) => {
+            const item = document.createElement('li');
+            item.style.setProperty('--toc-depth', headingLevel(heading) - topLevel);
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'note-toc-item';
+            button.dataset.tocIndex = index;
+            button.textContent = heading.textContent.trim();
+            item.appendChild(button);
+            list.appendChild(item);
+            return button;
+        });
+        article.before(nav);
+
+        const toggle = nav.querySelector('.note-toc-toggle');
+        nav.addEventListener('click', e => {
+            if (e.target.closest('.note-toc-toggle')) {
+                const open = !nav.classList.contains('open');
+                nav.classList.toggle('open', open);
+                toggle.setAttribute('aria-expanded', String(open));
+                return;
+            }
+            const button = e.target.closest('.note-toc-item');
+            if (!button) return;
+            const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            headings[Number(button.dataset.tocIndex)].scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+        });
+
+        // 高亮当前读到的那一节：最后一个顶端已经越过页眉的标题
+        let frame = 0;
+        function highlight() {
+            frame = 0;
+            // 记事本页切走时整块重画，旧的大纲不在页面上了，顺手摘掉监听
+            if (!nav.isConnected) {
+                window.removeEventListener('scroll', onScroll);
+                return;
+            }
+            const offset = (parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop) || 0) + 8;
+            let current = -1;
+            headings.forEach((heading, index) => {
+                if (heading.getBoundingClientRect().top <= offset) current = index;
+            });
+            items.forEach((button, index) => {
+                if (index === current) button.setAttribute('aria-current', 'true');
+                else button.removeAttribute('aria-current');
+            });
+        }
+        function onScroll() {
+            if (!frame) frame = requestAnimationFrame(highlight);
+        }
+        window.addEventListener('scroll', onScroll, { passive: true });
+        highlight();
+        return nav;
+    }
+
     function formatNoteTime(value, now = Date.now()) {
         const time = new Date(value).getTime();
         if (Number.isNaN(time)) return '';
@@ -120,5 +210,5 @@
         downloadBlob(new Blob([String(note.content ?? '')], { type: type + ';charset=utf-8' }), noteFileName(note));
     }
 
-    globalThis.NoteRender = { renderNoteContent, renderPlain, formatNoteTime, noteFileName, downloadBlob, downloadNote };
+    globalThis.NoteRender = { renderNoteContent, renderPlain, mountNoteToc, formatNoteTime, noteFileName, downloadBlob, downloadNote };
 })();
