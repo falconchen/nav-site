@@ -88,7 +88,7 @@
 
     // 标题停在吸顶页眉下面留这么多空。不用 scrollIntoView + 全站的 scroll-padding-top：
     // 那个值算进了首页 tab 栏的高度，记事本页没有 tab 栏，标题上方会多空出一截
-    const TOC_SCROLL_GAP = 12;
+    const TOC_SCROLL_GAP = 8;
 
     function stickyHeaderBottom() {
         return document.querySelector('.header')?.getBoundingClientRect().bottom || 0;
