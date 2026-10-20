@@ -15,7 +15,7 @@ const SUPPORTED_VERSIONS = [...MODERN_VERSIONS, ...LEGACY_VERSIONS];
 
 // 每次改 MCP 的功能都要升 version，规则见 CLAUDE.md「MCP」一节。握手和每条结果里都会带上它，排查「客户端连的是不是新版本」时用。
 // 注意 ChatGPT 插件页上的「版本」不是这个值，那是它自己的插件清单里的
-export const SERVER_INFO = { name: 'pipi2047', title: '皮皮2047', version: '1.2.0' };
+export const SERVER_INFO = { name: 'pipi2047', title: '皮皮2047', version: '1.3.0' };
 
 const META_VERSION = 'io.modelcontextprotocol/protocolVersion';
 const META_SERVER_INFO = 'io.modelcontextprotocol/serverInfo';

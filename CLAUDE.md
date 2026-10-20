@@ -248,9 +248,9 @@ Claude 走 CIMD 没问题，授权页显示核实过的域名。**ChatGPT 的 CI
   那是 ChatGPT 自己的插件清单里的字段，「开发者」「类别」「网站」同理），在 ChatGPT 里确认新版本只能看「管理」里的工具列表。
   加工具、加参数、改工具行为升次版本（1.1.0 → 1.2.0）；
   删工具、改工具名、改掉已有参数这类会让旧用法失效的升主版本（1.2.0 → 2.0.0）；只修 bug、改说明文字升修订号（1.1.0 → 1.1.1）。
-  只动授权页、文档、测试不用升。1.1.0 是加 `update_bookmarks` 那一版，1.2.0 加了 `delete_bookmarks`
+  只动授权页、文档、测试不用升。1.1.0 是加 `update_bookmarks` 那一版，1.2.0 加了 `delete_bookmarks`，1.3.0 记事结果带链接、加了 `set_note_public`
 - 工具列表顺序固定（客户端和模型的提示词缓存都依赖它），加工具往整个列表的最后加，不是往同类工具后面插
-  （所以 `update_bookmarks`、`delete_bookmarks` 排在记事本工具后面，见 `bookmarkEditTools`）
+  （所以 `update_bookmarks`、`delete_bookmarks` 排在记事本工具后面，见 `bookmarkEditTools`；`set_note_public` 又排在它们后面，见 `noteSharingTools`）
 
 **工具**（`tools-bookmarks.js`、`tools-notes.js`）：
 
@@ -269,7 +269,10 @@ Claude 走 CIMD 没问题，授权页显示核实过的域名。**ChatGPT 的 CI
 - 「最近关注」按 `pinnedOrder` 倒序：数据里没有关注时间，这是近似
 - 记事本工具直接调 `notes-store.js`，不经过 `/api/notes`。**所有个人令牌都能经 MCP 读写记事本**（包括扩展用的那个），这是用户明确选的；`/api/notes` 仍然只认网页登录
 - `update_note` 改写整篇必须带 `base_updated_at`（逼模型先读再改，复用 `NOTE_CONFLICT`），追加用 `mode: "append"`：
-  记事本没有回收站和版本历史，模型重写长文容易悄悄丢内容。不提供发布 / 取消公开链接，也不返回 `publicId`
+  记事本没有回收站和版本历史，模型重写长文容易悄悄丢内容
+- 记事结果都带 `url`（`<origin>/notes.html#/n/<id>`，记事本页的地址，要登录）和 `publicUrl`（`<origin>/n/<publicId>`，没公开时 null），
+  origin 取自这次 MCP 请求的地址。`set_note_public` 调 `publishNote()` / `unpublishNote()`，公开和取消公开都是用户后来要求加的
+  （最初故意不给 AI 公开链接）；工具说明要求模型只在用户明确要求时公开
 - 限流都按用户（MCP 请求来自 AI 服务商的机房，按 IP 没意义）：总调用 `mcp_call` 120 次/分钟、添加和修改收藏 `mcp_bookmark_write` 30 次/分钟（按调用算，不按条数），
   记事本写操作和网页端共用 `notes_write`
 

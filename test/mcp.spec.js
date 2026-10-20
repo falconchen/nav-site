@@ -252,7 +252,7 @@ describe('MCP', () => {
                 'list_note_folders', 'list_notes', 'get_note', 'create_note', 'update_note', 'delete_note',
                 'create_note_folder', 'rename_note_folder', 'delete_note_folder',
                 // 后加的工具排在最后，前面的顺序不变
-                'update_bookmarks', 'delete_bookmarks'
+                'update_bookmarks', 'delete_bookmarks', 'set_note_public'
             ]);
             for (const item of result.tools) {
                 expect(item.inputSchema.type).toBe('object');
@@ -309,7 +309,7 @@ describe('MCP', () => {
             expect(listed.status).toBe(200);
             const { result } = await listed.json();
             expect(result.resultType).toBe('complete');
-            expect(result.tools).toHaveLength(14);
+            expect(result.tools).toHaveLength(15);
             expect(result.ttlMs).toBeGreaterThan(0);
             expect(result.cacheScope).toBe('public');
 
@@ -748,6 +748,8 @@ describe('MCP', () => {
             expect(note.syntax).toBe('markdown');
             expect(note.folder).toBe('对话总结');
             expect(note.published).toBe(false);
+            expect(note.url).toBe(`https://nav.test/notes.html#/n/${note.id}`);
+            expect(note.publicUrl).toBeNull();
 
             const folders = await tool('list_note_folders');
             expect(folders).toEqual({ folders: [{ id: folder.id, name: '对话总结', count: 1 }], unfiled: 0, total: 1 });
@@ -862,14 +864,47 @@ describe('MCP', () => {
             expect((await tool('get_note', { id: note.id })).content).toBe('A 的记事');
         });
 
-        it('网页端发布过的记事只告诉 AI 已发布，不给公开链接', async () => {
+        it('网页端发布过的记事，读取时带上公开链接', async () => {
             const { note } = await tool('create_note', { content: '公开的' });
             const published = await request(`/api/notes/${note.id}/publish`, { method: 'POST', token: jwtA });
             const { publicId } = (await published.json()).note;
 
             const seen = await tool('get_note', { id: note.id });
             expect(seen.published).toBe(true);
-            expect(JSON.stringify(seen)).not.toContain(publicId);
+            expect(seen.publicUrl).toBe(`https://nav.test/n/${publicId}`);
+            expect((await tool('list_notes')).items[0].publicUrl).toBe(seen.publicUrl);
+        });
+
+        it('公开后任何人都能通过公开链接读到，取消公开后旧链接立即失效', async () => {
+            const { note } = await tool('create_note', { content: '# 分享给大家\n\n正文' });
+
+            const opened = await tool('set_note_public', { id: note.id, public: true });
+            expect(opened.note.published).toBe(true);
+            const publicId = opened.note.publicUrl.split('/n/')[1];
+            expect(opened.note.publicUrl).toBe(`https://nav.test/n/${publicId}`);
+
+            const read = await request(`/api/public/notes/${publicId}`);
+            expect(read.status).toBe(200);
+            expect((await read.json()).note.title).toBe('分享给大家');
+
+            // 已经公开的再设一次不换链接
+            expect((await tool('set_note_public', { id: note.id, public: true })).note.publicUrl).toBe(opened.note.publicUrl);
+
+            const closed = await tool('set_note_public', { id: note.id, public: false });
+            expect(closed.note).toMatchObject({ published: false, publicUrl: null });
+            expect((await request(`/api/public/notes/${publicId}`)).status).toBe(404);
+
+            // 再公开换新链接
+            const reopened = await tool('set_note_public', { id: note.id, public: true });
+            expect(reopened.note.publicUrl).not.toBe(opened.note.publicUrl);
+        });
+
+        it('公开别人的记事、不存在的记事都会失败', async () => {
+            const { note } = await tool('create_note', { content: 'A 的记事' });
+            expect((await tool('set_note_public', { id: note.id, public: true }, patB)).isError).toBe(true);
+            expect((await tool('get_note', { id: note.id })).published).toBe(false);
+            expect((await tool('set_note_public', { id: 'nope', public: true })).isError).toBe(true);
+            expect((await tool('set_note_public', { id: note.id })).isError).toBe(true);
         });
 
         it('存储故障时不把原因当成「没有数据」', async () => {

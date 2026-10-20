@@ -1,9 +1,10 @@
 /**
- * MCP 的记事本工具：文件夹和记事的增删改查
+ * MCP 的记事本工具：文件夹和记事的增删改查，公开 / 取消公开
  *
- * 直接调 notes-store.js，不经过 /api/notes（那组接口只认网页登录）。不提供发布 / 取消公开链接。
+ * 直接调 notes-store.js，不经过 /api/notes（那组接口只认网页登录）。
  * 记事没有回收站和版本历史，所以改写整篇必须带 base_updated_at，逼调用方先读再改；
  * 只是往后加内容就用 append，免得模型为了加一段话把长文重写一遍、悄悄丢掉内容。
+ * 每条记事都带上它在记事本页的链接（要登录才能看）和公开链接（发布过才有）。
  */
 
 import { isRateLimited } from '../lib/rate-limit.js';
@@ -18,7 +19,9 @@ import {
     deleteNote,
     getNote,
     listNotes,
+    publishNote,
     renameFolder,
+    unpublishNote,
     updateNote
 } from '../lib/notes-store.js';
 import { ToolError } from './protocol.js';
@@ -39,6 +42,7 @@ const NOTE_ERROR_MESSAGES = {
     FOLDER_LIMIT: `文件夹数量已达上限（${LIMITS.maxFolders} 个）。`,
     FOLDER_EXISTS: '已经有同名的文件夹了。',
     INVALID_FOLDER_NAME: '文件夹名称不能为空。',
+    PUBLIC_LIMIT: `公开的记事已达上限（${LIMITS.maxPublicNotes} 条），请先取消公开一些。`,
     NOTE_CONFLICT: '这条记事在别处被改过了。请重新调用 get_note 拿到最新内容和 updatedAt，在最新内容上修改后再提交。'
 };
 
@@ -82,7 +86,8 @@ function resolveFolder(folders, ref) {
     return folder;
 }
 
-function noteView(note, folders) {
+// url 是记事本页里这条记事的地址，要登录才能看；publicUrl 是公开链接，没发布时为 null
+function noteView(note, folders, origin) {
     return {
         id: note.id,
         title: note.title,
@@ -91,7 +96,9 @@ function noteView(note, folders) {
         length: note.length,
         createdAt: note.createdAt,
         updatedAt: note.updatedAt,
-        published: !!note.publicId
+        published: !!note.publicId,
+        url: `${origin}/notes.html#/n/${note.id}`,
+        publicUrl: note.publicId ? `${origin}/n/${note.publicId}` : null
     };
 }
 
@@ -134,7 +141,7 @@ const list = {
         additionalProperties: false
     },
     annotations: { readOnlyHint: true, openWorldHint: false },
-    handler: wrap(async (args, { env, userId }) => {
+    handler: wrap(async (args, { env, userId, origin }) => {
         const { notes, folders } = await listNotes(env, userId);
 
         let matched = notes;
@@ -153,7 +160,7 @@ const list = {
         return {
             total: matched.length,
             offset,
-            items: matched.slice(offset, offset + limit).map((note) => noteView(note, folders))
+            items: matched.slice(offset, offset + limit).map((note) => noteView(note, folders, origin))
         };
     })
 };
@@ -169,12 +176,12 @@ const get = {
         additionalProperties: false
     },
     annotations: { readOnlyHint: true, openWorldHint: false },
-    handler: wrap(async (args, { env, userId }) => {
+    handler: wrap(async (args, { env, userId, origin }) => {
         const [note, { folders }] = await Promise.all([
             getNote(env, userId, args.id),
             listNotes(env, userId)
         ]);
-        return { ...noteView(note, folders), content: note.content };
+        return { ...noteView(note, folders, origin), content: note.content };
     })
 };
 
@@ -197,7 +204,7 @@ const create = {
         additionalProperties: false
     },
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
-    handler: wrap(async (args, { env, userId }) => {
+    handler: wrap(async (args, { env, userId, origin }) => {
         const { folders } = await listNotes(env, userId);
         const folder = args.folder === undefined ? null : resolveFolder(folders, args.folder);
         const note = await createNote(env, userId, {
@@ -205,7 +212,7 @@ const create = {
             syntax: args.syntax || 'markdown',
             folderId: folder?.id || null
         });
-        return { created: true, note: noteView(note, folders) };
+        return { created: true, note: noteView(note, folders, origin) };
     }, { write: true })
 };
 
@@ -232,7 +239,7 @@ const update = {
         additionalProperties: false
     },
     annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false },
-    handler: wrap(async (args, { env, userId }) => {
+    handler: wrap(async (args, { env, userId, origin }) => {
         const { folders } = await listNotes(env, userId);
         const changes = {};
 
@@ -260,7 +267,7 @@ const update = {
         }
 
         const note = await updateNote(env, userId, args.id, changes);
-        return { updated: true, note: noteView(note, folders) };
+        return { updated: true, note: noteView(note, folders, origin) };
     }, { write: true })
 };
 
@@ -347,4 +354,36 @@ const deleteFolderTool = {
     }, { write: true })
 };
 
+const setPublic = {
+    name: 'set_note_public',
+    title: '公开或取消公开记事',
+    description: [
+        '把一条记事设为公开或取消公开。公开后任何拿到公开链接的人都能看到正文（不需要登录，页面不显示作者），',
+        '只在用户明确要求公开时调用。已经公开的再设一次不会换链接；取消公开后旧链接立即失效，以后再公开会换一个新链接。',
+        '返回的 publicUrl 就是公开链接。'
+    ].join(''),
+    inputSchema: {
+        type: 'object',
+        properties: {
+            id: { type: 'string', description: '记事 id。' },
+            public: { type: 'boolean', description: 'true 公开，false 取消公开。' }
+        },
+        required: ['id', 'public'],
+        additionalProperties: false
+    },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    handler: wrap(async (args, { env, userId, origin }) => {
+        if (typeof args.public !== 'boolean') {
+            throw new ToolError('public 只能是 true 或 false。');
+        }
+        const note = args.public
+            ? await publishNote(env, userId, args.id)
+            : await unpublishNote(env, userId, args.id);
+        const { folders } = await listNotes(env, userId);
+        return { note: noteView(note, folders, origin) };
+    }, { write: true })
+};
+
 export const noteTools = [listFolders, list, get, create, update, remove, createFolderTool, renameFolderTool, deleteFolderTool];
+// 后加的工具排在全部工具的最后，见 server/mcp/index.js
+export const noteSharingTools = [setPublic];
