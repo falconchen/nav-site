@@ -1880,19 +1880,12 @@ html[data-sidebar="compact"] .category-section {
 }
 
 .card-description.card-secret {
-  cursor: pointer;
   color: var(--ink-3);
   letter-spacing: 0.06em;
 }
 
-.card-description.card-secret.revealed {
-  color: var(--ink-2);
-  letter-spacing: normal;
-  user-select: text;
-}
-
 /* 搜索只在被遮住的描述里匹配到时，占位符后面提示一句，明文照样不露 */
-.card-description.card-secret.desc-match:not(.revealed)::after {
+.card-description.card-secret.desc-match::after {
   content: " · 描述中有匹配";
   color: var(--accent);
   letter-spacing: normal;

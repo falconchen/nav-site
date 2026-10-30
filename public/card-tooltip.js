@@ -96,8 +96,8 @@
 
         const title = textOf(card, '.card-title');
         if (!title) return;
-        // 隐藏描述的卡片，描述点开前提示里也只显示掩码
-        const masked = !!card.querySelector('.card-secret:not(.revealed)');
+        // 隐藏描述的卡片，提示里也只显示掩码
+        const masked = !!card.querySelector('.card-secret');
         const description = masked ? '••••••' : textOf(card, '.card-description');
         data = { title, url: textOf(card, '.card-url') };
 
@@ -265,13 +265,6 @@
     document.addEventListener('contextmenu', (e) => {
         if (!contains(tooltip, e.target)) hide();
     }, true);
-    // 私密卡片点开或收起描述时，点击已经把提示收掉了，鼠标还在卡片上就按新状态重新显示
-    document.addEventListener('private-card-change', (e) => {
-        const card = e.target;
-        if (!canHover.matches || !card.matches(':hover')) return;
-        hoverCard = card;
-        scheduleShow(card);
-    });
     window.addEventListener('scroll', hide, true);
     window.addEventListener('resize', hide);
     window.addEventListener('blur', hide);

@@ -297,7 +297,7 @@ function createCardHTML(website) {
                 </div>
             </div>
             ${hasSecretDescription(website)
-                ? `<div class="card-description card-secret" title="点击查看描述">${SECRET_DESCRIPTION_MASK}</div>`
+                ? `<div class="card-description card-secret">${SECRET_DESCRIPTION_MASK}</div>`
                 : `<div class="card-description">${escapeHtml(website.description)}</div>`}
             <div class="card-footer">
                 <button class="card-menu-btn" aria-label="菜单">
@@ -308,10 +308,10 @@ function createCardHTML(website) {
     `;
 }
 
-// 「隐藏描述」的网站，描述里记着账号密码，默认只渲染占位符，
-// 真实文本登记在 secretDescriptions（按卡片元素），点击后才填进 DOM。
+// 「隐藏描述」的网站，描述里记着账号密码，卡片上只渲染掩码占位符，
+// 真实文本登记在 secretDescriptions（按卡片元素），仅通过菜单里的「查看描述」弹窗显示。
 // 私密网站不走这套：和隐藏描述互斥，描述照常显示，只跟着卡片一起模糊
-const SECRET_DESCRIPTION_MASK = '•••••• 点击查看';
+const SECRET_DESCRIPTION_MASK = '•••••• 已隐藏描述';
 const secretDescriptions = new WeakMap();
 
 function hasSecretDescription(website) {
@@ -329,21 +329,6 @@ function appendCards(container, sites) {
         }
     });
     return cards;
-}
-
-function toggleSecretDescription(card) {
-    const description = card.querySelector('.card-description');
-    if (!description) return;
-    const revealed = description.classList.toggle('revealed');
-    description.textContent = revealed
-        ? (secretDescriptions.get(card) || '（无描述）')
-        : SECRET_DESCRIPTION_MASK;
-    notifyPrivateCardChange(card);
-}
-
-// 鼠标一直停在卡片上不会再触发 mouseover，通知悬浮提示按新状态显示或收起
-function notifyPrivateCardChange(card) {
-    card.dispatchEvent(new CustomEvent('private-card-change', { bubbles: true }));
 }
 
 // 私密卡片的图标、标题、网址、描述默认模糊（CSS 按 .revealed 切换），只有这里能让它们变清晰。
@@ -369,22 +354,12 @@ function updatePrivateRevealAllBtn() {
     btn.title = privateAllRevealed ? '重新模糊全部网站' : '显示全部网站';
 }
 
-// 离开私密收藏分区时恢复模糊，描述也收起；重新渲染出来的卡片本来就是模糊的
+// 离开私密收藏分区时恢复模糊；重新渲染出来的卡片本来就是模糊的
 function reblurPrivateCards() {
     privateAllRevealed = false;
     updatePrivateRevealAllBtn();
     document.querySelectorAll('.private-card.revealed').forEach(card => {
         card.classList.remove('revealed');
-    });
-    remaskDescriptions();
-}
-
-// 点开过的隐藏描述收回占位符。切换 tab 时调用，账号信息不会一直留在屏幕上。
-// 页面转到后台时不收：点开密码后常要去打开网站登录，切回来还得接着复制
-function remaskDescriptions() {
-    document.querySelectorAll('.card-secret.revealed').forEach(description => {
-        description.classList.remove('revealed');
-        description.textContent = SECRET_DESCRIPTION_MASK;
     });
 }
 
@@ -1977,7 +1952,7 @@ function togglePrivateStatus(card) {
     }
 }
 
-// 「查看描述」弹窗：压缩视图和手机宫格不显示描述，靠它查看和复制
+// 「查看描述」弹窗：隐藏描述的网站，以及压缩视图和手机宫格不显示描述时，靠它查看和复制
 function openDescriptionModal(card) {
     const title = card.querySelector('.card-title').textContent;
     const description = secretDescriptions.has(card)
@@ -2191,7 +2166,7 @@ function highlightSearchResults(container, searchTerm) {
             ? `<span class="card-url-protocol">${escapeHtml(match[1])}</span>${mark(match[2])}`
             : mark(url.textContent);
 
-        // 被遮住的描述不高亮，占位符和点开的明文都原样保留
+        // 被遮住的描述不高亮，原样保留掩码占位符
         const description = card.querySelector('.card-description');
         if (!description.classList.contains('card-secret')) {
             description.innerHTML = mark(description.textContent);
@@ -2390,12 +2365,6 @@ function handleCardClick(e) {
 
     // 如果点击了菜单按钮或context菜单，不执行卡片点击
     if (e.target.closest('.context-menu') || e.target.closest('.card-menu-btn') || e.target.closest('.card-pin-btn')) return;
-
-    // 点隐藏描述卡片的描述是显示/收起描述，不打开网站
-    if (e.target.closest('.card-secret')) {
-        if (e.button === 0) toggleSecretDescription(this);
-        return;
-    }
 
     // 如果按住Ctrl键点击，则编辑网站
     if (e.ctrlKey) {

@@ -135,7 +135,6 @@ function enterReorderMode() {
     if (tab === 'private' && !isPrivateRevealed()) return;
 
     hideContextMenu();
-    remaskDescriptions();
 
     const state = { tab, sortables: [], siteOf: new WeakMap(), dirty: false, blurAfter: false };
     reorderSectionIds(tab).forEach(sectionId => {
