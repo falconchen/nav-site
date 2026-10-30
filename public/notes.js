@@ -436,10 +436,14 @@
 
     // ---- 视图：查看 ----
 
+    // 渲染记事详情视图（顶部面包屑导航、正文卡片及底部操作按钮）
     function renderNote(note) {
         setTitle(note.title);
         const { html, plain } = renderNoteContent(note.content, note.syntax);
         const publicUrl = note.publicId ? `${location.origin}/n/${note.publicId}` : '';
+        const folder = folderName(note.folderId);
+        const categoryName = folder || '未归档';
+        const categoryHref = listHash(folder ? note.folderId : NO_FOLDER);
         const meta = [
             `${formatNoteTime(note.updatedAt)}修改`,
             `${note.length.toLocaleString('zh-CN')} 字`,
@@ -458,17 +462,18 @@
 
         app.innerHTML = `
             <div class="notes-bar note-detail-bar">
-                <a class="doc-back" href="${listHash(note.folderId || NO_FOLDER)}"><i class="fas fa-arrow-left"></i>返回</a>
-                <div class="note-detail-actions">
-                    <select class="form-select" name="folderId" data-action="move" aria-label="移动到文件夹">${folderOptions(note.folderId)}</select>
-                    <a class="btn btn-primary" href="#/n/${escapeHtml(note.id)}/edit"><i class="fas fa-pen"></i> 编辑</a>
-                </div>
+                <nav class="note-breadcrumb" aria-label="面包屑导航">
+                    <a class="note-breadcrumb-link" href="#/">记事本</a>
+                    <span class="note-breadcrumb-sep" aria-hidden="true">&gt;</span>
+                    <a class="note-breadcrumb-link" href="${categoryHref}">${escapeHtml(categoryName)}</a>
+                </nav>
+                <p class="note-meta">${meta}</p>
             </div>
-            <p class="note-meta">${meta}</p>
             <article class="note-content${plain ? ' note-plain' : ''}">${html}</article>
             ${publish}
             <div class="note-tools">
                 <div class="note-tools-buttons">
+                    <a class="btn btn-primary" href="#/n/${escapeHtml(note.id)}/edit"><i class="fas fa-pen"></i> 编辑</a>
                     <button type="button" class="btn btn-secondary" data-action="download"><i class="fas fa-download"></i> 下载笔记</button>
                     <button type="button" class="btn btn-secondary" data-action="copy"><i class="fas fa-copy"></i> 复制全文</button>
                     ${note.publicId ? '' : '<button type="button" class="btn btn-secondary" data-action="publish"><i class="fas fa-globe"></i> 公开发布</button>'}

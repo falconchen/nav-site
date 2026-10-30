@@ -4382,6 +4382,11 @@ html[data-tool="qrcode"] #tool-qrcode {
   display: none !important;
 }
 
+.notes-container {
+  padding-top: 32px;
+  padding-bottom: 64px;
+}
+
 .notes-page a.btn {
   text-decoration: none;
 }
@@ -4392,7 +4397,7 @@ html[data-tool="qrcode"] #tool-qrcode {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .notes-title {
@@ -4414,12 +4419,54 @@ html[data-tool="qrcode"] #tool-qrcode {
   margin-left: -12px;
 }
 
-.note-detail-bar,
+.note-detail-bar {
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin-bottom: 12px;
+}
+
+.note-detail-bar .note-meta {
+  margin-bottom: 0;
+}
+
+.note-breadcrumb {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  font-size: 13.5px;
+}
+
+.note-breadcrumb-link {
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 8px;
+  font-weight: 500;
+  color: var(--ink-2);
+  text-decoration: none;
+  border-radius: var(--r-sm);
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.note-breadcrumb-link:first-child {
+  margin-left: -8px;
+}
+
+.note-breadcrumb-link:hover {
+  color: var(--ink);
+  background: var(--paper-sunk);
+}
+
+.note-breadcrumb-sep {
+  color: var(--ink-3);
+  user-select: none;
+}
+
 .note-editor .notes-bar {
   flex-wrap: wrap;
 }
 
-.note-detail-actions,
 .note-editor-actions {
   display: flex;
   align-items: center;
@@ -4432,13 +4479,11 @@ html[data-tool="qrcode"] #tool-qrcode {
   min-width: 0;
 }
 
-.note-detail-actions .form-select,
 .note-editor-actions .note-tools-field .form-select {
   width: 160px;
   min-width: 0;
 }
 
-.note-detail-actions .btn,
 .note-editor-actions .btn {
   flex-shrink: 0;
 }
@@ -4576,7 +4621,7 @@ button.doc-back {
 }
 
 .note-meta {
-  margin-bottom: 20px;
+  margin-bottom: 12px;
 }
 
 .notes-badge {
@@ -4613,8 +4658,8 @@ button.doc-back {
   flex-wrap: wrap;
   align-items: center;
   gap: 12px 16px;
-  margin-top: 28px;
-  padding-top: 20px;
+  margin-top: 20px;
+  padding-top: 16px;
   border-top: 1px solid var(--line);
 }
 
@@ -4660,7 +4705,7 @@ button.doc-back {
 }
 
 .note-public {
-  margin-top: 28px;
+  margin-top: 16px;
   padding: 14px 16px;
   background: var(--accent-soft);
   border-radius: var(--r-md);
@@ -4735,7 +4780,7 @@ button.doc-back {
 
 /* 记事大纲（note-render.js 的 mountNoteToc()）：窄屏是正文上方可展开的一块，宽屏固定在正文右侧 */
 .note-toc {
-  margin-bottom: 24px;
+  margin-bottom: 14px;
   border: 1px solid var(--line);
   border-radius: var(--r-md);
 }
@@ -4819,10 +4864,10 @@ button.doc-back {
 @media (min-width: 1360px) {
   .note-toc {
     position: fixed;
-    top: calc(var(--header-h) + 64px);
+    top: calc(var(--header-h) + 32px);
     left: calc(50% + 410px + 16px);
     width: min(240px, calc(50vw - 410px - 40px));
-    max-height: calc(100vh - var(--header-h) - 112px);
+    max-height: calc(100vh - var(--header-h) - 64px);
     margin: 0;
     overflow-y: auto;
     border: none;
@@ -4850,9 +4895,12 @@ button.doc-back {
 
 /* 记事正文。全局 reset 把间距都清零了，Markdown 渲染出来的元素要在这里补回去 */
 .note-content {
+  padding: 16px 18px;
   font-size: 15.5px;
   line-height: 1.85;
   color: var(--ink);
+  background: var(--card);
+  border-radius: var(--r-md);
   overflow-wrap: anywhere;
 }
 
@@ -5017,6 +5065,11 @@ button.doc-back {
 }
 
 @media (max-width: 768px) {
+  .notes-container {
+    padding-top: 24px;
+    padding-bottom: 48px;
+  }
+
   .notes-title {
     font-size: 28px;
   }
