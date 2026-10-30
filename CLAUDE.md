@@ -370,7 +370,7 @@ Claude 走 CIMD 没问题，授权页显示核实过的域名。**ChatGPT 的 CI
 - `public/vendor/jszip.min.js` 是本地托管的官方浏览器产物（选择 MIT 许可），仅记事本加载；`npm run build:zip` 重新生成，`npm run build` 自动执行
 - 记事本页**不加载 `auth.js`**（它硬依赖首页页眉的 DOM），自己读 localStorage `authToken`。没有令牌显示「请先登录」；
   收到 401 只提示回首页重新登录，**不删令牌**——是否真过期由首页的校验流程判断
-- 视图按 hash 切：`#/`、`#/f/<文件夹 id | none>` 列表，`#/new`、`#/n/<id>/edit` 编辑，`#/n/<id>` 查看。查看页顶部同一行展示面包屑导航（`记事本 > 分类`，分别跳到全部列表与该分类列表）与 `.note-meta` 字数时间信息，不放分类选择器；「编辑」按钮放在正文底部的 `.note-tools` 操作区，与下载笔记、复制全文、公开发布、删除并列。视图整块用 innerHTML 重画，
+- 视图按 hash 切：`#/`、`#/f/<文件夹 id | none>` 列表，`#/new`、`#/n/<id>/edit` 编辑，`#/n/<id>` 查看。查看页将顶部导航栏（`.note-detail-bar`：同行展示 `记事本 > 分类` 面包屑导航与 `.note-meta` 字数时间信息，不放分类选择器）与正文（`.note-content`）包裹在同一个白色圆角卡片 `.note-detail-card` 内；「编辑」按钮放在卡片底部的 `.note-tools` 操作区，与下载笔记、复制全文、公开发布、删除并列。视图整块用 innerHTML 重画，
   事件在 `#notesApp` 上委托（`data-action`）。异步结果回来时用 `routeSerial` 判断用户是否已经切走
 - **手动保存**（按钮和 Ctrl/Cmd+S），不自动保存。**保存后留在编辑页**接着写，不跳走：新建的记事拿到 id 后用 `replaceState` 把网址换成
   `#/n/<id>/edit`（不触发 hashchange，编辑器不重画）。保存中按钮转圈、页眉走进度条（`showHeaderProgress()`，请求没有真实进度，是模拟的），

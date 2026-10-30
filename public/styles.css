@@ -4419,10 +4419,24 @@ html[data-tool="qrcode"] #tool-qrcode {
   margin-left: -12px;
 }
 
+.note-detail-card {
+  padding: 16px 18px;
+  background: var(--card);
+  border-radius: var(--r-md);
+}
+
+.note-detail-card .note-content {
+  padding: 0;
+  background: none;
+  border-radius: 0;
+}
+
 .note-detail-bar {
   flex-wrap: wrap;
   gap: 4px 12px;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
 }
 
 .note-detail-bar .note-meta {
@@ -4440,6 +4454,7 @@ html[data-tool="qrcode"] #tool-qrcode {
 .note-breadcrumb-link {
   display: inline-flex;
   align-items: center;
+  gap: 6px;
   height: 30px;
   padding: 0 8px;
   font-weight: 500;
@@ -4447,6 +4462,10 @@ html[data-tool="qrcode"] #tool-qrcode {
   text-decoration: none;
   border-radius: var(--r-sm);
   transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.note-breadcrumb-link i {
+  font-size: 12px;
 }
 
 .note-breadcrumb-link:first-child {
@@ -5066,8 +5085,12 @@ button.doc-back {
 
 @media (max-width: 768px) {
   .notes-container {
-    padding-top: 24px;
-    padding-bottom: 48px;
+    padding: 0;
+  }
+
+  .note-detail-card {
+    padding: 12px 14px;
+    border-radius: 0;
   }
 
   .notes-title {

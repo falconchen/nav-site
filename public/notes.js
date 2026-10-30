@@ -461,15 +461,17 @@
             </div>` : '';
 
         app.innerHTML = `
-            <div class="notes-bar note-detail-bar">
-                <nav class="note-breadcrumb" aria-label="面包屑导航">
-                    <a class="note-breadcrumb-link" href="#/">记事本</a>
-                    <span class="note-breadcrumb-sep" aria-hidden="true">&gt;</span>
-                    <a class="note-breadcrumb-link" href="${categoryHref}">${escapeHtml(categoryName)}</a>
-                </nav>
-                <p class="note-meta">${meta}</p>
+            <div class="note-detail-card">
+                <div class="notes-bar note-detail-bar">
+                    <nav class="note-breadcrumb" aria-label="面包屑导航">
+                        <a class="note-breadcrumb-link" href="#/"><i class="fas fa-book" aria-hidden="true"></i>记事本</a>
+                        <span class="note-breadcrumb-sep" aria-hidden="true">&gt;</span>
+                        <a class="note-breadcrumb-link" href="${categoryHref}">${escapeHtml(categoryName)}</a>
+                    </nav>
+                    <p class="note-meta">${meta}</p>
+                </div>
+                <article class="note-content${plain ? ' note-plain' : ''}">${html}</article>
             </div>
-            <article class="note-content${plain ? ' note-plain' : ''}">${html}</article>
             ${publish}
             <div class="note-tools">
                 <div class="note-tools-buttons">
