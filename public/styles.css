@@ -4454,7 +4454,6 @@ html[data-tool="qrcode"] #tool-qrcode {
 .note-breadcrumb-link {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
   height: 30px;
   padding: 0 8px;
   font-weight: 500;
@@ -4462,10 +4461,6 @@ html[data-tool="qrcode"] #tool-qrcode {
   text-decoration: none;
   border-radius: var(--r-sm);
   transition: background-color 0.15s ease, color 0.15s ease;
-}
-
-.note-breadcrumb-link i {
-  font-size: 12px;
 }
 
 .note-breadcrumb-link:first-child {
@@ -5085,11 +5080,13 @@ button.doc-back {
 
 @media (max-width: 768px) {
   .notes-container {
-    padding: 0;
+    padding-top: 24px;
+    padding-bottom: 48px;
   }
 
   .note-detail-card {
-    padding: 12px 14px;
+    margin: -24px calc(var(--page-pad) * -1) 0;
+    padding: 12px var(--page-pad) 16px;
     border-radius: 0;
   }
 
