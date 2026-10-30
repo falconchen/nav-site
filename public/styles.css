@@ -957,14 +957,15 @@ html:not([data-tab="all"]) body:not(.searching) .main-container.editing-categori
   background: var(--paper-sunk);
 }
 
-.category-item.active {
+/* 搜索时匹配结果跨分类展示，不高亮任何分类 */
+body:not(.searching) .category-item.active {
   color: var(--ink);
   font-weight: 600;
   background: var(--card);
   box-shadow: var(--shadow-1), inset 0 0 0 1px var(--line);
 }
 
-.category-item.active::before {
+body:not(.searching) .category-item.active::before {
   color: var(--accent);
 }
 
@@ -1003,8 +1004,8 @@ html[data-sidebar="compact"] .category-item > i {
   display: block;
 }
 
-.categories-sidebar.compact-mode .category-item.active > i,
-html[data-sidebar="compact"] .category-item.active > i {
+body:not(.searching) .categories-sidebar.compact-mode .category-item.active > i,
+html[data-sidebar="compact"] body:not(.searching) .category-item.active > i {
   color: var(--accent);
 }
 

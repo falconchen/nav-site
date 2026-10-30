@@ -477,9 +477,9 @@ function renderCategoryList() {
         categoriesList.insertAdjacentHTML('beforeend', categoryHTML);
     });
 
-    // 默认高亮第一个分类。不调 showCategory：它会切到「全部网站」tab 并滚动
+    // 默认高亮第一个分类（搜索状态下不高亮）。不调 showCategory：它会切到「全部网站」tab 并滚动
     const firstCategory = sortedCategories[0];
-    if (firstCategory) {
+    if (firstCategory && !document.body.classList.contains('searching')) {
         const firstCategoryItem = document.querySelector(`.category-item[data-category="${firstCategory.id}"]`);
         if (firstCategoryItem) {
             firstCategoryItem.classList.add('active');
@@ -2677,8 +2677,8 @@ function setupScrollSpy() {
 
     // 更新当前分类的高亮状态
     const updateActiveCategory = debounce(function () {
-        // 侧边栏只在「全部网站」tab 下显示
-        if (document.documentElement.getAttribute('data-tab') !== 'all') return;
+        // 侧边栏只在「全部网站」tab 下更新高亮；搜索时结果跨分类且 #tab-all 隐藏，不更新
+        if (document.documentElement.getAttribute('data-tab') !== 'all' || document.body.classList.contains('searching')) return;
 
         // 扣掉吸顶的头部和 tab 栏，再留一点余量提前激活
         const header = document.querySelector('.header');
@@ -2835,6 +2835,9 @@ searchBox.addEventListener('input', function () {
     document.body.classList.toggle('searching', searching);
     if (wasSearching !== searching) {
         window.scrollTo({ top: 0 });
+        document.querySelectorAll('.category-item').forEach((item, index) => {
+            item.classList.toggle('active', !searching && index === 0);
+        });
     }
     renderSearchResults();
 });
