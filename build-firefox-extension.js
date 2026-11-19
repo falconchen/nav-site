@@ -35,10 +35,14 @@ function toFirefoxManifest(chrome) {
         gecko: {
             id: GECKO_ID,
             update_url: UPDATE_URL,
-            // data_collection_permissions 从 140 开始支持，140 也是 ESR
+            // 桌面版 140 是 ESR，data_collection_permissions 桌面从 140 开始支持
             strict_min_version: '140.0',
             // 收藏时会把网址和页面内容发给导航站服务端
             data_collection_permissions: { required: ['browsingActivity', 'websiteContent'] }
+        },
+        gecko_android: {
+            // Android 版从 142 开始支持 data_collection_permissions
+            strict_min_version: '142.0'
         }
     };
     return manifest;
