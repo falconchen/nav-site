@@ -14,6 +14,7 @@
 - [MCP.md](MCP.md)：让 Claude、ChatGPT 等 AI 工具通过 MCP 查收藏、读写记事本
 - [REST_API_TESTING.md](REST_API_TESTING.md)：接口的测试方法和实测记录
 - [IOS_SHORTCUT.md](IOS_SHORTCUT.md)：iOS 快捷指令（浮层版和 Safari 版）
+- [FIREFOX_AMO.md](FIREFOX_AMO.md)：Firefox 扩展上架 AMO（官方商店）流程与自动化提交
 
 ## 功能说明
 
